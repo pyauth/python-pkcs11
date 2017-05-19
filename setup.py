@@ -8,14 +8,14 @@ from distutils.extension import Extension
 from Cython.Build import cythonize
 
 ext_modules = [
-    Extension('_pkcs11_dyn_load',
+    Extension('pkcs11._loader',
               sources=[
-                  'src/_pkcs11_dyn_load.pyx',
+                  'pkcs11/_loader.pyx',
               ],
     ),
-    Extension('pkcs11',
+    Extension('pkcs11._pkcs11',
               sources=[
-                  'src/pkcs11.pyx',
+                  'pkcs11/_pkcs11.pyx',
               ],
               define_macros=[
                   # These are required to build the PKCS11 headers

@@ -2,7 +2,7 @@
 Definitions imported from PKCS11 C headers.
 """
 
-cdef extern from 'extern/pkcs11.h':
+cdef extern from '../extern/pkcs11.h':
 
     ctypedef unsigned char CK_BYTE
     ctypedef CK_BYTE CK_BBOOL
