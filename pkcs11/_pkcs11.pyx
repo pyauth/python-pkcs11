@@ -15,6 +15,7 @@ from _pkcs11_defn cimport *
 from . import types
 from .exceptions import *
 from .mechanisms import *
+from .types import _CK_UTF8CHAR_to_str
 
 
 # Map from return codes to Python exceptions.
@@ -28,17 +29,16 @@ ERROR_MAP = {
     CK_RV.CKR_FUNCTION_FAILED: FunctionFailed,
     CK_RV.CKR_GENERAL_ERROR: GeneralError,
     CK_RV.CKR_HOST_MEMORY: HostMemory,
+    CK_RV.CKR_SESSION_CLOSED: SessionClosed,
+    CK_RV.CKR_SESSION_COUNT: SessionCount,
+    CK_RV.CKR_SESSION_HANDLE_INVALID: SessionHandleInvalid,
+    CK_RV.CKR_SESSION_PARALLEL_NOT_SUPPORTED: RuntimeError,
+    CK_RV.CKR_SESSION_READ_WRITE_SO_EXISTS: SessionReadWriteSOExists,
     CK_RV.CKR_SLOT_ID_INVALID: SlotIDInvalid,
     CK_RV.CKR_TOKEN_NOT_PRESENT: TokenNotPresent,
     CK_RV.CKR_TOKEN_NOT_RECOGNIZED: TokenNotRecognised,
+    CK_RV.CKR_TOKEN_WRITE_PROTECTED: TokenWriteProtected,
 }
-
-
-cdef str _CK_UTF8CHAR_to_str(bytes data):
-    """Convert CK_UTF8CHAR to string."""
-    # FIXME: any byte past 31 appears to be bogus, is this my fault
-    # or SoftHSM?
-    return data[:31].decode('utf-8').rstrip()
 
 
 cdef tuple _CK_VERSION_to_tuple(CK_VERSION data):
@@ -54,7 +54,7 @@ def _CK_MECHANISM_TYPE_to_enum(mechanism):
         return mechanism
 
 
-cdef void assertRV(CK_RV rv):
+cpdef void assertRV(CK_RV rv):
     """Check for an acceptable RV value or thrown an exception."""
     if rv != CK_RV.CKR_OK:
         raise ERROR_MAP.get(rv, PKCS11Error)()
@@ -62,10 +62,6 @@ cdef void assertRV(CK_RV rv):
 
 class Slot(types.Slot):
     """Extend Slot with implementation."""
-
-    def __init__(self, lib, slot_id, **kwargs):
-        self._lib = lib
-        super().__init__(slot_id, **kwargs)
 
     def get_token(self):
         cdef CK_TOKEN_INFO info
@@ -91,6 +87,24 @@ class Slot(types.Slot):
 
 class Token(types.Token):
     """Extend Token with implementation."""
+
+    def open(self, rw=False, user_pin=None, so_pin=None):
+        cdef CK_SESSION_HANDLE handle
+        cdef CK_FLAGS flags = CKF_SERIAL_SESSION
+
+        if rw:
+            flags |= CKF_RW_SESSION
+
+        assertRV(C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
+
+        return Session(self, handle)
+
+
+class Session(types.Session):
+    """Extend Session with implementation."""
+
+    def close(self):
+        assertRV(C_CloseSession(self._handle))
 
 
 cdef class lib:
@@ -159,6 +173,7 @@ cdef class lib:
 
     def get_tokens(self,
                    token_label=None,
+                   token_serial=None,
                    token_flags=None,
                    slot_flags=None,
                    mechanisms=None):
@@ -171,6 +186,10 @@ cdef class lib:
             try:
                 if token_label is not None and \
                         token.label != token_label:
+                    continue
+
+                if token_serial is not None and \
+                        token.serial != token_serial:
                     continue
 
                 if token_flags is not None and \

@@ -7,8 +7,9 @@ cdef extern from '../extern/pkcs11.h':
     ctypedef unsigned char CK_BYTE
     ctypedef CK_BYTE CK_BBOOL
     ctypedef CK_BYTE CK_UTF8CHAR
-    ctypedef char CK_CHAR
-    ctypedef unsigned long int CK_ULONG;
+    ctypedef unsigned char CK_CHAR
+    ctypedef unsigned long int CK_ULONG
+    ctypedef CK_ULONG CK_SESSION_HANDLE
     ctypedef CK_ULONG CK_FLAGS
 
     ctypedef CK_ULONG CK_SLOT_ID
@@ -28,6 +29,16 @@ cdef extern from '../extern/pkcs11.h':
         CKR_SLOT_ID_INVALID,
         CKR_TOKEN_NOT_PRESENT,
         CKR_TOKEN_NOT_RECOGNIZED,
+        CKR_SESSION_CLOSED,
+        CKR_SESSION_HANDLE_INVALID,
+        CKR_SESSION_READ_WRITE_SO_EXISTS,
+        CKR_SESSION_PARALLEL_NOT_SUPPORTED,
+        CKR_SESSION_COUNT,
+        CKR_TOKEN_WRITE_PROTECTED,
+
+    cdef enum:  # Untyped C definitions
+        CKF_RW_SESSION,
+        CKF_SERIAL_SESSION,
 
     ctypedef struct CK_VERSION:
         CK_BYTE major
@@ -42,12 +53,12 @@ cdef extern from '../extern/pkcs11.h':
         CK_VERSION libraryVersion;
 
     ctypedef struct CK_SLOT_INFO:
-        CK_UTF8CHAR slotDescription[64];
-        CK_UTF8CHAR manufacturerID[32];
-        CK_FLAGS flags;
+        CK_UTF8CHAR slotDescription[64]
+        CK_UTF8CHAR manufacturerID[32]
+        CK_FLAGS flags
 
-        CK_VERSION hardwareVersion;
-        CK_VERSION firmwareVersion;
+        CK_VERSION hardwareVersion
+        CK_VERSION firmwareVersion
 
     ctypedef struct CK_TOKEN_INFO:
         CK_UTF8CHAR   label[32]
@@ -78,6 +89,7 @@ cdef extern from '../extern/pkcs11.h':
                         CK_SLOT_ID *slotList,
                         CK_ULONG *count)
 
+    # Slot Methods
     CK_RV C_GetSlotInfo(CK_SLOT_ID slotID,
                         CK_SLOT_INFO *info)
     CK_RV C_GetTokenInfo(CK_SLOT_ID slotID,
@@ -85,3 +97,11 @@ cdef extern from '../extern/pkcs11.h':
     CK_RV C_GetMechanismList(CK_SLOT_ID slotID,
                              CK_MECHANISM_TYPE *mechanismList,
                              CK_ULONG *count)
+    CK_RV C_OpenSession(CK_SLOT_ID slotID,
+                        CK_FLAGS flags,
+                        void *application,
+                        void *notify,
+                        CK_SESSION_HANDLE *handle)
+
+    # Session Methods
+    CK_RV C_CloseSession(CK_SESSION_HANDLE handle)

@@ -137,14 +137,15 @@ class Slot:
     a physical or software :class:`Token` installed.
     """
 
-    def __init__(self,
-                 slot_id,
+    def __init__(self, lib, slot_id,
                  slotDescription=None,
                  manufacturerID=None,
                  hardwareVersion=None,
                  firmwareVersion=None,
                  flags=None,
                  **kwargs):
+
+        self._lib = lib  # Hold a reference to the lib to prevent gc
 
         self.slot_id = slot_id
         """Slot identifier (opaque)."""
@@ -200,21 +201,62 @@ class Token:
     """
 
     def __init__(self, slot,
-                 label=None,
-                 flags=None,
+                 label=None, serial=None, flags=None,
                  **kwargs):
+
         self.slot = slot
         """The :class:`Slot` this token is installed in."""
         self.label = _CK_UTF8CHAR_to_str(label)
         """Label of this token (:class:`str`)."""
+        self.serial = serial
+        """Serial number of this token (:class:`bytes`)."""
         self.flags = TokenFlags(flags)
         """Capabilities of this token (:class:`TokenFlags`)."""
+
+    def open(self, rw=False, user_pin=None, so_pin=None):
+        """
+        Open a session on the token.
+
+        Can be used as a context manager.
+
+        :rtype: Session
+        """
+        raise NotImplementedError()
 
     def __str__(self):
         return self.label
 
     def __repr__(self):
-        return "<{klass} (label='{label}' flags={flags})>".format(
-            klass=type(self).__name__,
-            label=self.label,
-            flags=str(self.flags))
+        return "<{klass} (label='{label}' serial={serial} flags={flags})>"\
+            .format(klass=type(self).__name__,
+                    label=self.label,
+                    serial=self.serial,
+                    flags=str(self.flags))
+
+
+class Session:
+    """
+    A PKCS#11 :class:`Token` session.
+
+    A session is required to do nearly all operations on a token including
+    encryption/signing/keygen etc.
+
+    Create a session using :meth:`Token.open`. Sessions can be used as a
+    context manager or closed with :meth:`close`.
+    """
+
+    def __init__(self, token, handle):
+        self.token = token
+        """:class:`Token` this session is on."""
+
+        self._handle = handle
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type_, value, traceback):
+        self.close()
+
+    def close(self):
+        """Close the session."""
+        raise NotImplementedError()

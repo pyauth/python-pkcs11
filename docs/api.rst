@@ -25,11 +25,12 @@ API Reference
 
             :rtype: list(Slot)
 
-        .. method:: get_tokens(token_label=None, token_flags=None, slot_flags=None, mechanisms=None)
+        .. method:: get_tokens(token_label=None, token_serial=None, token_flags=None, slot_flags=None, mechanisms=None)
 
             Generator yielding PKCS#11 tokens matching the provided parameters.
 
             :param str token_label: Optional token label.
+            :param bytes token_serial: Optional token serial.
             :param TokenFlags token_flags: Optional bitwise token flags.
             :param SlotFlags slot_flags: Optional bitwise slot flags.
             :param iterable(Mechanisms) mechanisms: Optional required mechanisms.
@@ -59,6 +60,10 @@ API Reference
 
 
     .. autoclass:: Token()
+        :members:
+        :inherited-members:
+
+    .. autoclass:: Session()
         :members:
         :inherited-members:
 
