@@ -2,6 +2,8 @@
 Types for high level PKCS#11 interface.
 """
 
+import enum
+
 
 def _CK_UTF8CHAR_to_str(data):
     """Convert CK_UTF8CHAR to string."""
@@ -13,6 +15,107 @@ def _CK_UTF8CHAR_to_str(data):
 def _CK_VERSION_to_tuple(data):
     """Convert CK_VERSION to tuple."""
     return (data['major'], data['minor'])
+
+
+def _CK_FLAGS_to_flags(flags):
+    return Flags(flags)
+
+
+@enum.unique
+class Flags(enum.IntFlag):
+    """:class:`lib`, :class:`Slot` and :class:`Token` flags."""
+
+    RNG                   = 0x00000001
+    """Has random number generator."""
+    WRITE_PROTECTED       = 0x00000002
+    """Token is write protected."""
+    LOGIN_REQUIRED        = 0x00000004
+    """User must login."""
+    USER_PIN_INITIALIZED  = 0x00000008
+    """Normal user's pin is set."""
+
+    RESTORE_KEY_NOT_NEEDED = 0x00000020
+    """
+    If it is set, that means that *every* time the state of cryptographic
+    operations of a session is successfully saved, all keys needed to continue
+    those operations are stored in the state.
+    """
+
+    CLOCK_ON_TOKEN        = 0x00000040
+    """
+    If it is set, that means that the token has some sort of clock.  The time
+    on that clock is returned in the token info structure.
+    """
+
+    PROTECTED_AUTHENTICATION_PATH = 0x00000100
+    """
+    If it is set, that means that there is some way for the user to login
+    without sending a PIN through the Cryptoki library itself.
+    """
+
+    DUAL_CRYPTO_OPERATIONS = 0x00000200
+    """
+    If it is true, that means that a single session with the token can perform
+    dual simultaneous cryptographic operations (digest and encrypt; decrypt and
+    digest; sign and encrypt; and decrypt and sign).
+    """
+
+    TOKEN_INITIALIZED = 0x00000400
+    """
+    If it is true, the token has been initialized using C_InitializeToken or an
+    equivalent mechanism outside the scope of PKCS #11.  Calling
+    C_InitializeToken when this flag is set will cause the token to be
+    reinitialized.
+    """
+
+    USER_PIN_COUNT_LOW = 0x00010000
+    """
+    If it is true, an incorrect user login PIN has been entered at least once
+    since the last successful authentication.
+    """
+
+    USER_PIN_FINAL_TRY = 0x00020000
+    """
+    If it is true, supplying an incorrect user PIN will it to become locked.
+    """
+
+    USER_PIN_LOCKED = 0x00040000
+    """
+    If it is true, the user PIN has been locked. User login to the token is not
+    possible.
+    """
+
+    USER_PIN_TO_BE_CHANGED = 0x00080000
+    """
+    If it is true, the user PIN value is the default value set by token
+    initialization or manufacturing, or the PIN has been expired by the card.
+    """
+
+    SO_PIN_COUNT_LOW = 0x00100000
+    """
+    If it is true, an incorrect SO (security officer) login PIN has been
+    entered at least once since the last successful authentication.
+    """
+
+    SO_PIN_FINAL_TRY = 0x00200000
+    """
+    If it is true, supplying an incorrect SO (security officer) PIN will it to
+    become locked.
+    """
+
+    SO_PIN_LOCKED = 0x00400000
+    """
+    If it is true, the SO (security officer) PIN has been locked. SO login to
+    the token is not possible.
+    """
+
+    SO_PIN_TO_BE_CHANGED = 0x00800000
+    """
+    If it is true, the SO PIN value is the default value set by token
+    initialization or manufacturing, or the PIN has been expired by the card.
+    """
+
+    ERROR_STATE = 0x01000000
 
 
 class Slot:
@@ -29,17 +132,25 @@ class Slot:
                  manufacturerID=None,
                  hardwareVersion=None,
                  firmwareVersion=None,
+                 flags=None,
                  **kwargs):
-        self.slotDescription = _CK_UTF8CHAR_to_str(slotDescription)
-        self.manufacturerID = _CK_UTF8CHAR_to_str(manufacturerID)
-        self.hardwareVersion = _CK_VERSION_to_tuple(hardwareVersion)
-        self.firmwareVersion = _CK_VERSION_to_tuple(firmwareVersion)
+
+        self.slot_description = _CK_UTF8CHAR_to_str(slotDescription)
+        """Slot name (:class:`str`)."""
+        self.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturerID)
+        """Slot/device manufacturer's name (:class:`str`)."""
+        self.hardware_version = _CK_VERSION_to_tuple(hardwareVersion)
+        """Hardware version (:class:`tuple`)."""
+        self.firmware_version = _CK_VERSION_to_tuple(firmwareVersion)
+        """Firmware version (:class:`tuple`)."""
+        self.flags = _CK_FLAGS_to_flags(flags)
+        """Capabilities of this slot (:class:`Flags`)."""
 
     def get_token(self):
         """
         Returns the token loaded into this slot.
 
-        :rtype: list(Token)
+        :rtype: Token
         """
         raise NotImplementedError()
 
@@ -53,15 +164,18 @@ class Slot:
 
     def __str__(self):
         return '\n'.join((
-            "Slot Description: %s" % self.slotDescription,
-            "Manufacturer ID: %s" % self.manufacturerID,
-            "Hardware Version: %s.%s" % self.hardwareVersion,
-            "Firmware Version: %s.%s" % self.firmwareVersion,
+            "Slot Description: %s" % self.slot_description,
+            "Manufacturer ID: %s" % self.manufacturer_id,
+            "Hardware Version: %s.%s" % self.hardware_version,
+            "Firmware Version: %s.%s" % self.firmware_version,
+            "Flags: %s" % self.flags,
         ))
 
     def __repr__(self):
-        return '<{klass} (slotID={slotID})>'.format(
-            klass=type(self).__name__, slotID=self.slotID)
+        return '<{klass} (slotID={slotID} flags={flags})>'.format(
+            klass=type(self).__name__,
+            slotID=self.slotID,
+            flags=str(self.flags))
 
 
 class Token:
@@ -74,13 +188,20 @@ class Token:
 
     def __init__(self, slot,
                  label=None,
+                 flags=None,
                  **kwargs):
         self.slot = slot
+        """The :class:`Slot` this token is installed in."""
         self.label = _CK_UTF8CHAR_to_str(label)
+        """Label of this token (:class:`str`)."""
+        self.flags = _CK_FLAGS_to_flags(flags)
+        """Capabilities of this token (:class:`Flags`)."""
 
     def __str__(self):
         return self.label
 
     def __repr__(self):
-        return "<{klass} (label='{label}')>".format(
-            klass=type(self).__name__, label=self.label)
+        return "<{klass} (label='{label}' flags={flags})>".format(
+            klass=type(self).__name__,
+            label=self.label,
+            flags=str(self.flags))

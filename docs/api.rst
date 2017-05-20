@@ -25,6 +25,27 @@ API Reference
 
             :rtype: list(Slot)
 
+        .. attribute:: cryptoki_version
+
+            PKCS#11 Cryptoki standard version (:class:`tuple`).
+
+        .. attribute:: manufacturer_id
+
+            Library vendor's name (:class:`str`).
+
+        .. attribute:: library_description
+
+            Description of the vendor's library (:class:`str`).
+
+        .. attribute:: library_version
+
+            Vendor's library version (:class:`tuple`).
+
+        .. attribute:: flags
+
+            Library capabilities (:class:`Flags`).
+
+
     .. autoclass:: Slot()
         :members:
         :inherited-members:
@@ -33,6 +54,14 @@ API Reference
     .. autoclass:: Token()
         :members:
         :inherited-members:
+
+Flags
+-----
+
+.. autoclass:: pkcs11.Flags
+    :members:
+    :inherited-members:
+    :undoc-members:
 
 Mechanisms
 ----------

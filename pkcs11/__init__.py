@@ -18,4 +18,4 @@ def lib(so):
 
     from . import _pkcs11
 
-    return _pkcs11.lib()
+    return _pkcs11.lib(so)

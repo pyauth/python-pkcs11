@@ -10,6 +10,7 @@ from _pkcs11_defn cimport *
 from . import types
 from .exceptions import *
 from .mechanisms import *
+from .types import Flags
 
 
 ERROR_MAP = {
@@ -87,31 +88,43 @@ class Token(types.Token):
 
 cdef class lib:
 
-    cdef str manufacturerID
-    cdef str libraryDescription
-    cdef tuple cryptokiVersion
-    cdef tuple libraryVersion
+    cdef str so
+    cdef str manufacturer_id
+    cdef str library_description
+    cdef tuple cryptoki_version
+    cdef tuple library_version
+    cdef object flags
 
     def __cinit__(self):
         assertRV(C_Initialize(NULL))
 
-    def __init__(self):
+    def __init__(self, so):
+        self.so = so
+
         cdef CK_INFO info
 
         assertRV(C_GetInfo(&info))
 
-        self.manufacturerID = _CK_UTF8CHAR_to_str(info.manufacturerID)
-        self.libraryDescription = _CK_UTF8CHAR_to_str(info.libraryDescription)
-        self.cryptokiVersion = _CK_VERSION_to_tuple(info.cryptokiVersion)
-        self.libraryVersion = _CK_VERSION_to_tuple(info.libraryVersion)
+        self.manufacturer_id = _CK_UTF8CHAR_to_str(info.manufacturerID)
+        self.library_description = _CK_UTF8CHAR_to_str(info.libraryDescription)
+        self.cryptoki_version = _CK_VERSION_to_tuple(info.cryptokiVersion)
+        self.library_version = _CK_VERSION_to_tuple(info.libraryVersion)
+        self.flags = Flags(info.flags)
 
     def __str__(self):
         return '\n'.join((
-            "Manufacturer ID: %s" % self.manufacturerID,
-            "Library Description: %s" % self.libraryDescription,
-            "Cryptoki Version: %s.%s" % self.cryptokiVersion,
-            "Library Version: %s.%s" % self.libraryVersion,
+            "Library: %s" % self.so,
+            "Manufacturer ID: %s" % self.manufacturer_id,
+            "Library Description: %s" % self.library_description,
+            "Cryptoki Version: %s.%s" % self.cryptoki_version,
+            "Library Version: %s.%s" % self.library_version,
+            "Flags: %s" % self.flags,
         ))
+
+    def __repr__(self):
+        return '<pkcs11.lib ({so} flags={flags})>'.format(
+            so=self.so,
+            flags=str(self.flags))
 
     def get_slots(self, token_present=False):
         cdef CK_ULONG count
