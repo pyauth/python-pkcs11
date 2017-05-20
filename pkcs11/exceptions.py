@@ -2,7 +2,7 @@
 PKCS#11 Exceptions
 """
 
-class PKCS11Error(Exception):
+class PKCS11Error(RuntimeError):
     pass
 
 

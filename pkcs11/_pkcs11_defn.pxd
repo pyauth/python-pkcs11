@@ -12,9 +12,11 @@ cdef extern from '../extern/pkcs11.h':
     ctypedef CK_ULONG CK_FLAGS
 
     ctypedef CK_ULONG CK_SLOT_ID
+    ctypedef CK_ULONG CK_MECHANISM_TYPE
 
     ctypedef enum CK_RV:
         CKR_ARGUMENTS_BAD,
+        CKR_BUFFER_TOO_SMALL,
         CKR_CRYPTOKI_NOT_INITIALIZED,
         CKR_DEVICE_ERROR,
         CKR_DEVICE_MEMORY,
@@ -75,7 +77,11 @@ cdef extern from '../extern/pkcs11.h':
     CK_RV C_GetSlotList(CK_BBOOL tokenPresent,
                         CK_SLOT_ID *slotList,
                         CK_ULONG *count)
+
     CK_RV C_GetSlotInfo(CK_SLOT_ID slotID,
                         CK_SLOT_INFO *info)
     CK_RV C_GetTokenInfo(CK_SLOT_ID slotID,
                          CK_TOKEN_INFO *info)
+    CK_RV C_GetMechanismList(CK_SLOT_ID slotID,
+                             CK_MECHANISM_TYPE *mechanismList,
+                             CK_ULONG *count)

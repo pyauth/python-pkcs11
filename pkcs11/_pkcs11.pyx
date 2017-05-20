@@ -9,10 +9,12 @@ from cython.view cimport array
 from _pkcs11_defn cimport *
 from . import types
 from .exceptions import *
+from .mechanisms import *
 
 
 ERROR_MAP = {
     CKR_ARGUMENTS_BAD: ArgumentsBad,
+    CKR_BUFFER_TOO_SMALL: MemoryError,
     CKR_CRYPTOKI_NOT_INITIALIZED: NotInitialized,
     CKR_DEVICE_ERROR: DeviceError,
     CKR_DEVICE_MEMORY: DeviceMemory,
@@ -38,6 +40,13 @@ cdef tuple _CK_VERSION_to_tuple(CK_VERSION data):
     return (data.major, data.minor)
 
 
+def _CK_MECHANISM_TYPE_to_enum(mechanism):
+    try:
+        return Mechanisms(mechanism)
+    except ValueError:
+        return mechanism
+
+
 cdef void assertRV(CK_RV rv):
     """Check for an acceptable RV value."""
     if rv != CK_RV.CKR_OK:
@@ -56,6 +65,20 @@ class Slot(types.Slot):
         assertRV(C_GetTokenInfo(self.slotID, &info))
 
         return Token(**info)
+
+    def get_mechanisms(self):
+        cdef CK_ULONG count
+
+        assertRV(C_GetMechanismList(self.slotID, NULL, &count))
+
+        cdef CK_MECHANISM_TYPE [:] mechanisms = \
+            array(shape=(count,),
+                  itemsize=sizeof(CK_MECHANISM_TYPE),
+                  format='L')
+
+        assertRV(C_GetMechanismList(self.slotID, &mechanisms[0], &count))
+
+        return set(map(_CK_MECHANISM_TYPE_to_enum, mechanisms))
 
 
 class Token(types.Token):

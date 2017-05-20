@@ -4,6 +4,7 @@ High-level Python PKCS#11 Wrapper.
 
 from .types import *
 from .exceptions import *
+from .mechanisms import *
 
 
 def lib(so):

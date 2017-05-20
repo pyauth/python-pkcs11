@@ -36,3 +36,8 @@ class PKCS11Tests(unittest.TestCase):
 
         print(repr(token))
         print(token)
+
+    def test_get_mechanisms(self):
+        lib = pkcs11.lib(LIB)
+        slot, *_ = lib.get_slots()
+        print(slot.get_mechanisms())
