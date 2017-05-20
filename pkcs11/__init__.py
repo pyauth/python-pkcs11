@@ -9,7 +9,8 @@ from .mechanisms import *
 
 def lib(so):
     """
-    Returns a PKCS#11 library.
+    Wrap the main library call coming from Cython with a preemptive
+    dynamic loading.
     """
 
     from ._loader import load

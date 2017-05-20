@@ -64,7 +64,7 @@ class Slot(types.Slot):
 
         assertRV(C_GetTokenInfo(self.slotID, &info))
 
-        return Token(**info)
+        return Token(self, **info)
 
     def get_mechanisms(self):
         cdef CK_ULONG count
@@ -86,9 +86,7 @@ class Token(types.Token):
 
 
 cdef class lib:
-    """
-    Main entrypoint. Call methods on here.
-    """
+
     cdef str manufacturerID
     cdef str libraryDescription
     cdef tuple cryptokiVersion
@@ -98,9 +96,6 @@ cdef class lib:
         assertRV(C_Initialize(NULL))
 
     def __init__(self):
-        """
-        Returns info about our PKCS#11 library.
-        """
         cdef CK_INFO info
 
         assertRV(C_GetInfo(&info))
@@ -118,20 +113,16 @@ cdef class lib:
             "Library Version: %s.%s" % self.libraryVersion,
         ))
 
-    def get_slots(self, tokenPresent=False):
-        """
-        Returns information about our configured slots.
-        """
-
+    def get_slots(self, token_present=False):
         cdef CK_ULONG count
 
-        assertRV(C_GetSlotList(tokenPresent, NULL, &count))
+        assertRV(C_GetSlotList(token_present, NULL, &count))
 
         cdef CK_ULONG [:] slotIDs = array(shape=(count,),
                                           itemsize=sizeof(CK_ULONG),
                                           format='L')
 
-        assertRV(C_GetSlotList(tokenPresent, &slotIDs[0], &count))
+        assertRV(C_GetSlotList(token_present, &slotIDs[0], &count))
 
         cdef CK_SLOT_INFO info
         slots = []
@@ -144,8 +135,3 @@ cdef class lib:
 
     def __dealloc__(self):
         assertRV(C_Finalize(NULL))
-
-
-cdef class Session:
-
-    pass

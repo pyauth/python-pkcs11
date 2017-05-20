@@ -3,7 +3,10 @@ from enum import IntEnum
 
 class Mechanisms(IntEnum):
     """
-    Mechanisms supported by PKCS#11.
+    Cryptographic mechanisms known by PKCS#11.
+
+    The list of supported cryptographic mechanisms for a :class:`Slot` can
+    be retrieved with :meth:`Slot.get_mechanisms()`.
     """
     RSA_PKCS_KEY_PAIR_GEN    = 0x00000000
     RSA_PKCS                 = 0x00000001

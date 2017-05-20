@@ -3,7 +3,9 @@ PKCS#11 Exceptions
 """
 
 class PKCS11Error(RuntimeError):
-    pass
+    """
+    Base exception for all PKCS#11 exceptions.
+    """
 
 
 class NotInitialized(PKCS11Error):
