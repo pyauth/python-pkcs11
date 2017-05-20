@@ -41,3 +41,8 @@ class PKCS11Tests(unittest.TestCase):
         lib = pkcs11.lib(LIB)
         slot, *_ = lib.get_slots()
         print(slot.get_mechanisms())
+
+    def test_get_tokens(self):
+        lib = pkcs11.lib(LIB)
+        tokens = lib.get_tokens(flags=pkcs11.Flags.RNG)
+        self.assertEqual(len(list(tokens)), 1)

@@ -146,5 +146,31 @@ cdef class lib:
 
         return slots
 
+    def get_tokens(self,
+                   token_label=None,
+                   flags=None,
+                   mechanisms=None):
+
+        for slot in self.get_slots():
+            token = slot.get_token()
+            token_mechanisms = slot.get_mechanisms()
+
+            try:
+                if token_label is not None \
+                        and token_label != token.label:
+                    continue
+
+                if mechanisms is not None \
+                        and mechanisms not in token_mechanisms:
+                    continue
+
+                if flags is not None \
+                        and not (slot.flags | token.flags) & flags:
+                    continue
+
+                yield token
+            except PKCS11Error:
+                continue
+
     def __dealloc__(self):
         assertRV(C_Finalize(NULL))
