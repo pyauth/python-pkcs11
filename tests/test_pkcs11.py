@@ -4,12 +4,16 @@ PKCS#11 SoftHSM v2 unit tests.
 These tests assume SoftHSMv2 with a single token initialized called DEMO.
 """
 
+import os
 import unittest
 
 import pkcs11
 
 
-LIB = '/usr/local/Cellar/softhsm/2.2.0/lib/softhsm/libsofthsm2.so'
+try:
+    LIB = os.environ['PKCS11_MODULE']
+except KeyError:
+    raise RuntimeError("Must define `PKCS11_MODULE' to run tests.")
 
 
 class PKCS11Tests(unittest.TestCase):
@@ -55,4 +59,3 @@ class PKCS11Tests(unittest.TestCase):
 
         with token.open() as session:
             self.assertIsInstance(session, pkcs11.Session)
-

@@ -1,0 +1,27 @@
+sudo: false
+language: python
+
+python:
+    - '3.5'
+    - '3.6'
+
+env:
+    global:
+        - PKCS11_MODULE=/home/travis/lib/softhsm/libsofthsm2.so
+
+cache:
+    - pip
+    - ccache  # For SoftHSMv2
+
+before_install:
+    # Install SoftHSMv2
+    - curl https://dist.opendnssec.org/source/softhsm-2.2.0.tar.gz | tar -zxv
+    - (cd softhsm-2.2.0 && ./configure --prefix=$HOME --disable-p11-kit && make all install CC="ccache gcc" CXX="ccache g++")
+
+before_script:
+    # Initialise a token on the SoftHSM
+    - $HOME/bin/softhsm2-util --init-token --free --label DEMO --pin 1234 --so-pin 5678
+    # Build our extension
+    - python setup.py build_ext -i
+
+script: python -m unittest
