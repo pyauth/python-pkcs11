@@ -1,5 +1,7 @@
 """
-Types for high level PKCS#11 interface.
+Types for high level PKCS#11 wrapper.
+
+This module provides stubs that are overrideen in pkcs11._pkcs11.
 """
 
 import enum
@@ -17,13 +19,21 @@ def _CK_VERSION_to_tuple(data):
     return (data['major'], data['minor'])
 
 
-def _CK_FLAGS_to_flags(flags):
-    return Flags(flags)
+@enum.unique
+class SlotFlags(enum.IntFlag):
+    """:class:`Slot` flags."""
+
+    TOKEN_PRESENT    = 0x00000001
+    """A token is there (N.B. some hardware known not to set this.)"""
+    REMOVABLE_DEVICE = 0x00000002
+    """Removable devices."""
+    HW_SLOT          = 0x00000004
+    """Hardware slot."""
 
 
 @enum.unique
-class Flags(enum.IntFlag):
-    """:class:`lib`, :class:`Slot` and :class:`Token` flags."""
+class TokenFlags(enum.IntFlag):
+    """:class:`Token` flags."""
 
     RNG                   = 0x00000001
     """Has random number generator."""
@@ -128,6 +138,7 @@ class Slot:
     """
 
     def __init__(self,
+                 slot_id,
                  slotDescription=None,
                  manufacturerID=None,
                  hardwareVersion=None,
@@ -135,6 +146,8 @@ class Slot:
                  flags=None,
                  **kwargs):
 
+        self.slot_id = slot_id
+        """Slot identifier (opaque)."""
         self.slot_description = _CK_UTF8CHAR_to_str(slotDescription)
         """Slot name (:class:`str`)."""
         self.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturerID)
@@ -143,8 +156,8 @@ class Slot:
         """Hardware version (:class:`tuple`)."""
         self.firmware_version = _CK_VERSION_to_tuple(firmwareVersion)
         """Firmware version (:class:`tuple`)."""
-        self.flags = _CK_FLAGS_to_flags(flags)
-        """Capabilities of this slot (:class:`Flags`)."""
+        self.flags = SlotFlags(flags)
+        """Capabilities of this slot (:class:`SlotFlags`)."""
 
     def get_token(self):
         """
@@ -172,9 +185,9 @@ class Slot:
         ))
 
     def __repr__(self):
-        return '<{klass} (slotID={slotID} flags={flags})>'.format(
+        return '<{klass} (slotID={slot_id} flags={flags})>'.format(
             klass=type(self).__name__,
-            slotID=self.slotID,
+            slot_id=self.slot_id,
             flags=str(self.flags))
 
 
@@ -194,8 +207,8 @@ class Token:
         """The :class:`Slot` this token is installed in."""
         self.label = _CK_UTF8CHAR_to_str(label)
         """Label of this token (:class:`str`)."""
-        self.flags = _CK_FLAGS_to_flags(flags)
-        """Capabilities of this token (:class:`Flags`)."""
+        self.flags = TokenFlags(flags)
+        """Capabilities of this token (:class:`TokenFlags`)."""
 
     def __str__(self):
         return self.label

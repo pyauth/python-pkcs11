@@ -25,6 +25,17 @@ API Reference
 
             :rtype: list(Slot)
 
+        .. method:: get_tokens(token_label=None, token_flags=None, slot_flags=None, mechanisms=None)
+
+            Generator yielding PKCS#11 tokens matching the provided parameters.
+
+            :param str token_label: Optional token label.
+            :param TokenFlags token_flags: Optional bitwise token flags.
+            :param SlotFlags slot_flags: Optional bitwise slot flags.
+            :param iterable(Mechanisms) mechanisms: Optional required mechanisms.
+
+            :rtype: iter(Token)
+
         .. attribute:: cryptoki_version
 
             PKCS#11 Cryptoki standard version (:class:`tuple`).
@@ -41,10 +52,6 @@ API Reference
 
             Vendor's library version (:class:`tuple`).
 
-        .. attribute:: flags
-
-            Library capabilities (:class:`Flags`).
-
 
     .. autoclass:: Slot()
         :members:
@@ -58,7 +65,12 @@ API Reference
 Flags
 -----
 
-.. autoclass:: pkcs11.Flags
+.. autoclass:: pkcs11.SlotFlags
+    :members:
+    :inherited-members:
+    :undoc-members:
+
+.. autoclass:: pkcs11.TokenFlags
     :members:
     :inherited-members:
     :undoc-members:
