@@ -3,6 +3,7 @@ High-level Python PKCS#11 Wrapper.
 """
 
 from .types import *
+from .exceptions import *
 
 
 def lib(so):

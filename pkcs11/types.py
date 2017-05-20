@@ -1,6 +1,6 @@
-
-class PKCSError(Exception):
-    pass
+"""
+Types for high level PKCS#11 interface.
+"""
 
 
 def _CK_UTF8CHAR_to_str(data):
@@ -15,34 +15,9 @@ def _CK_VERSION_to_tuple(data):
     return (data['major'], data['minor'])
 
 
-class Info:
+class Slot:
     """
-    getInfo return type
-    """
-
-    def __init__(self,
-                 manufacturerID=None,
-                 libraryDescription=None,
-                 cryptokiVersion=None,
-                 libraryVersion=None,
-                 **kwargs):
-        self.manufacturerID = _CK_UTF8CHAR_to_str(manufacturerID)
-        self.libraryDescription = _CK_UTF8CHAR_to_str(libraryDescription)
-        self.cryptokiVersion = _CK_VERSION_to_tuple(cryptokiVersion)
-        self.libraryVersion = _CK_VERSION_to_tuple(libraryVersion)
-
-    def __str__(self):
-        return '\n'.join((
-            "Manufacturer ID: %s" % self.manufacturerID,
-            "Library Description: %s" % self.libraryDescription,
-            "Cryptoki Version: %s.%s" % self.cryptokiVersion,
-            "Library Version: %s.%s" % self.libraryVersion,
-        ))
-
-
-class SlotInfo:
-    """
-    getSlotInfo return type
+    A PKCS#11 device slot.
     """
 
     def __init__(self,
@@ -64,4 +39,24 @@ class SlotInfo:
             "Firmware Version: %s.%s" % self.firmwareVersion,
         ))
 
+    def __repr__(self):
+        return '<{klass} (slotID={slotID})>'.format(
+            klass=type(self).__name__, slotID=self.slotID)
 
+
+class Token:
+    """
+    A PKCS#11 token
+    """
+
+    def __init__(self,
+                 label=None,
+                 **kwargs):
+        self.label = _CK_UTF8CHAR_to_str(label)
+
+    def __str__(self):
+        return self.label
+
+    def __repr__(self):
+        return "<{klass} (label='{label}')>".format(
+            klass=type(self).__name__, label=self.label)
