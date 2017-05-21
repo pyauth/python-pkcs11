@@ -22,21 +22,35 @@ cdef extern from '../extern/pkcs11.h':
         CKR_DEVICE_ERROR,
         CKR_DEVICE_MEMORY,
         CKR_DEVICE_REMOVED,
+        CKR_FUNCTION_CANCELED,
         CKR_FUNCTION_FAILED,
         CKR_GENERAL_ERROR,
         CKR_HOST_MEMORY,
         CKR_OK,
+        CKR_OPERATION_NOT_INITIALIZED,
+        CKR_PIN_INCORRECT,
+        CKR_PIN_LOCKED,
+        CKR_SESSION_CLOSED,
+        CKR_SESSION_COUNT,
+        CKR_SESSION_HANDLE_INVALID,
+        CKR_SESSION_PARALLEL_NOT_SUPPORTED,
+        CKR_SESSION_READ_ONLY_EXISTS,
+        CKR_SESSION_READ_WRITE_SO_EXISTS,
         CKR_SLOT_ID_INVALID,
         CKR_TOKEN_NOT_PRESENT,
         CKR_TOKEN_NOT_RECOGNIZED,
-        CKR_SESSION_CLOSED,
-        CKR_SESSION_HANDLE_INVALID,
-        CKR_SESSION_READ_WRITE_SO_EXISTS,
-        CKR_SESSION_PARALLEL_NOT_SUPPORTED,
-        CKR_SESSION_COUNT,
         CKR_TOKEN_WRITE_PROTECTED,
+        CKR_USER_ALREADY_LOGGED_IN,
+        CKR_USER_ANOTHER_ALREADY_LOGGED_IN,
+        CKR_USER_PIN_NOT_INITIALIZED,
+        CKR_USER_TOO_MANY_TYPES,
+        CKR_USER_TYPE_INVALID,
 
-    cdef enum:  # Untyped C definitions
+    ctypedef enum CK_USER_TYPE:
+        CKU_SO,
+        CKU_USER,
+
+    cdef enum:  # CK_FLAGS
         CKF_RW_SESSION,
         CKF_SERIAL_SESSION,
 
@@ -104,4 +118,9 @@ cdef extern from '../extern/pkcs11.h':
                         CK_SESSION_HANDLE *handle)
 
     # Session Methods
+    CK_RV C_Login(CK_SESSION_HANDLE handle,
+                  CK_USER_TYPE userType,
+                  CK_UTF8CHAR *pin,
+                  CK_ULONG pinLen)
+    CK_RV C_Logout(CK_SESSION_HANDLE handle)
     CK_RV C_CloseSession(CK_SESSION_HANDLE handle)

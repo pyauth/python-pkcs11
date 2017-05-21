@@ -20,24 +20,34 @@ from .types import _CK_UTF8CHAR_to_str
 
 # Map from return codes to Python exceptions.
 ERROR_MAP = {
-    CK_RV.CKR_ARGUMENTS_BAD: ArgumentsBad,
-    CK_RV.CKR_BUFFER_TOO_SMALL: MemoryError,
-    CK_RV.CKR_CRYPTOKI_NOT_INITIALIZED: NotInitialized,
-    CK_RV.CKR_DEVICE_ERROR: DeviceError,
-    CK_RV.CKR_DEVICE_MEMORY: DeviceMemory,
-    CK_RV.CKR_DEVICE_REMOVED: DeviceRemoved,
-    CK_RV.CKR_FUNCTION_FAILED: FunctionFailed,
-    CK_RV.CKR_GENERAL_ERROR: GeneralError,
-    CK_RV.CKR_HOST_MEMORY: HostMemory,
-    CK_RV.CKR_SESSION_CLOSED: SessionClosed,
-    CK_RV.CKR_SESSION_COUNT: SessionCount,
-    CK_RV.CKR_SESSION_HANDLE_INVALID: SessionHandleInvalid,
-    CK_RV.CKR_SESSION_PARALLEL_NOT_SUPPORTED: RuntimeError,
-    CK_RV.CKR_SESSION_READ_WRITE_SO_EXISTS: SessionReadWriteSOExists,
-    CK_RV.CKR_SLOT_ID_INVALID: SlotIDInvalid,
-    CK_RV.CKR_TOKEN_NOT_PRESENT: TokenNotPresent,
-    CK_RV.CKR_TOKEN_NOT_RECOGNIZED: TokenNotRecognised,
-    CK_RV.CKR_TOKEN_WRITE_PROTECTED: TokenWriteProtected,
+    CKR_ARGUMENTS_BAD: ArgumentsBad,
+    CKR_BUFFER_TOO_SMALL: MemoryError("Buffer was too small. Should never see this."),
+    CKR_CRYPTOKI_NOT_INITIALIZED: RuntimeError("Initialisation error. Should never see this"),
+    CKR_DEVICE_ERROR: DeviceError,
+    CKR_DEVICE_MEMORY: DeviceMemory,
+    CKR_DEVICE_REMOVED: DeviceRemoved,
+    CKR_FUNCTION_CANCELED: FunctionCancelled,
+    CKR_FUNCTION_FAILED: FunctionFailed,
+    CKR_GENERAL_ERROR: GeneralError,
+    CKR_HOST_MEMORY: HostMemory,
+    CKR_OPERATION_NOT_INITIALIZED: OperationNotInitialized,
+    CKR_PIN_INCORRECT: PinIncorrect,
+    CKR_PIN_LOCKED: PinLocked,
+    CKR_SESSION_CLOSED: SessionClosed,
+    CKR_SESSION_COUNT: SessionCount,
+    CKR_SESSION_HANDLE_INVALID: SessionHandleInvalid,
+    CKR_SESSION_PARALLEL_NOT_SUPPORTED: RuntimeError("Parallel not supported. Should never see this."),
+    CKR_SESSION_READ_ONLY_EXISTS: SessionReadOnlyExists,
+    CKR_SESSION_READ_WRITE_SO_EXISTS: SessionReadWriteSOExists,
+    CKR_SLOT_ID_INVALID: SlotIDInvalid,
+    CKR_TOKEN_NOT_PRESENT: TokenNotPresent,
+    CKR_TOKEN_NOT_RECOGNIZED: TokenNotRecognised,
+    CKR_TOKEN_WRITE_PROTECTED: TokenWriteProtected,
+    CKR_USER_ALREADY_LOGGED_IN: UserAlreadyLoggedIn,
+    CKR_USER_ANOTHER_ALREADY_LOGGED_IN: AnotherUserAlreadyLoggedIn,
+    CKR_USER_PIN_NOT_INITIALIZED: UserPinNotInitialized,
+    CKR_USER_TOO_MANY_TYPES: UserTooManyTypes,
+    CKR_USER_TYPE_INVALID: RuntimeError("User type invalid. Should never see this."),
 }
 
 
@@ -54,10 +64,11 @@ def _CK_MECHANISM_TYPE_to_enum(mechanism):
         return mechanism
 
 
-cpdef void assertRV(CK_RV rv):
+cpdef assertRV(CK_RV rv):
     """Check for an acceptable RV value or thrown an exception."""
     if rv != CK_RV.CKR_OK:
-        raise ERROR_MAP.get(rv, PKCS11Error)()
+        raise ERROR_MAP.get(rv,
+                            PKCS11Error("Unknown error code: %s" % rv))
 
 
 class Slot(types.Slot):
@@ -91,11 +102,26 @@ class Token(types.Token):
     def open(self, rw=False, user_pin=None, so_pin=None):
         cdef CK_SESSION_HANDLE handle
         cdef CK_FLAGS flags = CKF_SERIAL_SESSION
+        cdef CK_USER_TYPE user_type
 
         if rw:
             flags |= CKF_RW_SESSION
 
+        if user_pin is not None and so_pin is not None:
+            raise ArgumentsBad("Set either `user_pin` or `so_pin`")
+        elif user_pin is not None:
+            pin = user_pin.encode('utf-8')
+            user_type = CKU_USER
+        elif so_pin is not None:
+            pin = so_pin.encode('utf-8')
+            user_type = CKU_SO
+        else:
+            pin = None
+
         assertRV(C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
+
+        if pin is not None:
+            assertRV(C_Login(handle, user_type, pin, len(pin)))
 
         return Session(self, handle)
 

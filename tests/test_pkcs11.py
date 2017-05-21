@@ -59,3 +59,17 @@ class PKCS11Tests(unittest.TestCase):
 
         with token.open() as session:
             self.assertIsInstance(session, pkcs11.Session)
+
+    def test_open_session_and_login_user(self):
+        lib = pkcs11.lib(LIB)
+        token = next(lib.get_tokens(token_label='DEMO'))
+
+        with token.open(user_pin='1234') as session:
+            self.assertIsInstance(session, pkcs11.Session)
+
+    def test_open_session_and_login_so(self):
+        lib = pkcs11.lib(LIB)
+        token = next(lib.get_tokens(token_label='DEMO'))
+
+        with token.open(so_pin='5678') as session:
+            self.assertIsInstance(session, pkcs11.Session)
