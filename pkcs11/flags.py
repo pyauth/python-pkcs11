@@ -7,9 +7,23 @@ use these classes.
 """
 
 try:
-    from enum import IntFlag, unique
+    from enum import IntEnum, IntFlag, unique
 except ImportError:
-    from aenum import IntFlag, unique
+    from aenum import IntEnum, IntFlag, unique
+
+
+@unique
+class UserType(IntEnum):
+    """PKCS#11 user types."""
+
+    NOBODY = 999
+    """
+    Not officially in the PKCS#11 spec. Used to represent a session that is not
+    logged in.
+    """
+    SO = 0
+    """Security officer."""
+    USER = 1
 
 
 @unique

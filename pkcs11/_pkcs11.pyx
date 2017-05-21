@@ -14,6 +14,7 @@ from cython.view cimport array
 from _pkcs11_defn cimport *
 from . import types
 from .exceptions import *
+from .flags import *
 from .mechanisms import *
 from .types import _CK_UTF8CHAR_to_str
 
@@ -117,19 +118,23 @@ class Token(types.Token):
             user_type = CKU_SO
         else:
             pin = None
+            user_type = UserType.NOBODY
 
         assertRV(C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
 
         if pin is not None:
             assertRV(C_Login(handle, user_type, pin, len(pin)))
 
-        return Session(self, handle)
+        return Session(self, handle, rw=rw, user_type=user_type)
 
 
 class Session(types.Session):
     """Extend Session with implementation."""
 
     def close(self):
+        if self.user_type is not UserType.NOBODY:
+            assertRV(C_Logout(self._handle))
+
         assertRV(C_CloseSession(self._handle))
 
 

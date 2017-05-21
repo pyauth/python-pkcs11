@@ -71,5 +71,5 @@ class PKCS11Tests(unittest.TestCase):
         lib = pkcs11.lib(LIB)
         token = next(lib.get_tokens(token_label='DEMO'))
 
-        with token.open(so_pin='5678') as session:
+        with token.open(rw=True, so_pin='5678') as session:
             self.assertIsInstance(session, pkcs11.Session)

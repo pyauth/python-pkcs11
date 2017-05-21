@@ -136,11 +136,15 @@ class Session:
     context manager or closed with :meth:`close`.
     """
 
-    def __init__(self, token, handle):
+    def __init__(self, token, handle, rw=False, user_type=UserType.NOBODY):
         self.token = token
         """:class:`Token` this session is on."""
 
         self._handle = handle
+        self.rw = rw
+        """True if this is a read/write session."""
+        self.user_type = user_type
+        """User type for this session (:class:`UserType`)."""
 
     def __enter__(self):
         return self
