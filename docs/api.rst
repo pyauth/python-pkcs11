@@ -67,18 +67,15 @@ API Reference
         :members:
         :inherited-members:
 
+
 Flags
 -----
 
-.. autoclass:: pkcs11.SlotFlags
+.. automodule:: pkcs11.flags
     :members:
     :inherited-members:
     :undoc-members:
 
-.. autoclass:: pkcs11.TokenFlags
-    :members:
-    :inherited-members:
-    :undoc-members:
 
 Mechanisms
 ----------
