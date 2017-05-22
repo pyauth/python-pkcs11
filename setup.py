@@ -5,8 +5,6 @@ setup.py
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 
-from Cython.Build import cythonize
-
 if __name__ == '__main__':
     with \
             open('requirements.in') as requirements, \
@@ -21,8 +19,6 @@ if __name__ == '__main__':
             Extension('pkcs11._pkcs11',
                     sources=[
                         'pkcs11/_pkcs11.pyx',
-                        'pkcs11/_errors.pyx',
-                        'pkcs11/_utils.pyx',
                     ],
                     define_macros=[
                         # These are required to build the PKCS11 headers
@@ -38,8 +34,6 @@ if __name__ == '__main__':
         ]
 
         setup(
-            setup_requires=['setuptools_scm'],
-
             name='python-pkcs11',
             description='PKCS#11 (Cryptoki) support for Python',
             use_scm_version=True,
@@ -58,8 +52,14 @@ if __name__ == '__main__':
 
             packages=find_packages(exclude=['tests']),
             include_package_data=True,
-            ext_modules=cythonize(ext_modules),
+            ext_modules=ext_modules,
 
             install_requires=requirements.readlines(),
+            setup_requires=[
+                'cython',
+                'setuptools >= 18.0',
+                'setuptools_scm',
+            ],
+
             test_suite='tests',
         )

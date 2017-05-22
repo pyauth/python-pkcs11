@@ -1,4 +1,1 @@
-Cython
 aenum; python_version < "3.6"
-
-setuptools_scm
