@@ -204,3 +204,12 @@ class Object:
 
     def destroy(self):
         """Destroy the object."""
+        raise NotImplementedError()
+
+
+class SecretKey(Object):
+    """
+    A PKCS#11 :attr:`ObjectClass.SECRET_KEY` object.
+    """
+
+    object_class = ObjectClass.SECRET_KEY

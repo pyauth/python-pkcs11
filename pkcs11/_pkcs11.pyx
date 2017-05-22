@@ -262,11 +262,34 @@ class Session(types.Session):
                                attrs.data, attrs.count,
                                &key))
 
-        return Object(self, key)
+        return Object._make(self, key)
 
 
 class Object(types.Object):
     """Expand Object with an implementation."""
+
+    @classmethod
+    def _make(cls, *args, **kwargs):
+        """
+        Make an object with the right bases for its class and capabilities.
+        """
+
+        # Make a version of ourselves we can introspect
+        self = cls(*args, **kwargs)
+
+        try:
+            object_class = self[Attribute.CLASS]
+            base_class = _CLASS_MAP[object_class]
+
+            # Manufacture a class with the right capabilities.
+            klass = type(base_class.__name__,
+                         (base_class, cls),
+                         {})
+
+            return klass(*args, **kwargs)
+
+        except KeyError:
+            return self
 
     def __getitem__(self, key):
         cdef CK_ATTRIBUTE template
@@ -302,6 +325,15 @@ class Object(types.Object):
 
         assertRV(C_SetAttributeValue(self.session._handle, self._handle,
                                      &template, 1))
+
+
+class SecretKey(types.SecretKey):
+    pass
+
+
+_CLASS_MAP = {
+    ObjectClass.SECRET_KEY: SecretKey,
+}
 
 
 

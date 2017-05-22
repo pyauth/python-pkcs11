@@ -81,6 +81,9 @@ class PKCS11Tests(unittest.TestCase):
         with token.open(user_pin='1234') as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
             self.assertIsInstance(key, pkcs11.Object)
+            self.assertIsInstance(key, pkcs11.SecretKey)
+
+            self.assertIs(key.object_class, pkcs11.ObjectClass.SECRET_KEY)
 
             # Test GetAttribute
             self.assertIs(key[pkcs11.Attribute.CLASS],
