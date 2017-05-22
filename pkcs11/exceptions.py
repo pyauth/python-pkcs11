@@ -3,6 +3,7 @@ PKCS#11 return codes are exposed as Python exceptions inheriting from
 :class:`PKCS11Error`.
 """
 
+
 class PKCS11Error(RuntimeError):
     """
     Base exception for all PKCS#11 exceptions.
@@ -197,7 +198,7 @@ class OperationActive(PKCS11Error):
     Cryptoki from activating a signature operation.  Or, on a token which
     doesn’t support simultaneous dual cryptographic operations in a session
     (see the description of the CKF_DUAL_CRYPTO_OPERATIONS flag in the
-     CK_TOKEN_INFO structure), an active signature operation would prevent
+    CK_TOKEN_INFO structure), an active signature operation would prevent
     Cryptoki from activating an encryption operation.
     """
 

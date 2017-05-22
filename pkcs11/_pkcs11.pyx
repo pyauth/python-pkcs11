@@ -13,7 +13,8 @@ from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 from _pkcs11_defn cimport *
-from _errors cimport *
+include '_errors.pyx'
+include '_utils.pyx'
 
 from . import types
 from .defaults import *
@@ -25,67 +26,6 @@ from .types import (
     _CK_VERSION_to_tuple,
     _CK_MECHANISM_TYPE_to_enum,
 )
-
-
-cdef CK_BYTE_buffer(length):
-    """Make a buffer for `length` CK_BYTEs."""
-    return array(shape=(length,), itemsize=sizeof(CK_BYTE), format='B')
-
-
-cdef CK_ULONG_buffer(length):
-    """Make a buffer for `length` CK_ULONGs."""
-    return array(shape=(length,), itemsize=sizeof(CK_ULONG), format='L')
-
-
-cdef CK_MECHANISM _make_CK_MECHANISM(key_type, default_map,
-                                     mechanism=None, param=b'') except *:
-    """Build a CK_MECHANISM."""
-
-    if mechanism is None:
-        try:
-            mechanism = default_map[key_type]
-        except KeyError:
-            raise ArgumentsBad("No default mechanism for this key type. "
-                                "Please specify `mechanism`.")
-
-    if not isinstance(mechanism, Mechanism):
-        raise ArgumentsBad("`mechanism` must be a Mechanism.")
-
-    cdef CK_MECHANISM mech
-    mech.mechanism = mechanism.value
-    mech.pParameter = <CK_CHAR *> param
-    mech.ulParameterLen = len(param)
-
-    return mech
-
-
-cdef bytes _pack_attribute(key, value):
-    """Pack a Attribute value into a bytes array."""
-
-    try:
-        pack, _ = ATTRIBUTE_TYPES[key]
-        return pack(value)
-    except KeyError:
-        raise NotImplementedError("Can't pack this %s. "
-                                  "Expand ATTRIBUTE_TYPES!" % key)
-
-
-cdef _unpack_attributes(key, value):
-    """Unpack a Attribute bytes array into a Python value."""
-
-    try:
-        _, unpack = ATTRIBUTE_TYPES[key]
-        return unpack(bytes(value))
-    except KeyError:
-        raise NotImplementedError("Can't unpack this %s. "
-                                  "Expand ATTRIBUTE_TYPES!" % key)
-
-
-cpdef void assertRV(CK_RV rv) except *:
-    """Check for an acceptable RV value or thrown an exception."""
-    if rv != CKR_OK:
-        raise ERROR_MAP.get(rv,
-                            PKCS11Error("Unmapped error code %s" % hex(rv)))
 
 
 cdef class AttributeList:
@@ -184,15 +124,12 @@ class SearchIter:
 
     def __init__(self, session, attrs):
         self.session = session
-        self.attrs = attrs
+
+        template = AttributeList(attrs)
+        assertRV(C_FindObjectsInit(self.session._handle,
+                                   template.data, template.count))
 
     def __iter__(self):
-        """Initialise the search."""
-        attrs = AttributeList(self.attrs)
-
-        assertRV(C_FindObjectsInit(self.session._handle,
-                                   attrs.data, attrs.count))
-
         return self
 
     def __next__(self):

@@ -22,6 +22,7 @@ if __name__ == '__main__':
                     sources=[
                         'pkcs11/_pkcs11.pyx',
                         'pkcs11/_errors.pyx',
+                        'pkcs11/_utils.pyx',
                     ],
                     define_macros=[
                         # These are required to build the PKCS11 headers

@@ -125,6 +125,20 @@ class PKCS11Tests(unittest.TestCase):
             self.assertEqual(len(search), 1)
             self.assertEqual(key, search[0])
 
+    def test_get_one_object(self):
+        lib = pkcs11.lib(LIB)
+        token = next(lib.get_tokens(token_label='DEMO'))
+
+        with token.open(user_pin='1234') as session:
+            session.generate_key(pkcs11.KeyType.AES, 128,
+                                 store=False, label='SAMPLE KEY')
+
+            key = next(session.get_objects({
+                pkcs11.Attribute.LABEL: 'SAMPLE KEY',
+            }))
+            self.assertIsInstance(key, pkcs11.SecretKey)
+            key.encrypt(b'test', mechanism_param=b'IV' * 8)
+
     def test_aes_encrypt(self):
         lib = pkcs11.lib(LIB)
         token = next(lib.get_tokens(token_label='DEMO'))

@@ -132,7 +132,7 @@ class Token:
 
             with token.open() as session:
 
-                ...
+                print(session)
 
         :param rw: True to create a read/write session.
         :param bytes user_pin: Authenticate to this session as a user.
@@ -192,6 +192,15 @@ class Session:
     def get_objects(self, attrs):
         """
         Search for objects matching `attrs`.
+
+        ::
+
+            for obj in session.get_objects({
+                Attribute.CLASS: ObjectClass.SECRET_KEY,
+                Attribute.LABEL: 'MY LABEL',
+            }):
+
+                print(obj)
 
         :param dict(Attribute,*) attrs: Attributes to search for.
 
