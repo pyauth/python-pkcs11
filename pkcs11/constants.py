@@ -27,6 +27,25 @@ class UserType(IntEnum):
     USER = 1
 
 
+class ObjectClass(IntEnum):
+    """
+    PKCS#11 :class:`Object` class.
+
+    This is the type of object we have.
+    """
+    DATA              = 0x00000000
+    CERTIFICATE       = 0x00000001
+    PUBLIC_KEY        = 0x00000002
+    PRIVATE_KEY       = 0x00000003
+    SECRET_KEY        = 0x00000004
+    HW_FEATURE        = 0x00000005
+    DOMAIN_PARAMETERS = 0x00000006
+    MECHANISM         = 0x00000007
+    OTP_KEY           = 0x00000008
+
+    VENDOR_DEFINED    = 0x80000000
+
+
 class Attribute(IntEnum):
     """
     PKCS#11 object attributes.
@@ -207,49 +226,6 @@ class Attribute(IntEnum):
     # ALLOWED_MECHANISMS        = (CKF_ARRAY_ATTRIBUTE|0x00000600)
 
     VENDOR_DEFINED            = 0x80000000
-
-
-# Maps Attribute -> (Pack Function, Unpack Function)
-_bool = (Struct('?').pack, lambda v: Struct('?').unpack(v)[0])
-_ulong = (Struct('L').pack, lambda v: Struct('L').unpack(v)[0])
-_str = (lambda s: s.encode('utf-8'), lambda b: b.decode('utf-8'))
-_bytes = (bytes, bytes)
-
-ATTRIBUTE_TYPES = {
-    Attribute.CLASS: _ulong,  # FIXME: Class
-    Attribute.TOKEN: _bool,
-    Attribute.PRIVATE: _bool,
-    Attribute.LABEL: _str,
-    Attribute.VALUE: _bytes,
-    Attribute.TRUSTED: _bool,
-    Attribute.CHECK_VALUE: _bytes,
-    Attribute.KEY_TYPE: _ulong,  # FIXME: KeyType
-    Attribute.ID: _bytes,
-    Attribute.SENSITIVE: _bool,
-    Attribute.ENCRYPT: _bool,
-    Attribute.DECRYPT: _bool,
-    Attribute.WRAP: _bool,
-    Attribute.UNWRAP: _bool,
-    Attribute.SIGN: _bool,
-    Attribute.SIGN_RECOVER: _bool,
-    Attribute.VERIFY: _bool,
-    Attribute.VERIFY_RECOVER: _bool,
-    Attribute.DERIVE: _bool,
-    Attribute.MODULUS: _bool,
-    Attribute.MODULUS_BITS: _bool,
-    Attribute.PUBLIC_EXPONENT: _ulong,
-    Attribute.PRIVATE_EXPONENT: _ulong,
-    Attribute.VALUE_BITS: _ulong,
-    Attribute.VALUE_LEN: _ulong,
-    Attribute.EXTRACTABLE: _bool,
-    Attribute.LOCAL: _bool,
-    Attribute.NEVER_EXTRACTABLE: _bool,
-    Attribute.ALWAYS_SENSITIVE: _bool,
-    Attribute.KEY_GEN_MECHANISM: _ulong,  # FIXME: Mechanism
-    Attribute.MODIFIABLE: _bool,
-    Attribute.ALWAYS_AUTHENTICATE: _bool,
-    Attribute.WRAP_WITH_TRUSTED: _bool,
-}
 
 
 @unique

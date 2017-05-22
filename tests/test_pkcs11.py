@@ -83,6 +83,8 @@ class PKCS11Tests(unittest.TestCase):
             self.assertIsInstance(key, pkcs11.Object)
 
             # Test GetAttribute
+            self.assertIs(key[pkcs11.Attribute.CLASS],
+                          pkcs11.ObjectClass.SECRET_KEY)
             self.assertEqual(key[pkcs11.Attribute.TOKEN], False)
             self.assertEqual(key[pkcs11.Attribute.LOCAL], True)
             self.assertEqual(key[pkcs11.Attribute.MODIFIABLE], True)

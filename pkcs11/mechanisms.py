@@ -1,7 +1,5 @@
 from enum import IntEnum
 
-from .constants import *
-
 
 class KeyType(IntEnum):
     """
@@ -427,28 +425,3 @@ class Mechanism(IntEnum):
 
     def __repr__(self):
         return '<Mechanism.%s>' % self.name
-
-
-_DEFAULT_CAPS = \
-    MechanismFlag.ENCRYPT | \
-    MechanismFlag.DECRYPT | \
-    MechanismFlag.SIGN | \
-    MechanismFlag.VERIFY | \
-    MechanismFlag.WRAP | \
-    MechanismFlag.UNWRAP
-
-
-
-DEFAULT_GENERATE_MECHANISMS = {
-    KeyType.AES: Mechanism.AES_KEY_GEN,
-    KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
-}
-"""
-Although not in the PKCS#11 specification, this mapping provides useful
-defaults for generating keys.
-"""
-
-DEFAULT_KEY_CAPABILITIES = {
-    KeyType.AES: _DEFAULT_CAPS,
-    KeyType.RSA: _DEFAULT_CAPS,
-}

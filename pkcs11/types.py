@@ -192,9 +192,15 @@ class Session:
 class Object:
     """
     A PKCS#11 :class:`Token` object.
+
+    Token objects implement :meth:`__getitem__` and :meth:`__setitem__` to
+    retrieve attributes on the item.
     """
 
     def __init__(self, session, handle):
         self.session = session
         """:class:`Session` this object is valid for."""
         self._handle = handle
+
+    def destroy(self):
+        """Destroy the object."""

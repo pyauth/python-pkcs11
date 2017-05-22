@@ -14,6 +14,7 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 from _pkcs11_defn cimport *
 from . import types
+from .defaults import *
 from .exceptions import *
 from .constants import *
 from .mechanisms import *
