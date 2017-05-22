@@ -145,7 +145,7 @@ class Session:
         self.rw = rw
         """True if this is a read/write session."""
         self.user_type = user_type
-        """User type for this session (:class:`UserType`)."""
+        """User type for this session (:class:`pkcs11.constants.UserType`)."""
 
     def __enter__(self):
         return self
@@ -194,11 +194,11 @@ class Object:
     A PKCS#11 object residing on a :class:`Token`.
 
     Objects implement :meth:`__getitem__` and :meth:`__setitem__` to
-    retrieve :class:`Attribute`s on the object.
+    retrieve :class:`pkcs11.constants.Attribute` values on the object.
     """
 
     object_class = None
-    """:class:`ObjectClass` of this Object."""
+    """:class:`pkcs11.constants.ObjectClass` of this Object."""
 
     def __init__(self, session, handle):
         self.session = session
@@ -211,7 +211,7 @@ class Object:
 
 
 class Key(Object):
-    """Base class for all key objects."""
+    """Base class for all key :class:`Object` types."""
 
     @property
     def key_type(self):
@@ -221,7 +221,8 @@ class Key(Object):
 
 class SecretKey(Key):
     """
-    A PKCS#11 :attr:`ObjectClass.SECRET_KEY` object (symmetric encryption key).
+    A PKCS#11 :attr:`pkcs11.constants.ObjectClass.SECRET_KEY` object
+    (symmetric encryption key).
     """
 
     object_class = ObjectClass.SECRET_KEY
@@ -237,7 +238,31 @@ class EncryptMixin(Object):
         raise NotImplementedError()
 
     def encrypt(self, data, **kwargs):
-        """Do an encryption operation."""
+        """
+        Encrypt some `data`.
+
+        Data can be either :class:`str` or :class:`bytes`, in which case it
+        will return :class:`bytes`; or an iterable of :class:`bytes` in
+        which case it will return a generator yielding :class:`bytes`
+        (be aware, more chunks will be output than input).
+
+        If you do not specify `mechanism` then the default from
+        :attr:`DEFAULT_ENCRYPT_MECHANISMS` will be used.
+
+        Some mechanisms (including the default CBC mechanisms) require an
+        initialisation vector (of key length) to set the initial state of
+        the mechanism.  Pass this as `mechanism_param`. The initialisation
+        vector should contain quality random. This method will not return
+        the value of the initialisation parameter.
+
+        :param data: data to encrypt can be str, bytes or an iterable(bytes)
+        :param Mechanism mechanism: optional encryption mechanism
+            (or None for default)
+        :param bytes mechanism_param: optional mechanism parameter
+            (e.g. initialisation vector).
+
+        :rtype: bytes or iterable(bytes)
+        """
 
         # If data is a string, encode it now as UTF-8.
         if isinstance(data, str):

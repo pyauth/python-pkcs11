@@ -70,16 +70,22 @@ Classes
         :members:
         :inherited-members:
 
-    The following classes relate to :class:`Object`s on the :class:`Token`:
+    The following classes relate to :class:`Object`s on the :class:`Token`.
 
     .. autoclass:: Object()
         :members:
         :inherited-members:
 
+    .. autoclass:: Key()
+        :members:
+
     .. autoclass:: SecretKey()
         :members:
 
     .. autoclass:: EncryptMixin()
+        :members:
+
+    .. autoclass:: DecryptMixin()
         :members:
 
 

@@ -36,8 +36,11 @@ class ObjectClass(IntEnum):
     DATA              = 0x00000000
     CERTIFICATE       = 0x00000001
     PUBLIC_KEY        = 0x00000002
+    """See :class:`pkcs11.PublicKey`."""
     PRIVATE_KEY       = 0x00000003
+    """See :class:`pkcs11.PrivateKey`."""
     SECRET_KEY        = 0x00000004
+    """See :class:`pkcs11.SecretKey`."""
     HW_FEATURE        = 0x00000005
     DOMAIN_PARAMETERS = 0x00000006
     MECHANISM         = 0x00000007
@@ -54,7 +57,7 @@ class Attribute(IntEnum):
     """
 
     CLASS              = 0x00000000
-    """Object type (:class:`ObjectType`)."""
+    """Object type (:class:`ObjectClass`)."""
     TOKEN              = 0x00000001
     """
     If True object will be stored to token.
@@ -162,7 +165,7 @@ class Attribute(IntEnum):
     ALWAYS_SENSITIVE    = 0x00000165
     """`SENSITIVE` has always been True."""
     KEY_GEN_MECHANISM   = 0x00000166
-    """Key generation mechanism (:class:`Mechanism`)."""
+    """Key generation mechanism (:class:`pkcs11.mechanisms.Mechanism`)."""
 
     MODIFIABLE          = 0x00000170
     """Object can be modified (:class:`bool`)."""
@@ -231,7 +234,8 @@ class Attribute(IntEnum):
 @unique
 class MechanismFlag(IntFlag):
     """
-    Describes the capabilities of a :class:`Mechanism` or :class:`Object`.
+    Describes the capabilities of a :class:`pkcs11.mechanisms.Mechanism`
+    or :class:`pkcs11.Object`.
 
     Some objects and mechanisms are symmetric (i.e. can be used for encryption
     and decryption), some are asymmetric (e.g. public key cryptography).
@@ -262,7 +266,7 @@ class MechanismFlag(IntFlag):
 
 @unique
 class SlotFlag(IntFlag):
-    """:class:`Slot` flags."""
+    """:class:`pkcs11.Slot` flags."""
 
     TOKEN_PRESENT    = 0x00000001
     """A token is there (N.B. some hardware known not to set this.)"""
@@ -274,7 +278,7 @@ class SlotFlag(IntFlag):
 
 @unique
 class TokenFlag(IntFlag):
-    """:class:`Token` flags."""
+    """:class:`pkcs11.Token` flags."""
 
     RNG                   = 0x00000001
     """Has random number generator."""
