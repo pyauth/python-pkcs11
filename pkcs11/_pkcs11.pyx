@@ -25,7 +25,8 @@ from .types import _CK_UTF8CHAR_to_str
 ERROR_MAP = {
     CKR_ARGUMENTS_BAD: ArgumentsBad,
     CKR_BUFFER_TOO_SMALL: MemoryError("Buffer was too small. Should never see this."),
-    CKR_CRYPTOKI_NOT_INITIALIZED: RuntimeError("Initialisation error. Should never see this"),
+    CKR_CRYPTOKI_ALREADY_INITIALIZED: RuntimeError("Initialisation error (already initialized). Should never see this."),
+    CKR_CRYPTOKI_NOT_INITIALIZED: RuntimeError("Initialisation error (not initialized). Should never see this."),
     CKR_DEVICE_ERROR: DeviceError,
     CKR_DEVICE_MEMORY: DeviceMemory,
     CKR_DEVICE_REMOVED: DeviceRemoved,
@@ -372,7 +373,10 @@ class SecretKey(types.SecretKey):
 class EncryptMixin(types.EncryptMixin):
     """Expand EncryptMixin with an implementation."""
 
-    def _encrypt(self, data, mechanism=None, mechanism_param=b''):
+    def _encrypt(self, data,
+                 mechanism=None,
+                 mechanism_param=b'',
+                 buffer_size=1024):
         """
         Do chunked encryption. `data` will hae been converted to a generator
         for us by encrypt().
@@ -386,31 +390,20 @@ class EncryptMixin(types.EncryptMixin):
 
         assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
 
-        cdef CK_BYTE [:] part_out
         cdef CK_ULONG length
+        cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
         for part_in in data:
-            length = len(part_in)
-
-            if length == 0:
-                continue
-
-            part_out = CK_BYTE_buffer(length)
+            length = buffer_size
             assertRV(C_EncryptUpdate(self.session._handle,
-                                     part_in, length,
+                                     part_in, len(part_in),
                                      &part_out[0], &length))
 
             yield bytes(part_out[:length])
 
         # Finalize
-        # Determine how much of the buffer remains to be flushed
-        assertRV(C_EncryptFinal(self.session._handle,
-                                NULL, &length))
-
-        if length == 0:
-            return
-
-        part_out = CK_BYTE_buffer(length)
+        # We assume the buffer is much bigger than the block size
+        length = buffer_size
         assertRV(C_EncryptFinal(self.session._handle,
                                 &part_out[0], &length))
 
@@ -419,7 +412,10 @@ class EncryptMixin(types.EncryptMixin):
 class DecryptMixin(types.DecryptMixin):
     """Expand DecryptMixin with an implementation."""
 
-    def _decrypt(self, data, mechanism=None, mechanism_param=b''):
+    def _decrypt(self, data,
+                 mechanism=None,
+                 mechanism_param=b'',
+                 buffer_size=1024):
         """See EncryptMixin._encrypt for more info."""
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
@@ -427,31 +423,21 @@ class DecryptMixin(types.DecryptMixin):
 
         assertRV(C_DecryptInit(self.session._handle, &mech, self._handle))
 
-        cdef CK_BYTE [:] part_out
         cdef CK_ULONG length
+        cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
         for part_in in data:
-            length = len(part_in)
+            length = buffer_size
 
-            if length == 0:
-                continue
-
-            part_out = CK_BYTE_buffer(length)
             assertRV(C_DecryptUpdate(self.session._handle,
-                                     part_in, length,
+                                     part_in, len(part_in),
                                      &part_out[0], &length))
 
             yield bytes(part_out[:length])
 
         # Finalize
-        # Determine how much of the buffer remains to be flushed
-        assertRV(C_DecryptFinal(self.session._handle,
-                                NULL, &length))
-
-        if length == 0:
-            return
-
-        part_out = CK_BYTE_buffer(length)
+        # We assume the buffer is much bigger than the block size
+        length = buffer_size
         assertRV(C_DecryptFinal(self.session._handle,
                                 &part_out[0], &length))
 

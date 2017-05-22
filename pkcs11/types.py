@@ -4,6 +4,8 @@ Types for high level PKCS#11 wrapper.
 This module provides stubs that are overrideen in pkcs11._pkcs11.
 """
 
+from binascii import hexlify
+
 from .constants import *
 from .mechanisms import *
 
@@ -214,9 +216,27 @@ class Key(Object):
     """Base class for all key :class:`Object` types."""
 
     @property
+    def id(self):
+        """Key id (:class:`bytes`)."""
+        return self[Attribute.ID]
+
+    @property
+    def label(self):
+        """Key label (:class:`str`)."""
+        return self[Attribute.LABEL]
+
+    @property
     def key_type(self):
-        """Key type."""
+        """Key type (:class:`pkcs11.constants.KeyType`)."""
         return self[Attribute.KEY_TYPE]
+
+    def __repr__(self):
+        return "<%s label='%s' id='%s' %s-bit %s>" % (
+            type(self).__name__,
+            self.label,
+            hexlify(self.id).decode('ascii'),
+            self.key_length,
+            self.key_type.name)
 
 
 class SecretKey(Key):
@@ -227,6 +247,10 @@ class SecretKey(Key):
 
     object_class = ObjectClass.SECRET_KEY
 
+    @property
+    def key_length(self):
+        """Key length in bits."""
+        return self[Attribute.VALUE_LEN] * 8
 
 
 class EncryptMixin(Object):
@@ -255,11 +279,17 @@ class EncryptMixin(Object):
         vector should contain quality random. This method will not return
         the value of the initialisation parameter.
 
-        :param data: data to encrypt can be str, bytes or an iterable(bytes)
+        `buffer_size` must be sufficient to store the working buffer. An
+        integer number of blocks and greater than or equal to the largest
+        input chunk is recommended.
+
+        :param data: data to encrypt
+        :type data: str, bytes or iterable(bytes)
         :param Mechanism mechanism: optional encryption mechanism
             (or None for default)
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
+        :param int buffer_size: size of the working buffer (default 1024).
 
         :rtype: bytes or iterable(bytes)
         """
@@ -291,11 +321,13 @@ class DecryptMixin(Object):
 
         See :meth:`EncryptMixin.encrypt` for more information.
 
-        :param data: data to encrypt can be bytes or an iterable(bytes)
+        :param data: data to decrypt
+        :type data: bytes or iterable(bytes)
         :param Mechanism mechanism: optional encryption mechanism
-            (or None for default)
+            (or None for default).
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
+        :param int buffer_size: size of the working buffer (default 1024).
 
         :rtype: bytes or iterable(bytes)
         """

@@ -101,11 +101,14 @@ class PKCS11Tests(unittest.TestCase):
 
             # Create another key with no capabilities
             key = session.generate_key(pkcs11.KeyType.AES, 128,
-                                       store=False,
-                                       capabilities=0)
+                                       label='MY KEY',
+                                       id=b'\1\2\3\4',
+                                       store=False, capabilities=0)
             self.assertIsInstance(key, pkcs11.Object)
             self.assertIsInstance(key, pkcs11.SecretKey)
             self.assertNotIsInstance(key, pkcs11.EncryptMixin)
+
+            self.assertEqual(key.label, 'MY KEY')
 
     def test_aes_encrypt(self):
         lib = pkcs11.lib(LIB)
@@ -154,3 +157,19 @@ class PKCS11Tests(unittest.TestCase):
 
             text = b''.join(key.decrypt(cryptblocks, mechanism_param=iv))
             self.assertEqual(b''.join(data), text)
+
+    def test_aes_encrypt_whacky_sizes(self):
+        lib = pkcs11.lib(LIB)
+        token = next(lib.get_tokens(token_label='DEMO'))
+        data = [
+            (char * ord(char)).encode('utf-8')
+            for char in 'HELLO WORLD'
+        ]
+        iv = b'0' * 16
+
+        with token.open(user_pin='1234') as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
+            cryptblocks = list(key.encrypt(data, mechanism_param=iv))
+            textblocks = list(key.decrypt(cryptblocks, mechanism_param=iv))
+
+            self.assertEqual(b''.join(data), b''.join(textblocks))
