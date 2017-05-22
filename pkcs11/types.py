@@ -78,6 +78,9 @@ class Slot:
         """
         raise NotImplementedError()
 
+    def __eq__(self, other):
+        return self.slot_id == other.slot_id
+
     def __str__(self):
         return '\n'.join((
             "Slot Description: %s" % self.slot_description,
@@ -114,6 +117,9 @@ class Token:
         """Serial number of this token (:class:`bytes`)."""
         self.flags = TokenFlag(flags)
         """Capabilities of this token (:class:`pkcs11.flags.TokenFlag`)."""
+
+    def __eq__(self, other):
+        return self.slot == other.slot
 
     def open(self, rw=False, user_pin=None, so_pin=None):
         """
@@ -169,6 +175,10 @@ class Session:
         self.user_type = user_type
         """User type for this session (:class:`pkcs11.constants.UserType`)."""
 
+    def __eq__(self, other):
+        return self.token == other.token and \
+            self._handle == other._handle
+
     def __enter__(self):
         return self
 
@@ -177,6 +187,16 @@ class Session:
 
     def close(self):
         """Close the session."""
+        raise NotImplementedError()
+
+    def get_objects(self, attrs):
+        """
+        Search for objects matching `attrs`.
+
+        :param dict(Attribute,*) attrs: Attributes to search for.
+
+        :rtype: iter(Object)
+        """
         raise NotImplementedError()
 
     def generate_key(self, key_type, key_length,
@@ -206,7 +226,7 @@ class Session:
         :param bytes mechanism_param: Optional vector to the mechanism.
         :param dict(Attribute,*) template: Additional attributes.
 
-        :rtype: SymmetricKey
+        :rtype: Key
         """
         raise NotImplementedError()
 
@@ -226,6 +246,10 @@ class Object:
         self.session = session
         """:class:`Session` this object is valid for."""
         self._handle = handle
+
+    def __eq__(self, other):
+        return self.session == other.session and \
+            self._handle == other._handle
 
     def destroy(self):
         """

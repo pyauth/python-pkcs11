@@ -13,6 +13,7 @@ from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 from _pkcs11_defn cimport *
+from _errors cimport *
 
 from . import types
 from .defaults import *
@@ -178,6 +179,40 @@ class Token(types.Token):
         return Session(self, handle, rw=rw, user_type=user_type)
 
 
+class SearchIter:
+    """Iterate a search for objects on a session."""
+
+    def __init__(self, session, attrs):
+        self.session = session
+        self.attrs = attrs
+
+    def __iter__(self):
+        """Initialise the search."""
+        attrs = AttributeList(self.attrs)
+
+        assertRV(C_FindObjectsInit(self.session._handle,
+                                   attrs.data, attrs.count))
+
+        return self
+
+    def __next__(self):
+        """Get the next object."""
+        cdef CK_OBJECT_HANDLE handle
+        cdef CK_ULONG count
+
+        assertRV(C_FindObjects(self.session._handle,
+                               &handle, 1, &count))
+
+        if count == 0:
+            raise StopIteration()
+        else:
+            return Object._make(self.session, handle)
+
+    def __del__(self):
+        """Close the search."""
+        assertRV(C_FindObjectsFinal(self.session._handle))
+
+
 class Session(types.Session):
     """Extend Session with implementation."""
 
@@ -186,6 +221,9 @@ class Session(types.Session):
             assertRV(C_Logout(self._handle))
 
         assertRV(C_CloseSession(self._handle))
+
+    def get_objects(self, attrs):
+        return SearchIter(self, attrs)
 
     def generate_key(self, key_type, key_length,
                      id=None, label=None,

@@ -233,6 +233,15 @@ cdef extern from '../extern/pkcs11.h':
                         CK_ULONG count,
                         CK_OBJECT_HANDLE *key)
 
+    CK_RV C_FindObjectsInit(CK_SESSION_HANDLE session,
+                            CK_ATTRIBUTE *template,
+                            CK_ULONG count)
+    CK_RV C_FindObjects(CK_SESSION_HANDLE session,
+                        CK_OBJECT_HANDLE *objects,
+                        CK_ULONG objectsMax,
+                        CK_ULONG *objectsLength)
+    CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE session)
+
     # Object Methods
     CK_RV C_GetAttributeValue(CK_SESSION_HANDLE session,
                               CK_OBJECT_HANDLE key,
