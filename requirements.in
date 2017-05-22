@@ -1,4 +1,4 @@
 Cython
 aenum  # Python < 3.6 compatibility
 
-Sphinx
+setuptools_scm
