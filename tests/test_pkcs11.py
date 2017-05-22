@@ -81,5 +81,14 @@ class PKCS11Tests(unittest.TestCase):
         with token.open(user_pin='1234') as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
             self.assertIsInstance(key, pkcs11.Object)
+
+            # Test GetAttribute
             self.assertEqual(key[pkcs11.Attribute.TOKEN], False)
             self.assertEqual(key[pkcs11.Attribute.LOCAL], True)
+            self.assertEqual(key[pkcs11.Attribute.MODIFIABLE], True)
+            self.assertEqual(key[pkcs11.Attribute.LABEL], '')
+
+            # Test SetAttribute
+            key[pkcs11.Attribute.LABEL] = "DEMO"
+
+            self.assertEqual(key[pkcs11.Attribute.LABEL], "DEMO")

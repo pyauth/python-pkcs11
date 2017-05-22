@@ -238,3 +238,7 @@ cdef extern from '../extern/pkcs11.h':
                               CK_OBJECT_HANDLE key,
                               CK_ATTRIBUTE *template,
                               CK_ULONG count)
+    CK_RV C_SetAttributeValue(CK_SESSION_HANDLE session,
+                              CK_OBJECT_HANDLE key,
+                              CK_ATTRIBUTE *template,
+                              CK_ULONG count)

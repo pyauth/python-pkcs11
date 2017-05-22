@@ -103,12 +103,11 @@ cdef bytes _pack_attribute(key, value):
 
 
 cdef _unpack_attributes(key, value):
-    """Unnack a Attribute bytes array into a Python value."""
+    """Unpack a Attribute bytes array into a Python value."""
 
     try:
         _, unpack = ATTRIBUTE_TYPES[key]
-        value, = unpack(bytes(value))
-        return value
+        return unpack(bytes(value))
     except KeyError:
         raise NotImplementedError("Can't unpack this %s. "
                                   "Expand ATTRIBUTE_TYPES!" % key)
@@ -277,6 +276,9 @@ class Object(types.Object):
         assertRV(C_GetAttributeValue(self.session._handle, self._handle,
                                      &template, 1))
 
+        if template.ulValueLen == 0:
+            return _unpack_attributes(key, b'')
+
         # Put a buffer of the right length in place
         cdef CK_CHAR [:] value = array(shape=(template.ulValueLen,),
                                        itemsize=sizeof(CK_CHAR),
@@ -288,6 +290,18 @@ class Object(types.Object):
                                      &template, 1))
 
         return _unpack_attributes(key, value)
+
+    def __setitem__(self, key, value):
+        value = _pack_attribute(key, value)
+
+        cdef CK_ATTRIBUTE template
+        template.type = key
+        template.pValue = <CK_CHAR *> value
+        template.ulValueLen = len(value)
+
+        assertRV(C_SetAttributeValue(self.session._handle, self._handle,
+                                     &template, 1))
+
 
 
 cdef class lib:

@@ -210,8 +210,8 @@ class Attribute(IntEnum):
 
 
 # Maps Attribute -> (Pack Function, Unpack Function)
-_bool = (Struct('?').pack, Struct('?').unpack)
-_ulong = (Struct('L').pack, Struct('L').unpack)
+_bool = (Struct('?').pack, lambda v: Struct('?').unpack(v)[0])
+_ulong = (Struct('L').pack, lambda v: Struct('L').unpack(v)[0])
 _str = (lambda s: s.encode('utf-8'), lambda b: b.decode('utf-8'))
 _bytes = (bytes, bytes)
 
