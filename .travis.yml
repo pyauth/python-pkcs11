@@ -14,6 +14,7 @@ cache:
     - ccache  # For SoftHSMv2
 
 before_install:
+    - pip install -U pip setuptools
     # Install SoftHSMv2
     - curl https://dist.opendnssec.org/source/softhsm-2.2.0.tar.gz | tar -zxv
     - (cd softhsm-2.2.0 && ./configure --prefix=$HOME --disable-p11-kit && make all install CC="ccache gcc" CXX="ccache g++")
