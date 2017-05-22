@@ -26,7 +26,7 @@ class PKCS11Tests(unittest.TestCase):
         slot1, slot2 = slots
 
         self.assertIsInstance(slot1, pkcs11.Slot)
-        self.assertEqual(slot1.flags, pkcs11.SlotFlags.TOKEN_PRESENT)
+        self.assertEqual(slot1.flags, pkcs11.SlotFlag.TOKEN_PRESENT)
 
     def test_get_token(self):
         lib = pkcs11.lib(LIB)
@@ -35,19 +35,19 @@ class PKCS11Tests(unittest.TestCase):
 
         self.assertIsInstance(token, pkcs11.Token)
         self.assertEqual(token.label, 'DEMO')
-        self.assertIn(pkcs11.TokenFlags.TOKEN_INITIALIZED, token.flags)
-        self.assertIn(pkcs11.TokenFlags.LOGIN_REQUIRED, token.flags)
+        self.assertIn(pkcs11.TokenFlag.TOKEN_INITIALIZED, token.flags)
+        self.assertIn(pkcs11.TokenFlag.LOGIN_REQUIRED, token.flags)
 
     def test_get_mechanisms(self):
         lib = pkcs11.lib(LIB)
         slot, *_ = lib.get_slots()
         mechanisms = slot.get_mechanisms()
-        self.assertIn(pkcs11.Mechanisms.RSA_PKCS, mechanisms)
+        self.assertIn(pkcs11.Mechanism.RSA_PKCS, mechanisms)
 
     def test_get_tokens(self):
         lib = pkcs11.lib(LIB)
 
-        tokens = lib.get_tokens(token_flags=pkcs11.TokenFlags.RNG)
+        tokens = lib.get_tokens(token_flags=pkcs11.TokenFlag.RNG)
         self.assertEqual(len(list(tokens)), 2)
 
         tokens = lib.get_tokens(token_label='DEMO')
@@ -73,3 +73,13 @@ class PKCS11Tests(unittest.TestCase):
 
         with token.open(rw=True, so_pin='5678') as session:
             self.assertIsInstance(session, pkcs11.Session)
+
+    def test_generate_key(self):
+        lib = pkcs11.lib(LIB)
+        token = next(lib.get_tokens(token_label='DEMO'))
+
+        with token.open(user_pin='1234') as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
+            self.assertIsInstance(key, pkcs11.Object)
+            self.assertEqual(key[pkcs11.Attribute.TOKEN], False)
+            self.assertEqual(key[pkcs11.Attribute.LOCAL], True)

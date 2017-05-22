@@ -1,7 +1,66 @@
 from enum import IntEnum
 
+from .constants import *
 
-class Mechanisms(IntEnum):
+
+class KeyType(IntEnum):
+    """
+    Key types known by PKCS#11.
+
+    Making use of a given key type requires the appropriate
+    :class:`Mechanism` to be available.
+    """
+    RSA            = 0x00000000
+    DSA            = 0x00000001
+    DH             = 0x00000002
+    ECDSA          = 0x00000003
+    EC             = 0x00000003
+    X9_42_DH       = 0x00000004
+    KEA            = 0x00000005
+    GENERIC_SECRET = 0x00000010
+    RC2            = 0x00000011
+    RC4            = 0x00000012
+    DES            = 0x00000013
+    DES2           = 0x00000014
+    DES3           = 0x00000015
+    CAST           = 0x00000016
+    CAST3          = 0x00000017
+    CAST5          = 0x00000018
+    CAST128        = 0x00000018
+    RC5            = 0x00000019
+    IDEA           = 0x0000001A
+    SKIPJACK       = 0x0000001B
+    BATON          = 0x0000001C
+    JUNIPER        = 0x0000001D
+    CDMF           = 0x0000001E
+    AES            = 0x0000001F
+    BLOWFISH       = 0x00000020
+    TWOFISH        = 0x00000021
+    SECURID        = 0x00000022
+    HOTP           = 0x00000023
+    ACTI           = 0x00000024
+    CAMELLIA       = 0x00000025
+    ARIA           = 0x00000026
+    MD5_HMAC       = 0x00000027
+    SHA_1_HMAC     = 0x00000028
+    RIPEMD128_HMAC = 0x00000029
+    RIPEMD160_HMAC = 0x0000002A
+    SHA256_HMAC    = 0x0000002B
+    SHA384_HMAC    = 0x0000002C
+    SHA512_HMAC    = 0x0000002D
+    SHA224_HMAC    = 0x0000002E
+    SEED           = 0x0000002F
+    GOSTR3410      = 0x00000030
+    GOSTR3411      = 0x00000031
+    GOST28147      = 0x00000032
+
+    VENDOR_DEFINED = 0x80000000
+
+    def __repr__(self):
+        return '<KeyType.%s>' % self.name
+
+
+class Mechanism(IntEnum):
     """
     Cryptographic mechanisms known by PKCS#11.
 
@@ -367,4 +426,29 @@ class Mechanisms(IntEnum):
     VENDOR_DEFINED           = 0x80000000
 
     def __repr__(self):
-        return '<Mechanisms.%s>' % self.name
+        return '<Mechanism.%s>' % self.name
+
+
+_DEFAULT_CAPS = \
+    MechanismFlag.ENCRYPT | \
+    MechanismFlag.DECRYPT | \
+    MechanismFlag.SIGN | \
+    MechanismFlag.VERIFY | \
+    MechanismFlag.WRAP | \
+    MechanismFlag.UNWRAP
+
+
+
+DEFAULT_GENERATE_MECHANISMS = {
+    KeyType.AES: Mechanism.AES_KEY_GEN,
+    KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
+}
+"""
+Although not in the PKCS#11 specification, this mapping provides useful
+defaults for generating keys.
+"""
+
+DEFAULT_KEY_CAPABILITIES = {
+    KeyType.AES: _DEFAULT_CAPS,
+    KeyType.RSA: _DEFAULT_CAPS,
+}

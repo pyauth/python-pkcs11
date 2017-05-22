@@ -10,11 +10,12 @@ library loaded.
 """
 
 from cython.view cimport array
+from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 from _pkcs11_defn cimport *
 from . import types
 from .exceptions import *
-from .flags import *
+from .constants import *
 from .mechanisms import *
 from .types import _CK_UTF8CHAR_to_str
 
@@ -38,8 +39,11 @@ ERROR_MAP = {
     CKR_SESSION_COUNT: SessionCount,
     CKR_SESSION_HANDLE_INVALID: SessionHandleInvalid,
     CKR_SESSION_PARALLEL_NOT_SUPPORTED: RuntimeError("Parallel not supported. Should never see this."),
+    CKR_SESSION_READ_ONLY: SessionReadOnly,
     CKR_SESSION_READ_ONLY_EXISTS: SessionReadOnlyExists,
     CKR_SESSION_READ_WRITE_SO_EXISTS: SessionReadWriteSOExists,
+    CKR_TEMPLATE_INCOMPLETE: TemplateIncomplete,
+    CKR_TEMPLATE_INCONSISTENT: TemplateInconsistent,
     CKR_SLOT_ID_INVALID: SlotIDInvalid,
     CKR_TOKEN_NOT_PRESENT: TokenNotPresent,
     CKR_TOKEN_NOT_RECOGNIZED: TokenNotRecognised,
@@ -60,16 +64,99 @@ cdef tuple _CK_VERSION_to_tuple(CK_VERSION data):
 def _CK_MECHANISM_TYPE_to_enum(mechanism):
     """Convert CK_MECHANISM_TYPE to enum or be okay."""
     try:
-        return Mechanisms(mechanism)
+        return Mechanism(mechanism)
     except ValueError:
         return mechanism
 
 
-cpdef assertRV(CK_RV rv):
+cdef CK_MECHANISM _make_CK_MECHANISM(key_type,
+                                     mechanism=None, param=b'') except *:
+    """Build a CK_MECHANISM."""
+
+    if mechanism is None:
+        try:
+            mechanism = DEFAULT_GENERATE_MECHANISMS[key_type]
+        except KeyError:
+            raise ArgumentsBad("No default mechanism for this key type. "
+                                "Please specify `mechanism`.")
+
+    if not isinstance(mechanism, Mechanism):
+        raise ArgumentsBad("`mechanism` must be a Mechanism.")
+
+    cdef CK_MECHANISM mech
+    mech.mechanism = mechanism.value
+    mech.pParameter = <CK_CHAR *> param
+    mech.ulParameterLen = len(param)
+
+    return mech
+
+
+cdef bytes _pack_attribute(key, value):
+    """Pack a Attribute value into a bytes array."""
+
+    try:
+        pack, _ = ATTRIBUTE_TYPES[key]
+        return pack(value)
+    except KeyError:
+        raise NotImplementedError("Can't pack this %s. "
+                                  "Expand ATTRIBUTE_TYPES!" % key)
+
+
+cdef _unpack_attributes(key, value):
+    """Unnack a Attribute bytes array into a Python value."""
+
+    try:
+        _, unpack = ATTRIBUTE_TYPES[key]
+        value, = unpack(bytes(value))
+        return value
+    except KeyError:
+        raise NotImplementedError("Can't unpack this %s. "
+                                  "Expand ATTRIBUTE_TYPES!" % key)
+
+
+cpdef void assertRV(CK_RV rv) except *:
     """Check for an acceptable RV value or thrown an exception."""
-    if rv != CK_RV.CKR_OK:
+    if rv != CKR_OK:
         raise ERROR_MAP.get(rv,
-                            PKCS11Error("Unknown error code: %s" % rv))
+                            PKCS11Error("Unmapped error code %s" % hex(rv)))
+
+
+cdef class AttributeList:
+    """
+    A list of CK_ATTRIBUTE objects.
+    """
+
+    cdef dict attrs
+    """Python representation of the data."""
+    cdef CK_ATTRIBUTE *data
+    """CK_ATTRIBUTE * representation of the data."""
+    cdef size_t count
+    """Length of `data`."""
+
+    cdef _values
+
+    def __cinit__(self, attrs):
+        self.attrs = dict(attrs)
+        self.count = count = len(attrs)
+
+        self.data = <CK_ATTRIBUTE *> PyMem_Malloc(count * sizeof(CK_ATTRIBUTE))
+        if not self.data:
+            raise MemoryError()
+
+        # Turn the values into bytes and store them so we have pointers
+        # to them.
+        self._values = [
+            _pack_attribute(key, value)
+            for key, value in self.attrs.items()
+        ]
+
+        for index, (key, value) in enumerate(zip(attrs.keys(), self._values)):
+            self.data[index].type = key
+            self.data[index].pValue = <CK_CHAR *> value
+            self.data[index].ulValueLen = len(value)
+
+    def __dealloc__(self):
+        PyMem_Free(self.data)
 
 
 class Slot(types.Slot):
@@ -136,6 +223,71 @@ class Session(types.Session):
             assertRV(C_Logout(self._handle))
 
         assertRV(C_CloseSession(self._handle))
+
+    def generate_key(self, key_type, key_length,
+                     id=None, label=None,
+                     store=True, capabilities=None,
+                     mechanism=None, mechanism_params=b'',
+                     template=None):
+
+        if not isinstance(key_type, KeyType):
+            raise ArgumentsBad("`key_type` must be KeyType.")
+
+        if not isinstance(key_length, int):
+            raise ArgumentsBad("`key_length` is the length in bits.")
+
+        if capabilities is None:
+            try:
+                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
+            except KeyError:
+                raise ArgumentsBad("No default capabilities for this key "
+                                   "type. Please specify `capabilities`.")
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(key_type, mechanism, mechanism_params)
+        cdef CK_OBJECT_HANDLE key
+
+        # Build attributes
+        template_ = {
+            Attribute.ID: id or b'',
+            Attribute.LABEL: label or '',
+            Attribute.TOKEN: store,
+            Attribute.VALUE_LEN: key_length // 8,
+        }
+        template_.update(template or {})
+        attrs = AttributeList(template_)
+
+        assertRV(C_GenerateKey(self._handle,
+                               &mech,
+                               attrs.data, attrs.count,
+                               &key))
+
+        return Object(self, key)
+
+
+class Object(types.Object):
+    """Expand Object with an implementation."""
+
+    def __getitem__(self, key):
+        cdef CK_ATTRIBUTE template
+        template.type = key
+        template.pValue = NULL
+
+        # Find out the attribute size
+        assertRV(C_GetAttributeValue(self.session._handle, self._handle,
+                                     &template, 1))
+
+        # Put a buffer of the right length in place
+        cdef CK_CHAR [:] value = array(shape=(template.ulValueLen,),
+                                       itemsize=sizeof(CK_CHAR),
+                                       format='B')
+        template.pValue = <CK_CHAR *> &value[0]
+
+        # Request the value
+        assertRV(C_GetAttributeValue(self.session._handle, self._handle,
+                                     &template, 1))
+
+        return _unpack_attributes(key, value)
 
 
 cdef class lib:

@@ -1,10 +1,11 @@
 """
-High-level Python PKCS#11 Wrapper.
+:mod:`pkcs11` defines a high-level, "Pythonic" interface to PKCS#11.
 """
 
-from .types import *
+from .constants import *
 from .exceptions import *
 from .mechanisms import *
+from .types import *
 
 
 def lib(so):

@@ -4,6 +4,9 @@ API Reference
 .. toctree::
     :maxdepth: 2
 
+Classes
+-------
+
 .. automodule:: pkcs11
     :members:
     :exclude-members: lib
@@ -31,9 +34,9 @@ API Reference
 
             :param str token_label: Optional token label.
             :param bytes token_serial: Optional token serial.
-            :param TokenFlags token_flags: Optional bitwise token flags.
-            :param SlotFlags slot_flags: Optional bitwise slot flags.
-            :param iterable(Mechanisms) mechanisms: Optional required mechanisms.
+            :param TokenFlag token_flags: Optional bitwise token flags.
+            :param SlotFlag slot_flags: Optional bitwise slot flags.
+            :param iterable(Mechanism) mechanisms: Optional required mechanisms.
 
             :rtype: iter(Token)
 
@@ -68,19 +71,19 @@ API Reference
         :inherited-members:
 
 
-Flags
------
+Constants
+---------
 
-.. automodule:: pkcs11.flags
+.. automodule:: pkcs11.constants
     :members:
     :inherited-members:
     :undoc-members:
 
 
-Mechanisms
-----------
+Key Types & Mechanisms
+----------------------
 
-.. autoclass:: pkcs11.Mechanisms
+.. automodule:: pkcs11.mechanisms
     :members:
     :inherited-members:
     :undoc-members:
@@ -91,7 +94,4 @@ Exceptions
 
 .. automodule:: pkcs11.exceptions
     :members:
-    :exclude-members: PKCS11Error
     :undoc-members:
-
-    .. autoexception:: PKCS11Error

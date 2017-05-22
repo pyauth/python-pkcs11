@@ -4,7 +4,8 @@ Types for high level PKCS#11 wrapper.
 This module provides stubs that are overrideen in pkcs11._pkcs11.
 """
 
-from .flags import *
+from .constants import *
+from .mechanisms import *
 
 
 def _CK_UTF8CHAR_to_str(data):
@@ -48,8 +49,8 @@ class Slot:
         """Hardware version (:class:`tuple`)."""
         self.firmware_version = _CK_VERSION_to_tuple(firmwareVersion)
         """Firmware version (:class:`tuple`)."""
-        self.flags = SlotFlags(flags)
-        """Capabilities of this slot (:class:`SlotFlags`)."""
+        self.flags = SlotFlag(flags)
+        """Capabilities of this slot (:class:`SlotFlag`)."""
 
     def get_token(self):
         """
@@ -63,7 +64,7 @@ class Slot:
         """
         Returns the mechanisms supported by this device.
 
-        :rtype: set(Mechanisms)
+        :rtype: set(Mechanism)
         """
         raise NotImplementedError()
 
@@ -101,8 +102,8 @@ class Token:
         """Label of this token (:class:`str`)."""
         self.serial = serial
         """Serial number of this token (:class:`bytes`)."""
-        self.flags = TokenFlags(flags)
-        """Capabilities of this token (:class:`TokenFlags`)."""
+        self.flags = TokenFlag(flags)
+        """Capabilities of this token (:class:`TokenFlag`)."""
 
     def open(self, rw=False, user_pin=None, so_pin=None):
         """
@@ -155,3 +156,45 @@ class Session:
     def close(self):
         """Close the session."""
         raise NotImplementedError()
+
+    def generate_key(self, key_type, key_length,
+                     id=None, label=None,
+                     store=True, capabilities=None,
+                     mechanism=None, mechanism_params=b'',
+                     template=None):
+        """
+        Generate a single key (e.g. AES, DES).
+
+        Keys should set at least `id` or `label`.
+
+        An appropriate `mechanism` will be chosen for `key_type`
+        (see :attr:`DEFAULT_GENERATE_MECHANISMS`) or this can be overridden.
+        Similarly the `capabilities` (see :attr:`DEFAULT_KEY_CAPABILITIES`).
+
+        The `template` will extend the default template used to make the
+        key.
+
+        :param KeyType key_type: Key type (e.g. KeyType.AES)
+        :param int key_length: Key length in bits (e.g. 256).
+        :param bytes id: Key identifier.
+        :param str label: Key label.
+        :param store: Store key on token.
+        :param MechanismFlag capabilities: Key capabilities (or default).
+        :param Mechanism mechanism: Generation mechanism (or default).
+        :param bytes mechanism_params: Optional vector to the mechanism.
+        :param dict(Attribute, *) template: Additional attributes.
+
+        :rtype: SymmetricKey
+        """
+        raise NotImplementedError()
+
+
+class Object:
+    """
+    A PKCS#11 :class:`Token` object.
+    """
+
+    def __init__(self, session, handle):
+        self.session = session
+        """:class:`Session` this object is valid for."""
+        self._handle = handle

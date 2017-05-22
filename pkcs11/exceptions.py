@@ -66,6 +66,10 @@ class SessionHandleInvalid(PKCS11Error):
     """
 
 
+class SessionReadOnly(PKCS11Error):
+    pass
+
+
 class SessionReadOnlyExists(PKCS11Error):
     pass
 
@@ -87,6 +91,14 @@ class PinLocked(PKCS11Error):
 
 
 class SlotIDInvalid(PKCS11Error):
+    pass
+
+
+class TemplateIncomplete(PKCS11Error):
+    pass
+
+
+class TemplateInconsistent(PKCS11Error):
     pass
 
 
