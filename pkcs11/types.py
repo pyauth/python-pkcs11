@@ -207,6 +207,30 @@ class Object:
         raise NotImplementedError()
 
 
+class EncryptMixin:
+    pass
+
+
+class DecryptMixin:
+    pass
+
+
+class SignMixin:
+    pass
+
+
+class VerifyMixin:
+    pass
+
+
+class WrapMixin:
+    pass
+
+
+class UnwrapMixin:
+    pass
+
+
 class SecretKey(Object):
     """
     A PKCS#11 :attr:`ObjectClass.SECRET_KEY` object.

@@ -82,6 +82,7 @@ class PKCS11Tests(unittest.TestCase):
             key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
             self.assertIsInstance(key, pkcs11.Object)
             self.assertIsInstance(key, pkcs11.SecretKey)
+            self.assertIsInstance(key, pkcs11.EncryptMixin)
 
             self.assertIs(key.object_class, pkcs11.ObjectClass.SECRET_KEY)
 
@@ -97,3 +98,11 @@ class PKCS11Tests(unittest.TestCase):
             key[pkcs11.Attribute.LABEL] = "DEMO"
 
             self.assertEqual(key[pkcs11.Attribute.LABEL], "DEMO")
+
+            # Create another key with no capabilities
+            key = session.generate_key(pkcs11.KeyType.AES, 128,
+                                       store=False,
+                                       capabilities=0)
+            self.assertIsInstance(key, pkcs11.Object)
+            self.assertIsInstance(key, pkcs11.SecretKey)
+            self.assertNotIsInstance(key, pkcs11.EncryptMixin)

@@ -249,10 +249,20 @@ class Session(types.Session):
 
         # Build attributes
         template_ = {
+            Attribute.CLASS: ObjectClass.SECRET_KEY,
             Attribute.ID: id or b'',
             Attribute.LABEL: label or '',
             Attribute.TOKEN: store,
-            Attribute.VALUE_LEN: key_length // 8,
+            Attribute.VALUE_LEN: key_length // 8,  # In bytes
+            Attribute.PRIVATE: True,
+            Attribute.SENSITIVE: True,
+            # Capabilities
+            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
+            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
+            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
+            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
+            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
+            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
         }
         template_.update(template or {})
         attrs = AttributeList(template_)
@@ -278,13 +288,34 @@ class Object(types.Object):
         self = cls(*args, **kwargs)
 
         try:
+            # Determine a list of base classes to manufacture our class with
+            # FIXME: we should really request all of these attributes in
+            # one go
             object_class = self[Attribute.CLASS]
-            base_class = _CLASS_MAP[object_class]
+            bases = (_CLASS_MAP[object_class],)
+
+            if self[Attribute.ENCRYPT]:
+                bases += (EncryptMixin,)
+
+            if self[Attribute.DECRYPT]:
+                bases += (DecryptMixin,)
+
+            if self[Attribute.SIGN]:
+                bases += (SignMixin,)
+
+            if self[Attribute.VERIFY]:
+                bases += (VerifyMixin,)
+
+            if self[Attribute.WRAP]:
+                bases += (WrapMixin,)
+
+            if self[Attribute.UNWRAP]:
+                bases += (UnwrapMixin,)
+
+            bases += (cls,)
 
             # Manufacture a class with the right capabilities.
-            klass = type(base_class.__name__,
-                         (base_class, cls),
-                         {})
+            klass = type(bases[0].__name__, bases, {})
 
             return klass(*args, **kwargs)
 
@@ -328,6 +359,30 @@ class Object(types.Object):
 
 
 class SecretKey(types.SecretKey):
+    pass
+
+
+class EncryptMixin(types.EncryptMixin):
+    pass
+
+
+class DecryptMixin(types.DecryptMixin):
+    pass
+
+
+class SignMixin(types.SignMixin):
+    pass
+
+
+class VerifyMixin(types.VerifyMixin):
+    pass
+
+
+class WrapMixin(types.WrapMixin):
+    pass
+
+
+class UnwrapMixin(types.UnwrapMixin):
     pass
 
 
