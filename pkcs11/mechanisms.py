@@ -62,8 +62,8 @@ class Mechanism(IntEnum):
     """
     Cryptographic mechanisms known by PKCS#11.
 
-    The list of supported cryptographic mechanisms for a :class:`Slot` can
-    be retrieved with :meth:`Slot.get_mechanisms()`.
+    The list of supported cryptographic mechanisms for a :class:`pkcs11.Slot`
+    can be retrieved with :meth:`pkcs11.Slot.get_mechanisms()`.
     """
     RSA_PKCS_KEY_PAIR_GEN    = 0x00000000
     RSA_PKCS                 = 0x00000001

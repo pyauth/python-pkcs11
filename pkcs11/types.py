@@ -105,13 +105,25 @@ class Token:
         self.serial = serial
         """Serial number of this token (:class:`bytes`)."""
         self.flags = TokenFlag(flags)
-        """Capabilities of this token (:class:`TokenFlag`)."""
+        """Capabilities of this token (:class:`pkcs11.flags.TokenFlag`)."""
 
     def open(self, rw=False, user_pin=None, so_pin=None):
         """
-        Open a session on the token.
+        Open a session on the token and optionally log in as a user or
+        security officer (pass one of `user_pin` or `so_pin`).
 
-        Can be used as a context manager.
+        Can be used as a context manager or close with :meth:`Session.close`.
+
+        ::
+
+            with token.open() as session:
+
+                ...
+
+        :param rw: True to create a read/write session.
+        :param bytes user_pin: Authenticate to this session as a user.
+        :param bytes so_pin: Authenticate to this session as a
+            security officer.
 
         :rtype: Session
         """
@@ -180,11 +192,11 @@ class Session:
         :param int key_length: Key length in bits (e.g. 256).
         :param bytes id: Key identifier.
         :param str label: Key label.
-        :param store: Store key on token.
+        :param store: Store key on token (requires R/W session).
         :param MechanismFlag capabilities: Key capabilities (or default).
         :param Mechanism mechanism: Generation mechanism (or default).
         :param bytes mechanism_param: Optional vector to the mechanism.
-        :param dict(Attribute, any) template: Additional attributes.
+        :param dict(Attribute,*) template: Additional attributes.
 
         :rtype: SymmetricKey
         """
@@ -208,7 +220,11 @@ class Object:
         self._handle = handle
 
     def destroy(self):
-        """Destroy the object."""
+        """
+        Destroy the object.
+
+        Requires a R/W session.
+        """
         raise NotImplementedError()
 
 
@@ -227,7 +243,7 @@ class Key(Object):
 
     @property
     def key_type(self):
-        """Key type (:class:`pkcs11.constants.KeyType`)."""
+        """Key type (:class:`pkcs11.mechanisms.KeyType`)."""
         return self[Attribute.KEY_TYPE]
 
     def __repr__(self):
@@ -284,14 +300,14 @@ class EncryptMixin(Object):
         input chunk is recommended.
 
         :param data: data to encrypt
-        :type data: str, bytes or iterable(bytes)
+        :type data: str, bytes or iter(bytes)
         :param Mechanism mechanism: optional encryption mechanism
             (or None for default)
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
         :param int buffer_size: size of the working buffer (default 1024).
 
-        :rtype: bytes or iterable(bytes)
+        :rtype: bytes or iter(bytes)
         """
 
         # If data is a string, encode it now as UTF-8.
@@ -322,14 +338,14 @@ class DecryptMixin(Object):
         See :meth:`EncryptMixin.encrypt` for more information.
 
         :param data: data to decrypt
-        :type data: bytes or iterable(bytes)
+        :type data: bytes or iter(bytes)
         :param Mechanism mechanism: optional encryption mechanism
             (or None for default).
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
         :param int buffer_size: size of the working buffer (default 1024).
 
-        :rtype: bytes or iterable(bytes)
+        :rtype: bytes or iter(bytes)
         """
 
         # If we're not an iterable, recurse into ourselves with an iterable

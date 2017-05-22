@@ -13,50 +13,13 @@ from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 from _pkcs11_defn cimport *
+
 from . import types
 from .defaults import *
 from .exceptions import *
 from .constants import *
 from .mechanisms import *
 from .types import _CK_UTF8CHAR_to_str
-
-
-# Map from return codes to Python exceptions.
-ERROR_MAP = {
-    CKR_ARGUMENTS_BAD: ArgumentsBad,
-    CKR_BUFFER_TOO_SMALL: MemoryError("Buffer was too small. Should never see this."),
-    CKR_CRYPTOKI_ALREADY_INITIALIZED: RuntimeError("Initialisation error (already initialized). Should never see this."),
-    CKR_CRYPTOKI_NOT_INITIALIZED: RuntimeError("Initialisation error (not initialized). Should never see this."),
-    CKR_DEVICE_ERROR: DeviceError,
-    CKR_DEVICE_MEMORY: DeviceMemory,
-    CKR_DEVICE_REMOVED: DeviceRemoved,
-    CKR_FUNCTION_CANCELED: FunctionCancelled,
-    CKR_FUNCTION_FAILED: FunctionFailed,
-    CKR_GENERAL_ERROR: GeneralError,
-    CKR_HOST_MEMORY: HostMemory,
-    CKR_MECHANISM_INVALID: MechanismInvalid,
-    CKR_OPERATION_NOT_INITIALIZED: OperationNotInitialized,
-    CKR_PIN_INCORRECT: PinIncorrect,
-    CKR_PIN_LOCKED: PinLocked,
-    CKR_SESSION_CLOSED: SessionClosed,
-    CKR_SESSION_COUNT: SessionCount,
-    CKR_SESSION_HANDLE_INVALID: SessionHandleInvalid,
-    CKR_SESSION_PARALLEL_NOT_SUPPORTED: RuntimeError("Parallel not supported. Should never see this."),
-    CKR_SESSION_READ_ONLY: SessionReadOnly,
-    CKR_SESSION_READ_ONLY_EXISTS: SessionReadOnlyExists,
-    CKR_SESSION_READ_WRITE_SO_EXISTS: SessionReadWriteSOExists,
-    CKR_TEMPLATE_INCOMPLETE: TemplateIncomplete,
-    CKR_TEMPLATE_INCONSISTENT: TemplateInconsistent,
-    CKR_SLOT_ID_INVALID: SlotIDInvalid,
-    CKR_TOKEN_NOT_PRESENT: TokenNotPresent,
-    CKR_TOKEN_NOT_RECOGNIZED: TokenNotRecognised,
-    CKR_TOKEN_WRITE_PROTECTED: TokenWriteProtected,
-    CKR_USER_ALREADY_LOGGED_IN: UserAlreadyLoggedIn,
-    CKR_USER_ANOTHER_ALREADY_LOGGED_IN: AnotherUserAlreadyLoggedIn,
-    CKR_USER_PIN_NOT_INITIALIZED: UserPinNotInitialized,
-    CKR_USER_TOO_MANY_TYPES: UserTooManyTypes,
-    CKR_USER_TYPE_INVALID: RuntimeError("User type invalid. Should never see this."),
-}
 
 
 cdef CK_BYTE_buffer(length):

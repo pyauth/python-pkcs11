@@ -36,7 +36,7 @@ Classes
             :param bytes token_serial: Optional token serial.
             :param TokenFlag token_flags: Optional bitwise token flags.
             :param SlotFlag slot_flags: Optional bitwise slot flags.
-            :param iterable(Mechanism) mechanisms: Optional required mechanisms.
+            :param iter(Mechanism) mechanisms: Optional required mechanisms.
 
             :rtype: iter(Token)
 
