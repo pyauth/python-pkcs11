@@ -106,3 +106,18 @@ class PKCS11Tests(unittest.TestCase):
             self.assertIsInstance(key, pkcs11.Object)
             self.assertIsInstance(key, pkcs11.SecretKey)
             self.assertNotIsInstance(key, pkcs11.EncryptMixin)
+
+    def test_aes_encrypt(self):
+        lib = pkcs11.lib(LIB)
+        token = next(lib.get_tokens(token_label='DEMO'))
+
+        with token.open(user_pin='1234') as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
+            data = b'INPUT DATA'
+            crypttext = key.encrypt(data, mechanism_param=b'0' * 16)
+            self.assertIsInstance(crypttext, bytes)
+            self.assertNotEqual(data, crypttext)
+            # We should be aligned to the block size
+            self.assertEqual(len(crypttext), 16)
+            # Ensure we didn't just get 16 nulls
+            self.assertFalse(all(c == '\0' for c in crypttext))

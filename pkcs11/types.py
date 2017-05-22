@@ -160,7 +160,7 @@ class Session:
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,
-                     mechanism=None, mechanism_params=b'',
+                     mechanism=None, mechanism_param=b'',
                      template=None):
         """
         Generate a single key (e.g. AES, DES).
@@ -181,8 +181,8 @@ class Session:
         :param store: Store key on token.
         :param MechanismFlag capabilities: Key capabilities (or default).
         :param Mechanism mechanism: Generation mechanism (or default).
-        :param bytes mechanism_params: Optional vector to the mechanism.
-        :param dict(Attribute, *) template: Additional attributes.
+        :param bytes mechanism_param: Optional vector to the mechanism.
+        :param dict(Attribute, any) template: Additional attributes.
 
         :rtype: SymmetricKey
         """
@@ -191,11 +191,14 @@ class Session:
 
 class Object:
     """
-    A PKCS#11 :class:`Token` object.
+    A PKCS#11 object residing on a :class:`Token`.
 
-    Token objects implement :meth:`__getitem__` and :meth:`__setitem__` to
-    retrieve attributes on the item.
+    Objects implement :meth:`__getitem__` and :meth:`__setitem__` to
+    retrieve :class:`Attribute`s on the object.
     """
+
+    object_class = None
+    """:class:`ObjectClass` of this Object."""
 
     def __init__(self, session, handle):
         self.session = session
@@ -207,33 +210,63 @@ class Object:
         raise NotImplementedError()
 
 
-class EncryptMixin:
-    pass
+class Key(Object):
+    """Base class for all key objects."""
+
+    @property
+    def key_type(self):
+        """Key type."""
+        return self[Attribute.KEY_TYPE]
 
 
-class DecryptMixin:
-    pass
-
-
-class SignMixin:
-    pass
-
-
-class VerifyMixin:
-    pass
-
-
-class WrapMixin:
-    pass
-
-
-class UnwrapMixin:
-    pass
-
-
-class SecretKey(Object):
+class SecretKey(Key):
     """
-    A PKCS#11 :attr:`ObjectClass.SECRET_KEY` object.
+    A PKCS#11 :attr:`ObjectClass.SECRET_KEY` object (symmetric encryption key).
     """
 
     object_class = ObjectClass.SECRET_KEY
+
+
+
+class EncryptMixin(Object):
+    """
+    This object supports the encrypt capability.
+    """
+
+    def _encrypt(self, data, mechanism=None, mechanism_param=b''):
+        raise NotImplementedError()
+
+    def encrypt(self, data, **kwargs):
+        """Do an encryption operation."""
+
+        # If data is a string, encode it now as UTF-8.
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+
+        # If we're not an iterable, recurse into ourselves with an iterable
+        # version and join the result at the end.
+        if isinstance(data, bytes):
+            return b''.join(self._encrypt((data,), **kwargs))
+
+        else:
+            return self._encrypt(data, **kwargs)
+
+
+class DecryptMixin(Object):
+    pass
+
+
+class SignMixin(Object):
+    pass
+
+
+class VerifyMixin(Object):
+    pass
+
+
+class WrapMixin(Object):
+    pass
+
+
+class UnwrapMixin(Object):
+    pass

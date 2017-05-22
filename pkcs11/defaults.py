@@ -9,16 +9,6 @@ from .constants import *
 from .mechanisms import *
 
 
-_DEFAULT_CAPS = \
-    MechanismFlag.ENCRYPT | \
-    MechanismFlag.DECRYPT | \
-    MechanismFlag.SIGN | \
-    MechanismFlag.VERIFY | \
-    MechanismFlag.WRAP | \
-    MechanismFlag.UNWRAP
-
-
-
 DEFAULT_GENERATE_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_GEN,
     KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
@@ -27,12 +17,28 @@ DEFAULT_GENERATE_MECHANISMS = {
 Default mechanisms for generating keys.
 """
 
+_DEFAULT_CAPS = \
+    MechanismFlag.ENCRYPT | \
+    MechanismFlag.DECRYPT | \
+    MechanismFlag.SIGN | \
+    MechanismFlag.VERIFY | \
+    MechanismFlag.WRAP | \
+    MechanismFlag.UNWRAP
+
 DEFAULT_KEY_CAPABILITIES = {
     KeyType.AES: _DEFAULT_CAPS,
     KeyType.RSA: _DEFAULT_CAPS,
 }
 """
 Default capabilities for generating keys.
+"""
+
+DEFAULT_ENCRYPT_MECHANISMS = {
+    KeyType.AES: Mechanism.AES_CBC_PAD,
+    KeyType.RSA: Mechanism.RSA_PKCS,
+}
+"""
+Default mechanisms for encrypt/decrypt.
 """
 
 

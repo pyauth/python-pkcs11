@@ -33,6 +33,7 @@ ERROR_MAP = {
     CKR_FUNCTION_FAILED: FunctionFailed,
     CKR_GENERAL_ERROR: GeneralError,
     CKR_HOST_MEMORY: HostMemory,
+    CKR_MECHANISM_INVALID: MechanismInvalid,
     CKR_OPERATION_NOT_INITIALIZED: OperationNotInitialized,
     CKR_PIN_INCORRECT: PinIncorrect,
     CKR_PIN_LOCKED: PinLocked,
@@ -57,6 +58,16 @@ ERROR_MAP = {
 }
 
 
+cdef CK_BYTE_buffer(length):
+    """Make a buffer for `length` CK_BYTEs."""
+    return array(shape=(length,), itemsize=sizeof(CK_BYTE), format='B')
+
+
+cdef CK_ULONG_buffer(length):
+    """Make a buffer for `length` CK_ULONGs."""
+    return array(shape=(length,), itemsize=sizeof(CK_ULONG), format='L')
+
+
 cdef tuple _CK_VERSION_to_tuple(CK_VERSION data):
     """Convert CK_VERSION to tuple."""
     return (data.major, data.minor)
@@ -70,13 +81,13 @@ def _CK_MECHANISM_TYPE_to_enum(mechanism):
         return mechanism
 
 
-cdef CK_MECHANISM _make_CK_MECHANISM(key_type,
+cdef CK_MECHANISM _make_CK_MECHANISM(key_type, default_map,
                                      mechanism=None, param=b'') except *:
     """Build a CK_MECHANISM."""
 
     if mechanism is None:
         try:
-            mechanism = DEFAULT_GENERATE_MECHANISMS[key_type]
+            mechanism = default_map[key_type]
         except KeyError:
             raise ArgumentsBad("No default mechanism for this key type. "
                                 "Please specify `mechanism`.")
@@ -174,10 +185,7 @@ class Slot(types.Slot):
 
         assertRV(C_GetMechanismList(self.slot_id, NULL, &count))
 
-        cdef CK_MECHANISM_TYPE [:] mechanisms = \
-            array(shape=(count,),
-                  itemsize=sizeof(CK_MECHANISM_TYPE),
-                  format='L')
+        cdef CK_MECHANISM_TYPE [:] mechanisms = CK_ULONG_buffer(count)
 
         assertRV(C_GetMechanismList(self.slot_id, &mechanisms[0], &count))
 
@@ -227,7 +235,7 @@ class Session(types.Session):
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,
-                     mechanism=None, mechanism_params=b'',
+                     mechanism=None, mechanism_param=b'',
                      template=None):
 
         if not isinstance(key_type, KeyType):
@@ -244,7 +252,8 @@ class Session(types.Session):
                                    "type. Please specify `capabilities`.")
 
         cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(key_type, mechanism, mechanism_params)
+            _make_CK_MECHANISM(key_type, DEFAULT_GENERATE_MECHANISMS,
+                               mechanism, mechanism_param)
         cdef CK_OBJECT_HANDLE key
 
         # Build attributes
@@ -335,9 +344,7 @@ class Object(types.Object):
             return _unpack_attributes(key, b'')
 
         # Put a buffer of the right length in place
-        cdef CK_CHAR [:] value = array(shape=(template.ulValueLen,),
-                                       itemsize=sizeof(CK_CHAR),
-                                       format='B')
+        cdef CK_CHAR [:] value = CK_BYTE_buffer(template.ulValueLen)
         template.pValue = <CK_CHAR *> &value[0]
 
         # Request the value
@@ -363,8 +370,39 @@ class SecretKey(types.SecretKey):
 
 
 class EncryptMixin(types.EncryptMixin):
-    pass
+    """Expand EncryptMixin with an implementation."""
 
+    def _encrypt(self, data, mechanism=None, mechanism_param=b''):
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
+                               mechanism, mechanism_param)
+
+        assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
+
+        cdef CK_BYTE [:] part_out
+        cdef CK_ULONG length
+
+        for part_in in data:
+            length = len(part_in)
+            part_out = CK_BYTE_buffer(length)
+
+            assertRV(C_EncryptUpdate(self.session._handle,
+                                     part_in, length,
+                                     &part_out[0], &length))
+
+            yield bytes(part_out[:length])
+
+        # Finalize
+        # Determine how much of the buffer remains to be flushed
+        assertRV(C_EncryptFinal(self.session._handle,
+                                NULL, &length))
+
+        part_out = CK_BYTE_buffer(length)
+
+        assertRV(C_EncryptFinal(self.session._handle,
+                                &part_out[0], &length))
+
+        yield bytes(part_out[:length])
 
 class DecryptMixin(types.DecryptMixin):
     pass
@@ -441,9 +479,7 @@ cdef class lib:
 
         assertRV(C_GetSlotList(token_present, NULL, &count))
 
-        cdef CK_ULONG [:] slotIDs = array(shape=(count,),
-                                          itemsize=sizeof(CK_ULONG),
-                                          format='L')
+        cdef CK_ULONG [:] slotIDs = CK_ULONG_buffer(count)
 
         assertRV(C_GetSlotList(token_present, &slotIDs[0], &count))
 

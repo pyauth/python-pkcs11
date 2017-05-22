@@ -44,6 +44,10 @@ class HostMemory(PKCS11Error):
     pass
 
 
+class MechanismInvalid(PKCS11Error):
+    pass
+
+
 class OperationNotInitialized(PKCS11Error):
     pass
 

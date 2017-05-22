@@ -242,3 +242,15 @@ cdef extern from '../extern/pkcs11.h':
                               CK_OBJECT_HANDLE key,
                               CK_ATTRIBUTE *template,
                               CK_ULONG count)
+
+    CK_RV C_EncryptInit(CK_SESSION_HANDLE session,
+                        CK_MECHANISM *mechanism,
+                        CK_OBJECT_HANDLE key)
+    CK_RV C_EncryptUpdate(CK_SESSION_HANDLE session,
+                          CK_BYTE *part_in,
+                          CK_ULONG part_in_len,
+                          CK_BYTE *part_out,
+                          CK_ULONG *part_out_len)
+    CK_RV C_EncryptFinal(CK_SESSION_HANDLE session,
+                         CK_BYTE *part_out,
+                         CK_ULONG *part_out_len)
