@@ -35,6 +35,4 @@ deploy:
     server: https://pypi.python.org/pypi
     on:
         tags: true
-        all_branches: true
         python: 3.6
-        condition: '"$TRAVIS_TAG" = "v$(python setup.py --version)"'
