@@ -19,7 +19,11 @@ from .defaults import *
 from .exceptions import *
 from .constants import *
 from .mechanisms import *
-from .types import _CK_UTF8CHAR_to_str
+from .types import (
+    _CK_UTF8CHAR_to_str,
+    _CK_VERSION_to_tuple,
+    _CK_MECHANISM_TYPE_to_enum,
+)
 
 
 cdef CK_BYTE_buffer(length):
@@ -30,19 +34,6 @@ cdef CK_BYTE_buffer(length):
 cdef CK_ULONG_buffer(length):
     """Make a buffer for `length` CK_ULONGs."""
     return array(shape=(length,), itemsize=sizeof(CK_ULONG), format='L')
-
-
-cdef tuple _CK_VERSION_to_tuple(CK_VERSION data):
-    """Convert CK_VERSION to tuple."""
-    return (data.major, data.minor)
-
-
-def _CK_MECHANISM_TYPE_to_enum(mechanism):
-    """Convert CK_MECHANISM_TYPE to enum or be okay."""
-    try:
-        return Mechanism(mechanism)
-    except ValueError:
-        return mechanism
 
 
 cdef CK_MECHANISM _make_CK_MECHANISM(key_type, default_map,

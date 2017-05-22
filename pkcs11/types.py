@@ -22,6 +22,14 @@ def _CK_VERSION_to_tuple(data):
     return (data['major'], data['minor'])
 
 
+def _CK_MECHANISM_TYPE_to_enum(mechanism):
+    """Convert CK_MECHANISM_TYPE to enum or be okay."""
+    try:
+        return Mechanism(mechanism)
+    except ValueError:
+        return mechanism
+
+
 class Slot:
     """
     A PKCS#11 device slot.
