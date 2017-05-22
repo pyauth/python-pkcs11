@@ -373,6 +373,13 @@ class EncryptMixin(types.EncryptMixin):
     """Expand EncryptMixin with an implementation."""
 
     def _encrypt(self, data, mechanism=None, mechanism_param=b''):
+        """
+        Do chunked encryption. `data` will hae been converted to a generator
+        for us by encrypt().
+
+        It's not clear what happen if you leave the generator without
+        consuming it. That's probably an error.
+        """
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
                                mechanism, mechanism_param)
@@ -384,8 +391,11 @@ class EncryptMixin(types.EncryptMixin):
 
         for part_in in data:
             length = len(part_in)
-            part_out = CK_BYTE_buffer(length)
 
+            if length == 0:
+                continue
+
+            part_out = CK_BYTE_buffer(length)
             assertRV(C_EncryptUpdate(self.session._handle,
                                      part_in, length,
                                      &part_out[0], &length))
@@ -397,15 +407,55 @@ class EncryptMixin(types.EncryptMixin):
         assertRV(C_EncryptFinal(self.session._handle,
                                 NULL, &length))
 
-        part_out = CK_BYTE_buffer(length)
+        if length == 0:
+            return
 
+        part_out = CK_BYTE_buffer(length)
         assertRV(C_EncryptFinal(self.session._handle,
                                 &part_out[0], &length))
 
         yield bytes(part_out[:length])
 
 class DecryptMixin(types.DecryptMixin):
-    pass
+    """Expand DecryptMixin with an implementation."""
+
+    def _decrypt(self, data, mechanism=None, mechanism_param=b''):
+        """See EncryptMixin._encrypt for more info."""
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
+                               mechanism, mechanism_param)
+
+        assertRV(C_DecryptInit(self.session._handle, &mech, self._handle))
+
+        cdef CK_BYTE [:] part_out
+        cdef CK_ULONG length
+
+        for part_in in data:
+            length = len(part_in)
+
+            if length == 0:
+                continue
+
+            part_out = CK_BYTE_buffer(length)
+            assertRV(C_DecryptUpdate(self.session._handle,
+                                     part_in, length,
+                                     &part_out[0], &length))
+
+            yield bytes(part_out[:length])
+
+        # Finalize
+        # Determine how much of the buffer remains to be flushed
+        assertRV(C_DecryptFinal(self.session._handle,
+                                NULL, &length))
+
+        if length == 0:
+            return
+
+        part_out = CK_BYTE_buffer(length)
+        assertRV(C_DecryptFinal(self.session._handle,
+                                &part_out[0], &length))
+
+        yield bytes(part_out[:length])
 
 
 class SignMixin(types.SignMixin):

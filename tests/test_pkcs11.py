@@ -111,16 +111,20 @@ class PKCS11Tests(unittest.TestCase):
         lib = pkcs11.lib(LIB)
         token = next(lib.get_tokens(token_label='DEMO'))
         data = b'INPUT DATA'
+        iv = b'0' * 16
 
         with token.open(user_pin='1234') as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
-            crypttext = key.encrypt(data, mechanism_param=b'0' * 16)
+            crypttext = key.encrypt(data, mechanism_param=iv)
             self.assertIsInstance(crypttext, bytes)
             self.assertNotEqual(data, crypttext)
             # We should be aligned to the block size
             self.assertEqual(len(crypttext), 16)
             # Ensure we didn't just get 16 nulls
             self.assertFalse(all(c == '\0' for c in crypttext))
+
+            text = key.decrypt(crypttext, mechanism_param=iv)
+            self.assertEqual(data, text)
 
     def test_aes_encrypt_stream(self):
         lib = pkcs11.lib(LIB)
@@ -132,10 +136,11 @@ class PKCS11Tests(unittest.TestCase):
             b'U' * 16,
             b'T' * 10,  # don't align to the blocksize
         )
+        iv = b'0' * 16
 
         with token.open(user_pin='1234') as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
-            cryptblocks = list(key.encrypt(data, mechanism_param=b'0' * 16))
+            cryptblocks = list(key.encrypt(data, mechanism_param=iv))
 
             self.assertEqual(len(cryptblocks), len(data) + 1)
 
@@ -146,3 +151,6 @@ class PKCS11Tests(unittest.TestCase):
             self.assertEqual(len(crypttext) % 16, 0)
             # Ensure we didn't just get 16 nulls
             self.assertFalse(all(c == '\0' for c in crypttext))
+
+            text = b''.join(key.decrypt(cryptblocks, mechanism_param=iv))
+            self.assertEqual(b''.join(data), text)

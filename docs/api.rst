@@ -70,22 +70,44 @@ Classes
         :members:
         :inherited-members:
 
-    The following classes relate to :class:`Object`s on the :class:`Token`.
+
+    Token Objects
+    ~~~~~~~~~~~~~
+
+    The following classes relate to :class:`Object` objects on the
+    :class:`Token`.
 
     .. autoclass:: Object()
         :members:
         :inherited-members:
 
-    .. autoclass:: Key()
+    .. autoclass:: Key(Object)
         :members:
 
-    .. autoclass:: SecretKey()
+    .. autoclass:: SecretKey(Key)
         :members:
+
+    Object Capabilities
+    ~~~~~~~~~~~~~~~~~~~
+
+    Capability mixins for :class:`Object` objects.
 
     .. autoclass:: EncryptMixin()
         :members:
 
     .. autoclass:: DecryptMixin()
+        :members:
+
+    .. autoclass:: SignMixin()
+        :members:
+
+    .. autoclass:: VerifyMixin()
+        :members:
+
+    .. autoclass:: WrapMixin()
+        :members:
+
+    .. autoclass:: UnwrapMixin()
         :members:
 
 

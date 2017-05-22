@@ -231,7 +231,7 @@ class SecretKey(Key):
 
 class EncryptMixin(Object):
     """
-    This object supports the encrypt capability.
+    This :class:`Object` supports the encrypt capability.
     """
 
     def _encrypt(self, data, mechanism=None, mechanism_param=b''):
@@ -278,7 +278,35 @@ class EncryptMixin(Object):
 
 
 class DecryptMixin(Object):
-    pass
+    """
+    This :class:`Object` supports the decrypt capability.
+    """
+
+    def _decrypt(self, data, mechanism=None, mechanism_param=b''):
+        raise NotImplementedError()
+
+    def decrypt(self, data, **kwargs):
+        """
+        Decrypt some `data`.
+
+        See :meth:`EncryptMixin.encrypt` for more information.
+
+        :param data: data to encrypt can be bytes or an iterable(bytes)
+        :param Mechanism mechanism: optional encryption mechanism
+            (or None for default)
+        :param bytes mechanism_param: optional mechanism parameter
+            (e.g. initialisation vector).
+
+        :rtype: bytes or iterable(bytes)
+        """
+
+        # If we're not an iterable, recurse into ourselves with an iterable
+        # version and join the result at the end.
+        if isinstance(data, bytes):
+            return b''.join(self._decrypt((data,), **kwargs))
+
+        else:
+            return self._decrypt(data, **kwargs)
 
 
 class SignMixin(Object):
