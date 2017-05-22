@@ -1,8 +1,98 @@
 Python PKCS#11 - High Level Wrapper API
 =======================================
 
-A high level interface to the PKCS#11 (Cryptoki) standard for Python.
+A high level, "more Pythonic" interface to the PKCS#11 (Cryptoki) standard
+to support HSM and Smartcard devices in Python.
 
+The interface is designed to follow the logical structure of a HSM, with
+useful defaults for obscurely documented parameters. Many APIs will optionally
+accept iterables and act as generators, allowing you to stream large data
+blocks in a straightforward way.
+
+Source: https://github.com/danni/python-pkcs11
+
+Documentation: http://python-pkcs11.readthedocs.io/en/latest/
+
+Getting Started
+---------------
+
+Install from Pip:
+
+::
+
+    pip install python-pkcs11
+
+
+Or build from source:
+
+::
+
+    python setup.py build
+
+Assuming your PKCS#11 library is set as `PKCS_MODULE` and contains a
+token named `DEMO`:
+
+::
+
+    import pkcs11
+
+    # Initialise our PKCS#11 library
+    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+    # Get the first token that matches our criteria
+    token = next(lib.get_tokens(token_label='DEMO'))
+
+    data = b'INPUT DATA'
+    iv = b'0' * 16  # Never use a fixed IV for real crypto
+
+    # Open a session on our token
+    with token.open(user_pin='1234') as session:
+        # Generate an AES key in this session
+        key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
+
+        # Encrypt our data
+        crypttext = key.encrypt(data, mechanism_param=iv)
+
+Tested Compatibility
+--------------------
+
+Things that should almost certainly work.
+
+PKCS#11 version:
+
+* 2.4
+
+Libraries:
+
+* SoftHSMv2
+* Thales nCipher (Security World)
+
+Mechanisms:
+
+* AES
+* RSA
+
+Operations:
+
+* Encrypt
+* Decrypt
+* Generate Key
+* Generate Keypair
+
+Feel free to send pull requests for any functionality that's not exposed. The
+code is designed to be readable and expose the PKCS#11 spec in a
+straight-forward way.
+
+More info on PKCS#11
+--------------------
+
+The latest version of the PKCS#11 spec is available from OASIS:
+
+http://docs.oasis-open.org/pkcs11/pkcs11-base/v2.40/pkcs11-base-v2.40.html
+
+You should also consult the documentation for your PKCS#11 implementation.
+Many implementations expose additional vendor options configurable in your
+environment, including alternative features, modes and debugging
+information.
 
 License
 -------
