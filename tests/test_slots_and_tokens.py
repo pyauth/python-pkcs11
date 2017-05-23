@@ -18,6 +18,15 @@ except KeyError:
 
 class PKCS11SlotTokenTests(unittest.TestCase):
 
+    def test_double_initialise(self):
+        self.assertIsNotNone(pkcs11.lib(LIB))
+        self.assertIsNotNone(pkcs11.lib(LIB))
+
+    def test_double_initialise_different_libs(self):
+        self.assertIsNotNone(pkcs11.lib(LIB))
+        with self.assertRaises(pkcs11.AlreadyInitialized):
+            pkcs11.lib('somethingelse.so')
+
     def test_get_slots(self):
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()
