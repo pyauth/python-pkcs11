@@ -88,8 +88,8 @@ class PKCS11SecretKeyTests(unittest.TestCase):
         data = b'HELLO WORLD' * 1024
 
         with token.open(user_pin='1234') as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
-            iv = session.generate_random(key.key_length)
+            key = session.generate_key(pkcs11.KeyType.AES, 256, store=False)
+            iv = session.generate_random(128)
             crypttext = key.encrypt(data, mechanism_param=iv)
             text = key.decrypt(crypttext, mechanism_param=iv)
 
