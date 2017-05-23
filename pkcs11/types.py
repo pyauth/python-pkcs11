@@ -31,6 +31,12 @@ def _CK_MECHANISM_TYPE_to_enum(mechanism):
         return mechanism
 
 
+def _chunks(data, size):
+    """Yield successive `size`-sized chunks from `data`."""
+    for i in range(0, len(data), size):
+        yield data[i:i + size]
+
+
 class Slot:
     """
     A PKCS#11 device slot.
@@ -389,7 +395,7 @@ class EncryptMixin(Object):
     def _encrypt(self, data, mechanism=None, mechanism_param=b''):
         raise NotImplementedError()
 
-    def encrypt(self, data, **kwargs):
+    def encrypt(self, data, buffer_size=1024, **kwargs):
         """
         Encrypt some `data`.
 
@@ -411,13 +417,15 @@ class EncryptMixin(Object):
         integer number of blocks and greater than or equal to the largest
         input chunk is recommended.
 
+        Large single blocks of `data` will be chunked into the `buffer_size`.
+
         :param data: data to encrypt
         :type data: str, bytes or iter(bytes)
         :param Mechanism mechanism: optional encryption mechanism
             (or None for default)
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
-        :param int buffer_size: size of the working buffer (default 1024).
+        :param int buffer_size: size of the working buffer.
 
         :rtype: bytes or iter(bytes)
         """
@@ -429,7 +437,8 @@ class EncryptMixin(Object):
         # If we're not an iterable, recurse into ourselves with an iterable
         # version and join the result at the end.
         if isinstance(data, bytes):
-            return b''.join(self._encrypt((data,), **kwargs))
+            return b''.join(self._encrypt(_chunks(data, buffer_size),
+                                          buffer_size=buffer_size, **kwargs))
 
         else:
             return self._encrypt(data, **kwargs)
@@ -443,7 +452,7 @@ class DecryptMixin(Object):
     def _decrypt(self, data, mechanism=None, mechanism_param=b''):
         raise NotImplementedError()
 
-    def decrypt(self, data, **kwargs):
+    def decrypt(self, data, buffer_size=1024, **kwargs):
         """
         Decrypt some `data`.
 
@@ -455,7 +464,7 @@ class DecryptMixin(Object):
             (or None for default).
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
-        :param int buffer_size: size of the working buffer (default 1024).
+        :param int buffer_size: size of the working buffer.
 
         :rtype: bytes or iter(bytes)
         """
@@ -463,7 +472,8 @@ class DecryptMixin(Object):
         # If we're not an iterable, recurse into ourselves with an iterable
         # version and join the result at the end.
         if isinstance(data, bytes):
-            return b''.join(self._decrypt((data,), **kwargs))
+            return b''.join(self._decrypt(_chunks(data, buffer_size),
+                                          buffer_size=buffer_size, **kwargs))
 
         else:
             return self._decrypt(data, **kwargs)

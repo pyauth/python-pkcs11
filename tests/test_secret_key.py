@@ -81,3 +81,16 @@ class PKCS11SecretKeyTests(unittest.TestCase):
             textblocks = list(key.decrypt(cryptblocks, mechanism_param=iv))
 
             self.assertEqual(b''.join(data), b''.join(textblocks))
+
+    def test_aes_big_string(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+        data = b'HELLO WORLD' * 1024
+
+        with token.open(user_pin='1234') as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
+            iv = session.generate_random(key.key_length)
+            crypttext = key.encrypt(data, mechanism_param=iv)
+            text = key.decrypt(crypttext, mechanism_param=iv)
+
+            self.assertEqual(text, data)
