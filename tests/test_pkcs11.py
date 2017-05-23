@@ -125,7 +125,7 @@ class PKCS11Tests(unittest.TestCase):
             self.assertEqual(len(search), 1)
             self.assertEqual(key, search[0])
 
-    def test_get_one_object(self):
+    def test_get_key(self):
         lib = pkcs11.lib(LIB)
         token = next(lib.get_tokens(token_label='DEMO'))
 
@@ -133,11 +133,30 @@ class PKCS11Tests(unittest.TestCase):
             session.generate_key(pkcs11.KeyType.AES, 128,
                                  store=False, label='SAMPLE KEY')
 
-            key = next(session.get_objects({
-                pkcs11.Attribute.LABEL: 'SAMPLE KEY',
-            }))
+            key = session.get_key(label='SAMPLE KEY',)
             self.assertIsInstance(key, pkcs11.SecretKey)
             key.encrypt(b'test', mechanism_param=b'IV' * 8)
+
+    def test_get_key_not_found(self):
+        lib = pkcs11.lib(LIB)
+        token = next(lib.get_tokens(token_label='DEMO'))
+
+        with token.open(user_pin='1234') as session:
+            with self.assertRaises(pkcs11.NoSuchKey):
+                session.get_key(label='SAMPLE KEY')
+
+    def test_get_key_vague(self):
+        lib = pkcs11.lib(LIB)
+        token = next(lib.get_tokens(token_label='DEMO'))
+
+        with token.open(user_pin='1234') as session:
+            session.generate_key(pkcs11.KeyType.AES, 128,
+                                 store=False, label='SAMPLE KEY')
+            session.generate_key(pkcs11.KeyType.AES, 128,
+                                 store=False, label='SAMPLE KEY 2')
+
+            with self.assertRaises(pkcs11.MultipleObjectsReturned):
+                session.get_key(key_type=pkcs11.KeyType.AES)
 
     def test_aes_encrypt(self):
         lib = pkcs11.lib(LIB)

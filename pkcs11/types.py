@@ -8,6 +8,7 @@ from binascii import hexlify
 
 from .constants import *
 from .mechanisms import *
+from .exceptions import *
 
 
 def _CK_UTF8CHAR_to_str(data):
@@ -189,6 +190,57 @@ class Session:
         """Close the session."""
         raise NotImplementedError()
 
+    def get_key(self, object_class=None, key_type=None, label=None, id=None):
+        """
+        Search for a key with any of `key_type`, `label` and/or `id`.
+
+        Returns a single key or throws :class:`pkcs11.exceptions.NoSuchKey` or
+        :class:`pkcs11.exceptions.MultipleObjectsReturned`.
+
+        This is a simplified version of :meth:`get_objects`, which allows
+        searching for any object.
+
+        :param ObjectClass object_class: Optional object class.
+        :param KeyType key_type: Optional key type.
+        :param str label: Optional key label.
+        :param bytes id: Optional key id.
+
+        :rtype: Key
+        """
+
+        if object_class is None and \
+                key_type is None and \
+                label is None \
+                and id is None:
+            raise ArgumentsBad("Must specify at least one search parameter.")
+
+        attrs = {}
+
+        if object_class is not None:
+            attrs[Attribute.CLASS] = object_class
+
+        if key_type is not None:
+            attrs[Attribute.KEY_TYPE] = key_type
+
+        if label is not None:
+            attrs[Attribute.LABEL] = label
+
+        if id is not None:
+            attrs[Attribute.ID] = id
+
+        iterator = self.get_objects(attrs)
+
+        try:
+            key = next(iterator)
+        except StopIteration:
+            raise NoSuchKey("No key matching %s" % attrs)
+
+        try:
+            next(iterator)
+            raise MultipleObjectsReturned("More than 1 key matches %s" % attrs)
+        except StopIteration:
+            return key
+
     def get_objects(self, attrs):
         """
         Search for objects matching `attrs`.
@@ -201,6 +253,8 @@ class Session:
             }):
 
                 print(obj)
+
+        This is the more generic version of :meth:`get_key`.
 
         :param dict(Attribute,*) attrs: Attributes to search for.
 

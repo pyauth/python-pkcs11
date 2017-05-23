@@ -184,6 +184,18 @@ class MechanismParamInvalid(PKCS11Error):
     pass
 
 
+class MultipleObjectsReturned(PKCS11Error):
+    """
+    Multiple objects matched the search parameters.
+    """
+
+
+class NoSuchKey(PKCS11Error):
+    """
+    No key matching the parameters was found.
+    """
+
+
 class ObjectHandleInvalid(PKCS11Error):
     pass
 
