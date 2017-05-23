@@ -9,6 +9,7 @@ for Sphinx/Jedi/etc, as this module is not importable without having the
 library loaded.
 """
 
+from threading import Lock
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
@@ -26,6 +27,10 @@ from .types import (
     _CK_VERSION_to_tuple,
     _CK_MECHANISM_TYPE_to_enum,
 )
+
+
+# Big operation lock prevents people from entering/reentering operations
+OPERATION_LOCK = Lock()
 
 
 cdef class AttributeList:
@@ -126,6 +131,8 @@ class SearchIter:
         self.session = session
 
         template = AttributeList(attrs)
+        OPERATION_LOCK.acquire()
+        self._active = True
         assertRV(C_FindObjectsInit(self.session._handle,
                                    template.data, template.count))
 
@@ -141,13 +148,21 @@ class SearchIter:
                                &handle, 1, &count))
 
         if count == 0:
+            self._finalize()
             raise StopIteration()
         else:
             return Object._make(self.session, handle)
 
     def __del__(self):
         """Close the search."""
-        assertRV(C_FindObjectsFinal(self.session._handle))
+        self._finalize()
+
+    def _finalize(self):
+        """Finish the operation."""
+        if self._active:
+            self._active = False
+            assertRV(C_FindObjectsFinal(self.session._handle))
+            OPERATION_LOCK.release()
 
 
 class Session(types.Session):
@@ -328,27 +343,27 @@ class EncryptMixin(types.EncryptMixin):
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
                                mechanism, mechanism_param)
-
-        assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
-
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
-        for part_in in data:
+        with OPERATION_LOCK:
+            assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
+
+            for part_in in data:
+                length = buffer_size
+                assertRV(C_EncryptUpdate(self.session._handle,
+                                        part_in, len(part_in),
+                                        &part_out[0], &length))
+
+                yield bytes(part_out[:length])
+
+            # Finalize
+            # We assume the buffer is much bigger than the block size
             length = buffer_size
-            assertRV(C_EncryptUpdate(self.session._handle,
-                                     part_in, len(part_in),
-                                     &part_out[0], &length))
+            assertRV(C_EncryptFinal(self.session._handle,
+                                    &part_out[0], &length))
 
             yield bytes(part_out[:length])
-
-        # Finalize
-        # We assume the buffer is much bigger than the block size
-        length = buffer_size
-        assertRV(C_EncryptFinal(self.session._handle,
-                                &part_out[0], &length))
-
-        yield bytes(part_out[:length])
 
 class DecryptMixin(types.DecryptMixin):
     """Expand DecryptMixin with an implementation."""
@@ -361,28 +376,28 @@ class DecryptMixin(types.DecryptMixin):
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
                                mechanism, mechanism_param)
-
-        assertRV(C_DecryptInit(self.session._handle, &mech, self._handle))
-
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
-        for part_in in data:
-            length = buffer_size
+        with OPERATION_LOCK:
+            assertRV(C_DecryptInit(self.session._handle, &mech, self._handle))
 
-            assertRV(C_DecryptUpdate(self.session._handle,
-                                     part_in, len(part_in),
-                                     &part_out[0], &length))
+            for part_in in data:
+                length = buffer_size
+
+                assertRV(C_DecryptUpdate(self.session._handle,
+                                        part_in, len(part_in),
+                                        &part_out[0], &length))
+
+                yield bytes(part_out[:length])
+
+            # Finalize
+            # We assume the buffer is much bigger than the block size
+            length = buffer_size
+            assertRV(C_DecryptFinal(self.session._handle,
+                                    &part_out[0], &length))
 
             yield bytes(part_out[:length])
-
-        # Finalize
-        # We assume the buffer is much bigger than the block size
-        length = buffer_size
-        assertRV(C_DecryptFinal(self.session._handle,
-                                &part_out[0], &length))
-
-        yield bytes(part_out[:length])
 
 
 class SignMixin(types.SignMixin):
