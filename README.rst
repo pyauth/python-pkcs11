@@ -38,8 +38,7 @@ token named `DEMO`:
 
     # Initialise our PKCS#11 library
     lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
-    # Get the first token that matches our criteria
-    token = next(lib.get_tokens(token_label='DEMO'))
+    token = lib.get_token(token_label='DEMO')
 
     data = b'INPUT DATA'
 
