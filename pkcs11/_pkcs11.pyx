@@ -9,7 +9,6 @@ for Sphinx/Jedi/etc, as this module is not importable without having the
 library loaded.
 """
 
-from threading import Lock
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
@@ -27,10 +26,6 @@ from .types import (
     _CK_VERSION_to_tuple,
     _CK_MECHANISM_TYPE_to_enum,
 )
-
-
-# Big operation lock prevents people from entering/reentering operations
-OPERATION_LOCK = Lock()
 
 
 cdef class AttributeList:
@@ -131,7 +126,7 @@ class SearchIter:
         self.session = session
 
         template = AttributeList(attrs)
-        OPERATION_LOCK.acquire()
+        self.session._operation_lock.acquire()
         self._active = True
         assertRV(C_FindObjectsInit(self.session._handle,
                                    template.data, template.count))
@@ -162,7 +157,7 @@ class SearchIter:
         if self._active:
             self._active = False
             assertRV(C_FindObjectsFinal(self.session._handle))
-            OPERATION_LOCK.release()
+            self.session._operation_lock.release()
 
 
 class Session(types.Session):
@@ -346,7 +341,7 @@ class EncryptMixin(types.EncryptMixin):
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
-        with OPERATION_LOCK:
+        with self.session._operation_lock:
             assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
 
             for part_in in data:
@@ -379,7 +374,7 @@ class DecryptMixin(types.DecryptMixin):
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
-        with OPERATION_LOCK:
+        with self.session._operation_lock:
             assertRV(C_DecryptInit(self.session._handle, &mech, self._handle))
 
             for part_in in data:

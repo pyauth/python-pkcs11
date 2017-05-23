@@ -4,6 +4,7 @@ Types for high level PKCS#11 wrapper.
 This module provides stubs that are overrideen in pkcs11._pkcs11.
 """
 
+from threading import Lock
 from binascii import hexlify
 
 from .constants import *
@@ -177,6 +178,10 @@ class Session:
         """:class:`Token` this session is on."""
 
         self._handle = handle
+        # Big operation lock prevents people from entering/reentering
+        # operations
+        self._operation_lock = Lock()
+
         self.rw = rw
         """True if this is a read/write session."""
         self.user_type = user_type
