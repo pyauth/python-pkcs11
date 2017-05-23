@@ -327,7 +327,7 @@ class EncryptMixin(types.EncryptMixin):
     def _encrypt(self, data,
                  mechanism=None,
                  mechanism_param=b'',
-                 buffer_size=1024):
+                 buffer_size=8192):
         """
         Do chunked encryption. `data` will hae been converted to a generator
         for us by encrypt().
@@ -360,13 +360,14 @@ class EncryptMixin(types.EncryptMixin):
 
             yield bytes(part_out[:length])
 
+
 class DecryptMixin(types.DecryptMixin):
     """Expand DecryptMixin with an implementation."""
 
     def _decrypt(self, data,
                  mechanism=None,
                  mechanism_param=b'',
-                 buffer_size=1024):
+                 buffer_size=8192):
         """See EncryptMixin._encrypt for more info."""
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,

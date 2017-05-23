@@ -90,7 +90,7 @@ class PKCS11SecretKeyTests(unittest.TestCase):
         with token.open(user_pin='1234') as session:
             key = session.generate_key(pkcs11.KeyType.AES, 256, store=False)
             iv = session.generate_random(128)
-            crypttext = key.encrypt(data, mechanism_param=iv)
-            text = key.decrypt(crypttext, mechanism_param=iv)
+            crypttext = key.encrypt(data, mechanism_param=iv, buffer_size=1024)
+            text = key.decrypt(crypttext, mechanism_param=iv, buffer_size=2048)
 
             self.assertEqual(text, data)

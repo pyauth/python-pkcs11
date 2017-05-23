@@ -406,7 +406,7 @@ class EncryptMixin(Object):
     def _encrypt(self, data, mechanism=None, mechanism_param=b''):
         raise NotImplementedError()
 
-    def encrypt(self, data, buffer_size=1024, **kwargs):
+    def encrypt(self, data, buffer_size=8192, **kwargs):
         """
         Encrypt some `data`.
 
@@ -452,7 +452,7 @@ class EncryptMixin(Object):
                                           buffer_size=buffer_size, **kwargs))
 
         else:
-            return self._encrypt(data, **kwargs)
+            return self._encrypt(data, buffer_size=buffer_size, **kwargs)
 
 
 class DecryptMixin(Object):
@@ -463,7 +463,7 @@ class DecryptMixin(Object):
     def _decrypt(self, data, mechanism=None, mechanism_param=b''):
         raise NotImplementedError()
 
-    def decrypt(self, data, buffer_size=1024, **kwargs):
+    def decrypt(self, data, buffer_size=8192, **kwargs):
         """
         Decrypt some `data`.
 
@@ -487,7 +487,7 @@ class DecryptMixin(Object):
                                           buffer_size=buffer_size, **kwargs))
 
         else:
-            return self._decrypt(data, **kwargs)
+            return self._decrypt(data, buffer_size=buffer_size, **kwargs)
 
 
 class SignMixin(Object):
