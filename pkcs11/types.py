@@ -243,7 +243,7 @@ class Session:
 
     def get_objects(self, attrs):
         """
-        Search for objects matching `attrs`.
+        Search for objects matching `attrs`. Returns a generator.
 
         ::
 

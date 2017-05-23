@@ -494,5 +494,21 @@ cdef class lib:
             except PKCS11Error:
                 continue
 
+    def get_token(self, **kwargs):
+        """Get a single token."""
+        iterator = self.get_tokens(**kwargs)
+
+        try:
+            token = next(iterator)
+        except StopIteration:
+            raise NoSuchToken("No token matching %s" % kwargs)
+
+        try:
+            next(iterator)
+            raise MultipleTokensReturned(
+                "More than 1 token matches %s" % kwargs)
+        except StopIteration:
+            return token
+
     def __dealloc__(self):
         assertRV(C_Finalize(NULL))

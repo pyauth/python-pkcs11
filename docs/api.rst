@@ -32,6 +32,8 @@ Classes
 
             Generator yielding PKCS#11 tokens matching the provided parameters.
 
+            See also :meth:`get_token`.
+
             :param str token_label: Optional token label.
             :param bytes token_serial: Optional token serial.
             :param TokenFlag token_flags: Optional bitwise token flags.
@@ -39,6 +41,22 @@ Classes
             :param iter(Mechanism) mechanisms: Optional required mechanisms.
 
             :rtype: iter(Token)
+
+        .. method:: get_token(token_label=None, token_serial=None, token_flags=None, slot_flags=None, mechanisms=None)
+
+            Returns a single token or raises either
+            :class:`pkcs11.exceptions.NoSuchToken` or
+            :class:`pkcs11.exceptions.MultipleTokensReturned`.
+
+            See also :meth:`get_tokens`.
+
+            :param str token_label: Optional token label.
+            :param bytes token_serial: Optional token serial.
+            :param TokenFlag token_flags: Optional bitwise token flags.
+            :param SlotFlag slot_flags: Optional bitwise slot flags.
+            :param iter(Mechanism) mechanisms: Optional required mechanisms.
+
+            :rtype: Token
 
         .. attribute:: cryptoki_version
 

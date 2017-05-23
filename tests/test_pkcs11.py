@@ -55,28 +55,28 @@ class PKCS11Tests(unittest.TestCase):
 
     def test_open_session(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
 
         with token.open() as session:
             self.assertIsInstance(session, pkcs11.Session)
 
     def test_open_session_and_login_user(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
 
         with token.open(user_pin='1234') as session:
             self.assertIsInstance(session, pkcs11.Session)
 
     def test_open_session_and_login_so(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
 
         with token.open(rw=True, so_pin='5678') as session:
             self.assertIsInstance(session, pkcs11.Session)
 
     def test_generate_key(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
 
         with token.open(user_pin='1234') as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
@@ -112,7 +112,7 @@ class PKCS11Tests(unittest.TestCase):
 
     def test_get_objects(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
 
         with token.open(user_pin='1234') as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128,
@@ -127,7 +127,7 @@ class PKCS11Tests(unittest.TestCase):
 
     def test_get_key(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
 
         with token.open(user_pin='1234') as session:
             session.generate_key(pkcs11.KeyType.AES, 128,
@@ -139,7 +139,7 @@ class PKCS11Tests(unittest.TestCase):
 
     def test_get_key_not_found(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
 
         with token.open(user_pin='1234') as session:
             with self.assertRaises(pkcs11.NoSuchKey):
@@ -147,7 +147,7 @@ class PKCS11Tests(unittest.TestCase):
 
     def test_get_key_vague(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
 
         with token.open(user_pin='1234') as session:
             session.generate_key(pkcs11.KeyType.AES, 128,
@@ -160,7 +160,7 @@ class PKCS11Tests(unittest.TestCase):
 
     def test_aes_encrypt(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
         data = b'INPUT DATA'
         iv = b'0' * 16
 
@@ -179,7 +179,7 @@ class PKCS11Tests(unittest.TestCase):
 
     def test_aes_encrypt_stream(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
         data = (
             b'I' * 16,
             b'N' * 16,
@@ -208,7 +208,7 @@ class PKCS11Tests(unittest.TestCase):
 
     def test_aes_encrypt_whacky_sizes(self):
         lib = pkcs11.lib(LIB)
-        token = next(lib.get_tokens(token_label='DEMO'))
+        token = lib.get_token(token_label='DEMO')
         data = [
             (char * ord(char)).encode('utf-8')
             for char in 'HELLO WORLD'

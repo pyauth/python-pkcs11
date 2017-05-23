@@ -190,9 +190,21 @@ class MultipleObjectsReturned(PKCS11Error):
     """
 
 
+class MultipleTokensReturned(PKCS11Error):
+    """
+    Multiple tokens matched the search parameters.
+    """
+
+
 class NoSuchKey(PKCS11Error):
     """
     No key matching the parameters was found.
+    """
+
+
+class NoSuchToken(PKCS11Error):
+    """
+    No token matching the parameters was found.
     """
 
 
