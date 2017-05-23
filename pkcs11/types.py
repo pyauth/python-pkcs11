@@ -237,15 +237,21 @@ class Session:
         iterator = self.get_objects(attrs)
 
         try:
-            key = next(iterator)
-        except StopIteration:
-            raise NoSuchKey("No key matching %s" % attrs)
+            try:
+                key = next(iterator)
+            except StopIteration:
+                raise NoSuchKey("No key matching %s" % attrs)
 
-        try:
-            next(iterator)
-            raise MultipleObjectsReturned("More than 1 key matches %s" % attrs)
-        except StopIteration:
-            return key
+            try:
+                next(iterator)
+                raise MultipleObjectsReturned("More than 1 key matches %s" %
+                                              attrs)
+            except StopIteration:
+                return key
+        finally:
+            # Force finalizing SearchIter rather than waiting for garbage
+            # collection, so that we release the operation lock.
+            iterator._finalize()
 
     def get_objects(self, attrs):
         """
