@@ -90,6 +90,30 @@ class PKCS11SessionTests(unittest.TestCase):
             self.assertEqual(len(search), 1)
             self.assertEqual(key, search[0])
 
+    def test_destroy_object(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+
+        with token.open(user_pin='1234') as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128,
+                                       store=False, label='SAMPLE KEY')
+            key.destroy()
+
+            self.assertEqual(list(session.get_objects()), [])
+
+    def test_copy_object(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+
+        with token.open(user_pin='1234') as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128,
+                                       store=False, label='SAMPLE KEY')
+            new = key.copy({
+                pkcs11.Attribute.LABEL: 'SOMETHING ELSE',
+            })
+
+            self.assertEqual(set(session.get_objects()), {key, new})
+
     def test_get_key(self):
         lib = pkcs11.lib(LIB)
         token = lib.get_token(token_label='DEMO')

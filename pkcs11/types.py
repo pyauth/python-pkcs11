@@ -191,6 +191,9 @@ class Session:
         return self.token == other.token and \
             self._handle == other._handle
 
+    def __hash__(self):
+        return hash(self._handle)
+
     def __enter__(self):
         return self
 
@@ -258,7 +261,7 @@ class Session:
             # collection, so that we release the operation lock.
             iterator._finalize()
 
-    def get_objects(self, attrs):
+    def get_objects(self, attrs=None):
         """
         Search for objects matching `attrs`. Returns a generator.
 
@@ -348,11 +351,38 @@ class Object:
         return self.session == other.session and \
             self._handle == other._handle
 
+    def __hash__(self):
+        return hash((self.session, self._handle))
+
+    def copy(self, attrs):
+        """
+        Make a copy of the object with new attributes `attrs`.
+
+        Requires a read/write session.
+
+        ::
+
+            new = key.copy({
+                Attribute.LABEL: 'MY NEW KEY',
+            })
+
+        Certain objects may not be copied. Calling :meth:`copy` on such
+        objects will result in an exception.
+
+        :param dict(Attribute,*) attrs: attributes for the new :class:`Object`
+        :rtype: Object
+        """
+
     def destroy(self):
         """
         Destroy the object.
 
-        Requires a R/W session.
+        Requires a read/write session.
+
+        Certain objects may not be destroyed. Calling :meth:`destroy` on such
+        objects will result in an exception.
+
+        The :class:`Object` is no longer valid.
         """
         raise NotImplementedError()
 

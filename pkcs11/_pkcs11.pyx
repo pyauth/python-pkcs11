@@ -169,8 +169,8 @@ class Session(types.Session):
 
         assertRV(C_CloseSession(self._handle))
 
-    def get_objects(self, attrs):
-        return SearchIter(self, attrs)
+    def get_objects(self, attrs=None):
+        return SearchIter(self, attrs or {})
 
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
@@ -315,6 +315,19 @@ class Object(types.Object):
 
         assertRV(C_SetAttributeValue(self.session._handle, self._handle,
                                      &template, 1))
+
+    def copy(self, attrs):
+        cdef CK_OBJECT_HANDLE new
+
+        template = AttributeList(attrs)
+        assertRV(C_CopyObject(self.session._handle, self._handle,
+                              template.data, template.count,
+                              &new))
+
+        return Object._make(self.session, new)
+
+    def destroy(self):
+        assertRV(C_DestroyObject(self.session._handle, self._handle))
 
 
 class SecretKey(types.SecretKey):
