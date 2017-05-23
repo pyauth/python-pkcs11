@@ -293,6 +293,23 @@ class Session:
         """
         raise NotImplementedError()
 
+    def seed_random(self, seed):
+        """
+        Mix additional seed material into the RNG (if supported).
+
+        :param bytes seed: Bytes of random to seed.
+        """
+        raise NotImplementedError()
+
+    def generate_random(self, nbits):
+        """
+        Generate `length` bytes of random or pseudo-random data (if supported).
+
+        :param int nbits: Number of bits to generate.
+        :rtype: bytes
+        """
+        raise NotImplementedError()
+
 
 class Object:
     """

@@ -1,5 +1,5 @@
 """
-PKCS#11 SoftHSM v2 unit tests.
+PKCS#11 Slots and Tokens
 
 These tests assume SoftHSMv2 with a single token initialized called DEMO.
 """
@@ -16,7 +16,7 @@ except KeyError:
     raise RuntimeError("Must define `PKCS11_MODULE' to run tests.")
 
 
-class PKCS11Tests(unittest.TestCase):
+class PKCS11SlotTokenTests(unittest.TestCase):
 
     def test_get_slots(self):
         lib = pkcs11.lib(LIB)
@@ -27,16 +27,6 @@ class PKCS11Tests(unittest.TestCase):
 
         self.assertIsInstance(slot1, pkcs11.Slot)
         self.assertEqual(slot1.flags, pkcs11.SlotFlag.TOKEN_PRESENT)
-
-    def test_get_token(self):
-        lib = pkcs11.lib(LIB)
-        slot, *_ = lib.get_slots()
-        token = slot.get_token()
-
-        self.assertIsInstance(token, pkcs11.Token)
-        self.assertEqual(token.label, 'DEMO')
-        self.assertIn(pkcs11.TokenFlag.TOKEN_INITIALIZED, token.flags)
-        self.assertIn(pkcs11.TokenFlag.LOGIN_REQUIRED, token.flags)
 
     def test_get_mechanisms(self):
         lib = pkcs11.lib(LIB)
@@ -53,171 +43,12 @@ class PKCS11Tests(unittest.TestCase):
         tokens = lib.get_tokens(token_label='DEMO')
         self.assertEqual(len(list(tokens)), 1)
 
-    def test_open_session(self):
+    def test_get_token(self):
         lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
+        slot, *_ = lib.get_slots()
+        token = slot.get_token()
 
-        with token.open() as session:
-            self.assertIsInstance(session, pkcs11.Session)
-
-    def test_open_session_and_login_user(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-
-        with token.open(user_pin='1234') as session:
-            self.assertIsInstance(session, pkcs11.Session)
-
-    def test_open_session_and_login_so(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-
-        with token.open(rw=True, so_pin='5678') as session:
-            self.assertIsInstance(session, pkcs11.Session)
-
-    def test_generate_key(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-
-        with token.open(user_pin='1234') as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
-            self.assertIsInstance(key, pkcs11.Object)
-            self.assertIsInstance(key, pkcs11.SecretKey)
-            self.assertIsInstance(key, pkcs11.EncryptMixin)
-
-            self.assertIs(key.object_class, pkcs11.ObjectClass.SECRET_KEY)
-
-            # Test GetAttribute
-            self.assertIs(key[pkcs11.Attribute.CLASS],
-                          pkcs11.ObjectClass.SECRET_KEY)
-            self.assertEqual(key[pkcs11.Attribute.TOKEN], False)
-            self.assertEqual(key[pkcs11.Attribute.LOCAL], True)
-            self.assertEqual(key[pkcs11.Attribute.MODIFIABLE], True)
-            self.assertEqual(key[pkcs11.Attribute.LABEL], '')
-
-            # Test SetAttribute
-            key[pkcs11.Attribute.LABEL] = "DEMO"
-
-            self.assertEqual(key[pkcs11.Attribute.LABEL], "DEMO")
-
-            # Create another key with no capabilities
-            key = session.generate_key(pkcs11.KeyType.AES, 128,
-                                       label='MY KEY',
-                                       id=b'\1\2\3\4',
-                                       store=False, capabilities=0)
-            self.assertIsInstance(key, pkcs11.Object)
-            self.assertIsInstance(key, pkcs11.SecretKey)
-            self.assertNotIsInstance(key, pkcs11.EncryptMixin)
-
-            self.assertEqual(key.label, 'MY KEY')
-
-    def test_get_objects(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-
-        with token.open(user_pin='1234') as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128,
-                                       store=False, label='SAMPLE KEY')
-
-            search = list(session.get_objects({
-                pkcs11.Attribute.LABEL: 'SAMPLE KEY',
-            }))
-
-            self.assertEqual(len(search), 1)
-            self.assertEqual(key, search[0])
-
-    def test_get_key(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-
-        with token.open(user_pin='1234') as session:
-            session.generate_key(pkcs11.KeyType.AES, 128,
-                                 store=False, label='SAMPLE KEY')
-
-            key = session.get_key(label='SAMPLE KEY',)
-            self.assertIsInstance(key, pkcs11.SecretKey)
-            key.encrypt(b'test', mechanism_param=b'IV' * 8)
-
-    def test_get_key_not_found(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-
-        with token.open(user_pin='1234') as session:
-            with self.assertRaises(pkcs11.NoSuchKey):
-                session.get_key(label='SAMPLE KEY')
-
-    def test_get_key_vague(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-
-        with token.open(user_pin='1234') as session:
-            session.generate_key(pkcs11.KeyType.AES, 128,
-                                 store=False, label='SAMPLE KEY')
-            session.generate_key(pkcs11.KeyType.AES, 128,
-                                 store=False, label='SAMPLE KEY 2')
-
-            with self.assertRaises(pkcs11.MultipleObjectsReturned):
-                session.get_key(key_type=pkcs11.KeyType.AES)
-
-    def test_aes_encrypt(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-        data = b'INPUT DATA'
-        iv = b'0' * 16
-
-        with token.open(user_pin='1234') as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
-            crypttext = key.encrypt(data, mechanism_param=iv)
-            self.assertIsInstance(crypttext, bytes)
-            self.assertNotEqual(data, crypttext)
-            # We should be aligned to the block size
-            self.assertEqual(len(crypttext), 16)
-            # Ensure we didn't just get 16 nulls
-            self.assertFalse(all(c == '\0' for c in crypttext))
-
-            text = key.decrypt(crypttext, mechanism_param=iv)
-            self.assertEqual(data, text)
-
-    def test_aes_encrypt_stream(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-        data = (
-            b'I' * 16,
-            b'N' * 16,
-            b'P' * 16,
-            b'U' * 16,
-            b'T' * 10,  # don't align to the blocksize
-        )
-        iv = b'0' * 16
-
-        with token.open(user_pin='1234') as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
-            cryptblocks = list(key.encrypt(data, mechanism_param=iv))
-
-            self.assertEqual(len(cryptblocks), len(data) + 1)
-
-            crypttext = b''.join(cryptblocks)
-
-            self.assertNotEqual(b''.join(data), crypttext)
-            # We should be aligned to the block size
-            self.assertEqual(len(crypttext) % 16, 0)
-            # Ensure we didn't just get 16 nulls
-            self.assertFalse(all(c == '\0' for c in crypttext))
-
-            text = b''.join(key.decrypt(cryptblocks, mechanism_param=iv))
-            self.assertEqual(b''.join(data), text)
-
-    def test_aes_encrypt_whacky_sizes(self):
-        lib = pkcs11.lib(LIB)
-        token = lib.get_token(token_label='DEMO')
-        data = [
-            (char * ord(char)).encode('utf-8')
-            for char in 'HELLO WORLD'
-        ]
-        iv = b'0' * 16
-
-        with token.open(user_pin='1234') as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
-            cryptblocks = list(key.encrypt(data, mechanism_param=iv))
-            textblocks = list(key.decrypt(cryptblocks, mechanism_param=iv))
-
-            self.assertEqual(b''.join(data), b''.join(textblocks))
+        self.assertIsInstance(token, pkcs11.Token)
+        self.assertEqual(token.label, 'DEMO')
+        self.assertIn(pkcs11.TokenFlag.TOKEN_INITIALIZED, token.flags)
+        self.assertIn(pkcs11.TokenFlag.LOGIN_REQUIRED, token.flags)

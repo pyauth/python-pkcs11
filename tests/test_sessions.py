@@ -122,3 +122,20 @@ class PKCS11SessionTests(unittest.TestCase):
 
             with self.assertRaises(pkcs11.MultipleObjectsReturned):
                 session.get_key(key_type=pkcs11.KeyType.AES)
+
+    def test_seed_random(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+
+        with token.open() as session:
+            session.seed_random(b'12345678')
+
+    def test_generate_random(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+
+        with token.open() as session:
+            random = session.generate_random(16 * 8)
+            self.assertEqual(len(random), 16)
+            # Ensure we didn't get 16 bytes of zeros
+            self.assertTrue(all(c != '\0' for c in random))

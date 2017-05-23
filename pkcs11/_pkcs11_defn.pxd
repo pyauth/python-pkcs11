@@ -242,6 +242,13 @@ cdef extern from '../extern/pkcs11.h':
                         CK_ULONG *objectsLength)
     CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE session)
 
+    CK_RV C_SeedRandom(CK_SESSION_HANDLE session,
+                       CK_BYTE *seed,
+                       CK_ULONG length)
+    CK_RV C_GenerateRandom(CK_SESSION_HANDLE session,
+                           CK_BYTE *random,
+                           CK_ULONG length)
+
     # Object Methods
     CK_RV C_GetAttributeValue(CK_SESSION_HANDLE session,
                               CK_OBJECT_HANDLE key,

@@ -42,13 +42,14 @@ token named `DEMO`:
     token = next(lib.get_tokens(token_label='DEMO'))
 
     data = b'INPUT DATA'
-    iv = b'0' * 16  # Never use a fixed IV for real crypto
 
     # Open a session on our token
     with token.open(user_pin='1234') as session:
         # Generate an AES key in this session
         key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
 
+        # Get an initialisation vector
+        iv = session.generate_random(key.key_length)
         # Encrypt our data
         crypttext = key.encrypt(data, mechanism_param=iv)
 

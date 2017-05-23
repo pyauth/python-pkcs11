@@ -213,6 +213,18 @@ class Session(types.Session):
 
         return Object._make(self, key)
 
+    def seed_random(self, seed):
+        assertRV(C_SeedRandom(self._handle, seed, len(seed)))
+
+    def generate_random(self, nbits):
+        length = nbits // 8
+
+        cdef CK_CHAR [:] random = CK_BYTE_buffer(length)
+
+        assertRV(C_GenerateRandom(self._handle, &random[0], length))
+
+        return bytes(random)
+
 
 class Object(types.Object):
     """Expand Object with an implementation."""
