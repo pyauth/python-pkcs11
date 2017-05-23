@@ -282,6 +282,32 @@ class Session:
         """
         raise NotImplementedError()
 
+    def create_object(self, attrs):
+        """
+        Create a new object on the :class:`Token`. This is a low-level
+        interface to create any type of object and can be used for importing
+        data onto the Token.
+
+        ::
+
+            key = session.create_object({
+                pkcs11.Attribute.CLASS: pkcs11.ObjectClass.SECRET_KEY,
+                pkcs11.Attribute.KEY_TYPE: pkcs11.KeyType.AES,
+                pkcs11.Attribute.VALUE: b'SUPER SECRET KEY',
+            })
+
+        For generating keys see :meth:`generate_key` or
+        :meth:`generate_keypair`.
+        For importing keys see :meth:`import_key` or :meth:`import_keypair`.
+
+        Requires a read/write session, unless the object is not to be
+        stored.
+
+        :param dict(Attribute,*) attrs: attributes of the object to create
+        :rtype: Object
+        """
+        raise NotImplementedError()
+
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,
@@ -358,7 +384,8 @@ class Object:
         """
         Make a copy of the object with new attributes `attrs`.
 
-        Requires a read/write session.
+        Requires a read/write session, unless the object is not to be
+        stored.
 
         ::
 
@@ -377,7 +404,7 @@ class Object:
         """
         Destroy the object.
 
-        Requires a read/write session.
+        Requires a read/write session, unless the object is not stored.
 
         Certain objects may not be destroyed. Calling :meth:`destroy` on such
         objects will result in an exception.

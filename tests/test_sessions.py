@@ -90,6 +90,20 @@ class PKCS11SessionTests(unittest.TestCase):
             self.assertEqual(len(search), 1)
             self.assertEqual(key, search[0])
 
+    def test_create_object(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+
+        with token.open(user_pin='1234') as session:
+            key = session.create_object({
+                pkcs11.Attribute.CLASS: pkcs11.ObjectClass.SECRET_KEY,
+                pkcs11.Attribute.KEY_TYPE: pkcs11.KeyType.AES,
+                pkcs11.Attribute.VALUE: b'1' * 16,
+            })
+
+            self.assertIsInstance(key, pkcs11.SecretKey)
+            self.assertEqual(key.key_length, 128)
+
     def test_destroy_object(self):
         lib = pkcs11.lib(LIB)
         token = lib.get_token(token_label='DEMO')

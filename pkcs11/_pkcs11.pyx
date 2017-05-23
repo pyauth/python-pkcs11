@@ -172,6 +172,16 @@ class Session(types.Session):
     def get_objects(self, attrs=None):
         return SearchIter(self, attrs or {})
 
+    def create_object(self, attrs):
+        cdef CK_OBJECT_HANDLE new
+
+        template = AttributeList(attrs)
+        assertRV(C_CreateObject(self._handle,
+                                template.data, template.count,
+                                &new))
+
+        return Object._make(self, new)
+
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,
