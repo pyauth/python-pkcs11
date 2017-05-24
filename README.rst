@@ -73,10 +73,11 @@ Mechanisms:
 
 Operations:
 
-* Encrypt
-* Decrypt
+* Encrypt, Decrypt
 * Generate Key
 * Generate Keypair
+* Generate Random
+* Create, Copy and Destroy objects (if supported by backend)
 
 Feel free to send pull requests for any functionality that's not exposed. The
 code is designed to be readable and expose the PKCS#11 spec in a
