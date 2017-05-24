@@ -1,3 +1,5 @@
+.. _concurrency:
+
 Concurrency
 ===========
 
@@ -13,13 +15,20 @@ Most of the calls exposed in our API make a single call into PKCS#11, however,
 multi-step calls, such as searching for objects, encryption,
 decryption, etc. can be preempted as control is returned to the interpreter
 (e.g. by generators). The :class:`pkcs11.Session` class includes a
-:class:`threading.Lock` primitive to control access to these multi-step
-operations, and prevent threads from interfering with each other.
+reenterant lock (:class:`threading.RLock`)
+to control access to these multi-step operations, and prevent threads from
+interfering with each other.
 
 .. warning::
 
     Libraries that monkeypatch Python, such as `gevent`, may be supported,
     but are not currently being tested.
+
+The lock is not released until the iterator is consumed (or garbage collected).
+However, if you do not consume the iterator, you will never complete the
+action and further actions will raise
+:class:`pkcs11.exceptions.OperationActive` (cancelling iterators is not
+currently supported).
 
 Reenterant Sessions
 -------------------
@@ -27,7 +36,7 @@ Reenterant Sessions
 Thread safety aside, a number of PKCS#11 libraries do not support the same
 token being logged in from simultaneous sessions (within the same process),
 and so it can be advantageous to use a single session across multiple threads.
-Sessions can often life for a very long time, but failing to close a session
+Sessions can often live for a very long time, but failing to close a session
 may leak resources into your memory space, HSM daemon or HSM hardware.
 
 A simple reference counting reenterant session object can be used.

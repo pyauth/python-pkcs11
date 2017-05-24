@@ -400,6 +400,7 @@ class Object:
         :param dict(Attribute,*) attrs: attributes for the new :class:`Object`
         :rtype: Object
         """
+        raise NotImplementedError()
 
     def destroy(self):
         """
@@ -487,6 +488,17 @@ class EncryptMixin(Object):
         input chunk is recommended.
 
         Large single blocks of `data` will be chunked into the `buffer_size`.
+
+        The returned generator obtains a lock on the :class:`Session`
+        to prevent other threads from starting a simultaneous operation.
+        The lock is released when you consume/destroy the generator.
+        See :ref:`concurrency`.
+
+        .. warning::
+
+            It's not currently possible to cancel an encryption operation
+            by deleting the generator. You must consume the generator to
+            complete the operation.
 
         :param data: data to encrypt
         :type data: str, bytes or iter(bytes)
