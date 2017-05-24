@@ -4,7 +4,7 @@ Types for high level PKCS#11 wrapper.
 This module provides stubs that are overrideen in pkcs11._pkcs11.
 """
 
-from threading import Lock
+from threading import RLock
 from binascii import hexlify
 
 from .constants import *
@@ -178,9 +178,10 @@ class Session:
         """:class:`Token` this session is on."""
 
         self._handle = handle
-        # Big operation lock prevents people from entering/reentering
-        # operations
-        self._operation_lock = Lock()
+        # Big operation lock prevents other threads from entering/reentering
+        # operations. If the same thread enters the lock, they will get a
+        # Cryptoki warning
+        self._operation_lock = RLock()
 
         self.rw = rw
         """True if this is a read/write session."""

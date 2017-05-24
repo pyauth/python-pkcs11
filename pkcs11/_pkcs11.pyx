@@ -368,6 +368,9 @@ class EncryptMixin(types.EncryptMixin):
             assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
 
             for part_in in data:
+                if len(part_in) == 0:
+                    continue
+
                 length = buffer_size
                 assertRV(C_EncryptUpdate(self.session._handle,
                                         part_in, len(part_in),
