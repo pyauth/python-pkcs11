@@ -299,7 +299,7 @@ class Session:
 
         For generating keys see :meth:`generate_key` or
         :meth:`generate_keypair`.
-        For importing keys see :meth:`import_key` or :meth:`import_keypair`.
+        For importing keys see :meth:`import_key`.
 
         Requires a read/write session, unless the object is not to be
         stored.
@@ -337,6 +337,37 @@ class Session:
         :param dict(Attribute,*) template: Additional attributes.
 
         :rtype: Key
+        """
+        raise NotImplementedError()
+
+    def generate_keypair(self, key_type, key_length,
+                         id=None, label=None,
+                         store=True, capabilities=None,
+                         mechanism=None, mechanism_param=b'',
+                         public_template=None, private_template=None):
+        """
+        Generate a asymmetric keypair (e.g. RSA).
+
+        Keys should set at least `id` or `label`.
+
+        An appropriate `mechanism` will be chosen for `key_type`
+        (see :attr:`DEFAULT_GENERATE_MECHANISMS`) or this can be overridden.
+        Similarly the `capabilities` (see :attr:`DEFAULT_KEY_CAPABILITIES`).
+
+        The `template` will extend the default template used to make the
+        key.
+
+        :param KeyType key_type: Key type (e.g. KeyType.AES)
+        :param int key_length: Key length in bits (e.g. 256).
+        :param bytes id: Key identifier.
+        :param str label: Key label.
+        :param store: Store key on token (requires R/W session).
+        :param MechanismFlag capabilities: Key capabilities (or default).
+        :param Mechanism mechanism: Generation mechanism (or default).
+        :param bytes mechanism_param: Optional vector to the mechanism.
+        :param dict(Attribute,*) template: Additional attributes.
+
+        :rtype: (PublicKey, PrivateKey)
         """
         raise NotImplementedError()
 
@@ -455,6 +486,24 @@ class SecretKey(Key):
     def key_length(self):
         """Key length in bits."""
         return self[Attribute.VALUE_LEN] * 8
+
+
+class PublicKey(Key):
+    """
+    A PKCS#11 :attr:`pkcs11.constants.ObjectClass.PUBLIC_KEY` object
+    (asymmetric public key).
+    """
+
+    object_class = ObjectClass.PUBLIC_KEY
+
+
+class PrivateKey(Key):
+    """
+    A PKCS#11 :attr:`pkcs11.constants.ObjectClass.PRIVATE_KEY` object
+    (asymmetric private key).
+    """
+
+    object_class = ObjectClass.PRIVATE_KEY
 
 
 class EncryptMixin(Object):

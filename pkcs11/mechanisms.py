@@ -64,9 +64,27 @@ class Mechanism(IntEnum):
 
     The list of supported cryptographic mechanisms for a :class:`pkcs11.Slot`
     can be retrieved with :meth:`pkcs11.Slot.get_mechanisms()`.
+
+    Descriptions of the block modes (ECB, CBC, CFB, OFB, and CTR) are available
+    in `NIST 800-38A <http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf>`_
+
+    The suffix `PAD` indicates the mechanism includes
+    `PKCS#7 <https://tools.ietf.org/html/rfc5652#section-6.3>`_
+    padding to align
+    input to the block size (or remove that padding as appropriate).
+
+    `KEY_GEN` and `KEY_PAIR_GEN` mechanisms can be used with
+    :meth:`pkcs11.Session.generate_key` and
+    :meth:`pkcs11.Session.generate_keypair` respectively.
+
+    A number of these mechanisms can be considered insecure or have security
+    concerns. If you're unsure, consult other documentation before choosing
+    a mechanism.
     """
     RSA_PKCS_KEY_PAIR_GEN    = 0x00000000
+    """Default for generating :attr:`KeyType.RSA` keys."""
     RSA_PKCS                 = 0x00000001
+    """Default for encrypting/decrypting with :attr:`KeyType.RSA` keys."""
     RSA_9796                 = 0x00000002
     RSA_X_509                = 0x00000003
 
@@ -366,11 +384,18 @@ class Mechanism(IntEnum):
     FASTHASH                 = 0x00001070
 
     AES_KEY_GEN              = 0x00001080
+    """Default for generating :attr:`KeyType.AES` keys."""
     AES_ECB                  = 0x00001081
     AES_CBC                  = 0x00001082
     AES_MAC                  = 0x00001083
     AES_MAC_GENERAL          = 0x00001084
     AES_CBC_PAD              = 0x00001085
+    """
+    Default for encrypting/decrypting with :attr:`KeyType.AES` keys. Includes
+    PKCS#7 padding to pad files to a whole number of blocks.
+
+    Requires a 128-bit initialisation vector passed as `mechanism_param`.
+    """
     AES_CTR                  = 0x00001086
     AES_CTS                  = 0x00001089
     AES_CMAC                 = 0x0000108A

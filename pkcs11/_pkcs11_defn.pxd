@@ -232,6 +232,14 @@ cdef extern from '../extern/pkcs11.h':
                         CK_ATTRIBUTE *template,
                         CK_ULONG count,
                         CK_OBJECT_HANDLE *key)
+    CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE session,
+                            CK_MECHANISM *mechanism,
+                            CK_ATTRIBUTE *public_template,
+                            CK_ULONG public_count,
+                            CK_ATTRIBUTE *private_template,
+                            CK_ULONG private_count,
+                            CK_OBJECT_HANDLE *public_key,
+                            CK_OBJECT_HANDLE *private_key)
 
     CK_RV C_FindObjectsInit(CK_SESSION_HANDLE session,
                             CK_ATTRIBUTE *template,

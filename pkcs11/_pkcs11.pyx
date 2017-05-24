@@ -233,6 +233,71 @@ class Session(types.Session):
 
         return Object._make(self, key)
 
+    def generate_keypair(self, key_type, key_length,
+                         id=None, label=None,
+                         store=True, capabilities=None,
+                         mechanism=None, mechanism_param=b'',
+                         public_template=None, private_template=None):
+
+        if not isinstance(key_type, KeyType):
+            raise ArgumentsBad("`key_type` must be KeyType.")
+
+        if not isinstance(key_length, int):
+            raise ArgumentsBad("`key_length` is the length in bits.")
+
+        if capabilities is None:
+            try:
+                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
+            except KeyError:
+                raise ArgumentsBad("No default capabilities for this key "
+                                   "type. Please specify `capabilities`.")
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(key_type, DEFAULT_GENERATE_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_OBJECT_HANDLE public_key
+        cdef CK_OBJECT_HANDLE private_key
+
+        # Build attributes
+        public_template_ = {
+            Attribute.CLASS: ObjectClass.PUBLIC_KEY,
+            Attribute.ID: id or b'',
+            Attribute.LABEL: label or '',
+            Attribute.TOKEN: store,
+            Attribute.MODULUS_BITS: key_length,
+            Attribute.PUBLIC_EXPONENT: b'\1\0\1',
+            # Capabilities
+            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
+            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
+            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
+        }
+        public_template_.update(public_template or {})
+        public_attrs = AttributeList(public_template_)
+
+        private_template_ = {
+            Attribute.CLASS: ObjectClass.PRIVATE_KEY,
+            Attribute.ID: id or b'',
+            Attribute.LABEL: label or '',
+            Attribute.TOKEN: store,
+            Attribute.PRIVATE: True,
+            Attribute.SENSITIVE: True,
+            # Capabilities
+            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
+            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
+            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
+        }
+        private_template_.update(private_template or {})
+        private_attrs = AttributeList(private_template_)
+
+        assertRV(C_GenerateKeyPair(self._handle,
+                                   &mech,
+                                   public_attrs.data, public_attrs.count,
+                                   private_attrs.data, private_attrs.count,
+                                   &public_key, &private_key))
+
+        return (Object._make(self, public_key),
+                Object._make(self, private_key))
+
     def seed_random(self, seed):
         assertRV(C_SeedRandom(self._handle, seed, len(seed)))
 
@@ -265,23 +330,20 @@ class Object(types.Object):
             object_class = self[Attribute.CLASS]
             bases = (_CLASS_MAP[object_class],)
 
-            if self[Attribute.ENCRYPT]:
-                bases += (EncryptMixin,)
-
-            if self[Attribute.DECRYPT]:
-                bases += (DecryptMixin,)
-
-            if self[Attribute.SIGN]:
-                bases += (SignMixin,)
-
-            if self[Attribute.VERIFY]:
-                bases += (VerifyMixin,)
-
-            if self[Attribute.WRAP]:
-                bases += (WrapMixin,)
-
-            if self[Attribute.UNWRAP]:
-                bases += (UnwrapMixin,)
+            # Build a list of mixins for this new class
+            for attribute, mixin in (
+                    (Attribute.ENCRYPT, EncryptMixin),
+                    (Attribute.DECRYPT, DecryptMixin),
+                    (Attribute.SIGN, SignMixin),
+                    (Attribute.VERIFY, VerifyMixin),
+                    (Attribute.WRAP, WrapMixin),
+                    (Attribute.UNWRAP, UnwrapMixin),
+            ):
+                try:
+                    if self[attribute]:
+                        bases += (mixin,)
+                except AttributeTypeInvalid:
+                    pass
 
             bases += (cls,)
 
@@ -341,6 +403,14 @@ class Object(types.Object):
 
 
 class SecretKey(types.SecretKey):
+    pass
+
+
+class PublicKey(types.PublicKey):
+    pass
+
+
+class PrivateKey(types.PrivateKey):
     pass
 
 
@@ -443,6 +513,8 @@ class UnwrapMixin(types.UnwrapMixin):
 
 _CLASS_MAP = {
     ObjectClass.SECRET_KEY: SecretKey,
+    ObjectClass.PUBLIC_KEY: PublicKey,
+    ObjectClass.PRIVATE_KEY: PrivateKey,
 }
 
 

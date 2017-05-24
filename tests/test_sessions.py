@@ -75,6 +75,16 @@ class PKCS11SessionTests(unittest.TestCase):
 
             self.assertEqual(key.label, 'MY KEY')
 
+    def test_generate_keypair(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+
+        with token.open(user_pin='1234') as session:
+            pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 768,
+                                                 store=False)
+            self.assertIsInstance(pub, pkcs11.PublicKey)
+            self.assertIsInstance(priv, pkcs11.PrivateKey)
+
     def test_get_objects(self):
         lib = pkcs11.lib(LIB)
         token = lib.get_token(token_label='DEMO')

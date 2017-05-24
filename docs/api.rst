@@ -105,6 +105,12 @@ Classes
     .. autoclass:: SecretKey(Key)
         :members:
 
+    .. autoclass:: PublicKey(Key)
+        :members:
+
+    .. autoclass:: PrivateKey(Key)
+        :members:
+
     Object Capabilities
     ~~~~~~~~~~~~~~~~~~~
 
