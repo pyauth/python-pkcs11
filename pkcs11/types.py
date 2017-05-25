@@ -620,13 +620,25 @@ class SignMixin(Object):
         """
         Sign some `data`.
 
+        See :meth:`EncryptMixin.encrypt` for more information.
+
         :param data: data to sign
-        :type data: bytes or iter(bytes)
+        :type data: str, bytes or iter(bytes)
         :param Mechanism mechanism: optional signing mechanism
         :param bytes mechanism_param: optional mechanism parameter
 
         :rtype: bytes
         """
+
+        # If data is a string, encode it now as UTF-8.
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+
+        if isinstance(data, bytes):
+            return self._sign(data, **kwargs)
+
+        else:
+            return self._sign_generator(data, **kwargs)
 
 
 class VerifyMixin(Object):

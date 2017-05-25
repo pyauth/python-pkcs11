@@ -41,6 +41,11 @@ DEFAULT_ENCRYPT_MECHANISMS = {
 Default mechanisms for encrypt/decrypt.
 """
 
+DEFAULT_SIGN_MECHANISMS = {
+    KeyType.AES: Mechanism.SHA512_HMAC,
+    KeyType.RSA: Mechanism.SHA512_RSA_PKCS,
+}
+
 
 # (Pack Function, Unpack Function) functions
 _bool = (Struct('?').pack, lambda v: Struct('?').unpack(v)[0])

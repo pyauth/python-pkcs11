@@ -564,7 +564,65 @@ class DecryptMixin(types.DecryptMixin):
 
 
 class SignMixin(types.SignMixin):
-    pass
+    """Expand SignMixin with an implementation."""
+
+    def _sign(self, data,
+              mechanism=None,
+              mechanism_param=b''):
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_BYTE [:] signature
+        cdef CK_ULONG length
+
+        with self.session._operation_lock:
+            assertRV(C_SignInit(self.session._handle, &mech, self._handle))
+
+            # Call to find out the buffer length
+            assertRV(C_Sign(self.session._handle,
+                            data, len(data),
+                            NULL, &length))
+
+            signature = CK_BYTE_buffer(length)
+
+            assertRV(C_Sign(self.session._handle,
+                            data, len(data),
+                            &signature[0], &length))
+
+            return bytes(signature[:length])
+
+    def _sign_generator(self, data,
+                        mechanism=None,
+                        mechanism_param=b''):
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_BYTE [:] signature
+        cdef CK_ULONG length
+
+        with self.session._operation_lock:
+            assertRV(C_SignInit(self.session._handle, &mech, self._handle))
+
+            for part_in in data:
+                if not part_in:
+                    continue
+
+                assertRV(C_SignUpdate(self.session._handle,
+                                      part_in, len(part_in)))
+
+            # Finalize
+            # Call to find out the buffer length
+            assertRV(C_SignFinal(self.session._handle,
+                                 NULL, &length))
+
+            signature = CK_BYTE_buffer(length)
+
+            assertRV(C_SignFinal(self.session._handle,
+                                 &signature[0], &length))
+
+            return bytes(signature[:length])
 
 
 class VerifyMixin(types.VerifyMixin):

@@ -90,7 +90,35 @@ class PKCS11SecretKeyTests(unittest.TestCase):
         with token.open(user_pin='1234') as session:
             key = session.generate_key(pkcs11.KeyType.AES, 256, store=False)
             iv = session.generate_random(128)
-            crypttext = key.encrypt(data, mechanism_param=iv, buffer_size=1024)
-            text = key.decrypt(crypttext, mechanism_param=iv, buffer_size=2048)
+            crypttext = key.encrypt(data, mechanism_param=iv)
+            text = key.decrypt(crypttext, mechanism_param=iv)
 
             self.assertEqual(text, data)
+
+    def test_aes_sign(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+        data = b'HELLO WORLD' * 1024
+
+        with token.open(user_pin='1234') as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 256, store=False)
+            signature = key.sign(data)
+            self.assertIsNotNone(signature)
+            self.assertIsInstance(signature, bytes)
+
+    def test_aes_encrypt_stream(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+        data = (
+            b'I' * 16,
+            b'N' * 16,
+            b'P' * 16,
+            b'U' * 16,
+            b'T' * 10,  # don't align to the blocksize
+        )
+
+        with token.open(user_pin='1234') as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
+            signature = key.sign(data)
+            self.assertIsNotNone(signature)
+            self.assertIsInstance(signature, bytes)

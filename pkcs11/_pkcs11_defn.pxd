@@ -311,3 +311,18 @@ cdef extern from '../extern/pkcs11.h':
     CK_RV C_DecryptFinal(CK_SESSION_HANDLE session,
                          CK_BYTE *part_out,
                          CK_ULONG *part_out_len)
+
+    CK_RV C_SignInit(CK_SESSION_HANDLE session,
+                     CK_MECHANISM *mechanism,
+                     CK_OBJECT_HANDLE key)
+    CK_RV C_Sign(CK_SESSION_HANDLE session,
+                 CK_BYTE *text,
+                 CK_ULONG text_len,
+                 CK_BYTE *signature,
+                 CK_ULONG *sig_len)
+    CK_RV C_SignUpdate(CK_SESSION_HANDLE session,
+                       CK_BYTE *part,
+                       CK_ULONG part_len)
+    CK_RV C_SignFinal(CK_SESSION_HANDLE session,
+                      CK_BYTE *signature,
+                      CK_ULONG *sig_len)
