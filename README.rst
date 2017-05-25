@@ -98,7 +98,7 @@ Mechanisms:
 Operations:
 
 * Encrypt, Decrypt
-* Sign
+* Sign, Verify
 * Generate Key
 * Generate Keypair
 * Generate Random

@@ -278,6 +278,7 @@ cdef extern from '../extern/pkcs11.h':
     CK_RV C_DestroyObject(CK_SESSION_HANDLE session,
                           CK_OBJECT_HANDLE key)
 
+    ## Encrypt
     CK_RV C_EncryptInit(CK_SESSION_HANDLE session,
                         CK_MECHANISM *mechanism,
                         CK_OBJECT_HANDLE key)
@@ -295,6 +296,7 @@ cdef extern from '../extern/pkcs11.h':
                          CK_BYTE *part_out,
                          CK_ULONG *part_out_len)
 
+    ## Decrypt
     CK_RV C_DecryptInit(CK_SESSION_HANDLE session,
                         CK_MECHANISM *mechanism,
                         CK_OBJECT_HANDLE key)
@@ -312,6 +314,7 @@ cdef extern from '../extern/pkcs11.h':
                          CK_BYTE *part_out,
                          CK_ULONG *part_out_len)
 
+    ## Sign
     CK_RV C_SignInit(CK_SESSION_HANDLE session,
                      CK_MECHANISM *mechanism,
                      CK_OBJECT_HANDLE key)
@@ -326,3 +329,19 @@ cdef extern from '../extern/pkcs11.h':
     CK_RV C_SignFinal(CK_SESSION_HANDLE session,
                       CK_BYTE *signature,
                       CK_ULONG *sig_len)
+
+    ## Verify
+    CK_RV C_VerifyInit(CK_SESSION_HANDLE session,
+                       CK_MECHANISM *mechanism,
+                       CK_OBJECT_HANDLE key)
+    CK_RV C_Verify(CK_SESSION_HANDLE session,
+                   CK_BYTE *text,
+                   CK_ULONG text_len,
+                   CK_BYTE *signature,
+                   CK_ULONG sig_len)
+    CK_RV C_VerifyUpdate(CK_SESSION_HANDLE session,
+                         CK_BYTE *text,
+                         CK_ULONG text_len)
+    CK_RV C_VerifyFinal(CK_SESSION_HANDLE session,
+                        CK_BYTE *signature,
+                        CK_ULONG sig_len)

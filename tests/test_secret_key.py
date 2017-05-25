@@ -105,8 +105,10 @@ class PKCS11SecretKeyTests(unittest.TestCase):
             signature = key.sign(data)
             self.assertIsNotNone(signature)
             self.assertIsInstance(signature, bytes)
+            self.assertTrue(key.verify(data, signature))
+            self.assertFalse(key.verify(data, b'1234'))
 
-    def test_aes_encrypt_stream(self):
+    def test_aes_sign_stream(self):
         lib = pkcs11.lib(LIB)
         token = lib.get_token(token_label='DEMO')
         data = (
@@ -122,3 +124,4 @@ class PKCS11SecretKeyTests(unittest.TestCase):
             signature = key.sign(data)
             self.assertIsNotNone(signature)
             self.assertIsInstance(signature, bytes)
+            self.assertTrue(key.verify(data, signature))

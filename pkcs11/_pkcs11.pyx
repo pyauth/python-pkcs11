@@ -418,8 +418,7 @@ class EncryptMixin(types.EncryptMixin):
     """Expand EncryptMixin with an implementation."""
 
     def _encrypt(self, data,
-                 mechanism=None,
-                 mechanism_param=b''):
+                 mechanism=None, mechanism_param=b''):
         """
         Non chunking encrypt. Needed for some mechanisms.
         """
@@ -447,8 +446,7 @@ class EncryptMixin(types.EncryptMixin):
 
 
     def _encrypt_generator(self, data,
-                           mechanism=None,
-                           mechanism_param=b'',
+                           mechanism=None, mechanism_param=b'',
                            buffer_size=8192):
         """
         Do chunked encryption.
@@ -493,8 +491,7 @@ class DecryptMixin(types.DecryptMixin):
     """Expand DecryptMixin with an implementation."""
 
     def _decrypt(self, data,
-                 mechanism=None,
-                 mechanism_param=b''):
+                 mechanism=None, mechanism_param=b''):
         """Non chunking decrypt."""
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
@@ -520,8 +517,7 @@ class DecryptMixin(types.DecryptMixin):
 
 
     def _decrypt_generator(self, data,
-                           mechanism=None,
-                           mechanism_param=b'',
+                           mechanism=None, mechanism_param=b'',
                            buffer_size=8192):
         """
         Chunking decrypt.
@@ -567,8 +563,7 @@ class SignMixin(types.SignMixin):
     """Expand SignMixin with an implementation."""
 
     def _sign(self, data,
-              mechanism=None,
-              mechanism_param=b''):
+              mechanism=None, mechanism_param=b''):
 
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
@@ -593,8 +588,7 @@ class SignMixin(types.SignMixin):
             return bytes(signature[:length])
 
     def _sign_generator(self, data,
-                        mechanism=None,
-                        mechanism_param=b''):
+                        mechanism=None, mechanism_param=b''):
 
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
@@ -626,7 +620,43 @@ class SignMixin(types.SignMixin):
 
 
 class VerifyMixin(types.VerifyMixin):
-    pass
+    """Expand VerifyMixin with an implementation."""
+
+    def _verify(self, data, signature,
+                mechanism=None, mechanism_param=b''):
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
+                               mechanism, mechanism_param)
+
+        with self.session._operation_lock:
+            assertRV(C_VerifyInit(self.session._handle, &mech, self._handle))
+
+            # Call to find out the buffer length
+            assertRV(C_Verify(self.session._handle,
+                              data, len(data),
+                              signature, len(signature)))
+
+    def _verify_generator(self, data, signature,
+                          mechanism=None, mechanism_param=b''):
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
+                               mechanism, mechanism_param)
+
+        with self.session._operation_lock:
+            assertRV(C_VerifyInit(self.session._handle, &mech, self._handle))
+
+            for part_in in data:
+                if not part_in:
+                    continue
+
+                assertRV(C_VerifyUpdate(self.session._handle,
+                                        part_in, len(part_in)))
+
+
+            assertRV(C_VerifyFinal(self.session._handle,
+                                   signature, len(signature)))
 
 
 class WrapMixin(types.WrapMixin):

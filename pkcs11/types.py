@@ -642,7 +642,41 @@ class SignMixin(Object):
 
 
 class VerifyMixin(Object):
-    pass
+    """
+    This :class:`Object` supports the verify capability.
+    """
+
+    def verify(self, data, signature, **kwargs):
+        """
+        Verify some `data`.
+
+        See :meth:`EncryptMixin.encrypt` for more information.
+
+        Returns True if `signature` is valid for `data`.
+
+        :param data: data to sign
+        :type data: str, bytes or iter(bytes)
+        :param bytes signature: signature
+        :param Mechanism mechanism: optional signing mechanism
+        :param bytes mechanism_param: optional mechanism parameter
+
+        :rtype: bool
+        """
+
+        # If data is a string, encode it now as UTF-8.
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+
+        try:
+            if isinstance(data, bytes):
+                self._verify(data, signature, **kwargs)
+            else:
+                self._verify_generator(data, signature, **kwargs)
+
+            return True
+
+        except (SignatureInvalid, SignatureLenRange):
+            return False
 
 
 class WrapMixin(Object):

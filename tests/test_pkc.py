@@ -29,8 +29,9 @@ class PKCS11SecretKeyTests(unittest.TestCase):
             signature = priv.sign(data)
             self.assertIsNotNone(signature)
             self.assertIsInstance(signature, bytes)
+            self.assertTrue(pub.verify(data, signature))
 
-    def test_rsa_encrypt_stream(self):
+    def test_rsa_sign_stream(self):
         lib = pkcs11.lib(LIB)
         token = lib.get_token(token_label='DEMO')
         data = (
@@ -47,3 +48,4 @@ class PKCS11SecretKeyTests(unittest.TestCase):
             signature = priv.sign(data)
             self.assertIsNotNone(signature)
             self.assertIsInstance(signature, bytes)
+            self.assertTrue(pub.verify(data, signature))
