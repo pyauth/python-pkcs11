@@ -511,9 +511,6 @@ class EncryptMixin(Object):
     This :class:`Object` supports the encrypt capability.
     """
 
-    def _encrypt(self, data, mechanism=None, mechanism_param=b''):
-        raise NotImplementedError()
-
     def encrypt(self, data, buffer_size=8192, **kwargs):
         """
         Encrypt some `data`.
@@ -534,7 +531,8 @@ class EncryptMixin(Object):
 
         `buffer_size` must be sufficient to store the working buffer. An
         integer number of blocks and greater than or equal to the largest
-        input chunk is recommended.
+        input chunk is recommended. A `buffer_size` of `None` will do
+        the operation in a single request (required for some mechanisms).
 
         Large single blocks of `data` will be chunked into the `buffer_size`.
 
@@ -555,7 +553,7 @@ class EncryptMixin(Object):
             (or None for default)
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
-        :param int buffer_size: size of the working buffer.
+        :param int buffer_size: size of the working buffer (or None)
 
         :rtype: bytes or iter(bytes)
         """
@@ -564,23 +562,24 @@ class EncryptMixin(Object):
         if isinstance(data, str):
             data = data.encode('utf-8')
 
-        # If we're not an iterable, recurse into ourselves with an iterable
+        if buffer_size is None:
+            return self._encrypt(data, **kwargs)
+
+        # If we're not an iterable, call into our generator with an iterable
         # version and join the result at the end.
         if isinstance(data, bytes):
-            return b''.join(self._encrypt(_chunks(data, buffer_size),
-                                          buffer_size=buffer_size, **kwargs))
-
+            return b''.join(self._encrypt_generator(_chunks(data, buffer_size),
+                                                    buffer_size=buffer_size,
+                                                    **kwargs))
         else:
-            return self._encrypt(data, buffer_size=buffer_size, **kwargs)
+            return self._encrypt_generator(data,
+                                           buffer_size=buffer_size, **kwargs)
 
 
 class DecryptMixin(Object):
     """
     This :class:`Object` supports the decrypt capability.
     """
-
-    def _decrypt(self, data, mechanism=None, mechanism_param=b''):
-        raise NotImplementedError()
 
     def decrypt(self, data, buffer_size=8192, **kwargs):
         """
@@ -594,19 +593,24 @@ class DecryptMixin(Object):
             (or None for default).
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
-        :param int buffer_size: size of the working buffer.
+        :param int buffer_size: size of the working buffer (or None).
 
         :rtype: bytes or iter(bytes)
         """
 
-        # If we're not an iterable, recurse into ourselves with an iterable
+        if buffer_size is None:
+            return self._decrypt(data, **kwargs)
+
+        # If we're not an iterable, call into our generator with an iterable
         # version and join the result at the end.
         if isinstance(data, bytes):
-            return b''.join(self._decrypt(_chunks(data, buffer_size),
-                                          buffer_size=buffer_size, **kwargs))
+            return b''.join(self._decrypt_generator(_chunks(data, buffer_size),
+                                                    buffer_size=buffer_size,
+                                                    **kwargs))
 
         else:
-            return self._decrypt(data, buffer_size=buffer_size, **kwargs)
+            return self._decrypt_generator(data,
+                                           buffer_size=buffer_size, **kwargs)
 
 
 class SignMixin(Object):

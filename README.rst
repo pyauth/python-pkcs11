@@ -32,6 +32,9 @@ Or build from source:
 Assuming your PKCS#11 library is set as `PKCS_MODULE` and contains a
 token named `DEMO`:
 
+AES
+~~~
+
 ::
 
     import pkcs11
@@ -51,6 +54,27 @@ token named `DEMO`:
         iv = session.generate_random(128)  # AES blocks are fixed at 128 bits
         # Encrypt our data
         crypttext = key.encrypt(data, mechanism_param=iv)
+
+RSA
+~~~
+
+::
+
+    import pkcs11
+
+    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+    token = lib.get_token(token_label='DEMO')
+
+    data = b'INPUT DATA'
+
+    # Open a session on our token
+    with token.open(user_pin='1234') as session:
+        # Generate an RSA keypair in this session
+        pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 2048, store=False)
+
+        # Encrypt as one block
+        crypttext = pub.encrypt(data, buffer_size=None)
+
 
 Tested Compatibility
 --------------------

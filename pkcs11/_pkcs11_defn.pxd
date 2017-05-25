@@ -281,6 +281,11 @@ cdef extern from '../extern/pkcs11.h':
     CK_RV C_EncryptInit(CK_SESSION_HANDLE session,
                         CK_MECHANISM *mechanism,
                         CK_OBJECT_HANDLE key)
+    CK_RV C_Encrypt(CK_SESSION_HANDLE session,
+                    CK_BYTE *plaintext,
+                    CK_ULONG plaintext_len,
+                    CK_BYTE *ciphertext,
+                    CK_ULONG *ciphertext_len)
     CK_RV C_EncryptUpdate(CK_SESSION_HANDLE session,
                           CK_BYTE *part_in,
                           CK_ULONG part_in_len,
@@ -293,6 +298,11 @@ cdef extern from '../extern/pkcs11.h':
     CK_RV C_DecryptInit(CK_SESSION_HANDLE session,
                         CK_MECHANISM *mechanism,
                         CK_OBJECT_HANDLE key)
+    CK_RV C_Decrypt(CK_SESSION_HANDLE session,
+                    CK_BYTE *ciphertext,
+                    CK_ULONG ciphertext_len,
+                    CK_BYTE *plaintext,
+                    CK_ULONG *plaintext_len)
     CK_RV C_DecryptUpdate(CK_SESSION_HANDLE session,
                           CK_BYTE *part_in,
                           CK_ULONG part_in_len,

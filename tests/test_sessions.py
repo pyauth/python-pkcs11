@@ -85,6 +85,12 @@ class PKCS11SessionTests(unittest.TestCase):
             self.assertIsInstance(pub, pkcs11.PublicKey)
             self.assertIsInstance(priv, pkcs11.PrivateKey)
 
+            data = b'HELLO WORLD'
+            crypttext = pub.encrypt(data, buffer_size=None)
+            self.assertNotEqual(data, crypttext)
+            text = priv.decrypt(crypttext, buffer_size=None)
+            self.assertEqual(data, text)
+
     def test_get_objects(self):
         lib = pkcs11.lib(LIB)
         token = lib.get_token(token_label='DEMO')

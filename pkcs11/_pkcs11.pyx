@@ -419,8 +419,37 @@ class EncryptMixin(types.EncryptMixin):
 
     def _encrypt(self, data,
                  mechanism=None,
-                 mechanism_param=b'',
-                 buffer_size=8192):
+                 mechanism_param=b''):
+        """
+        Non chunking encrypt. Needed for some mechanisms.
+        """
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_BYTE [:] ciphertext
+        cdef CK_ULONG length
+
+        with self.session._operation_lock:
+            assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
+
+            # Call to find out the buffer length
+            assertRV(C_Encrypt(self.session._handle,
+                               data, len(data),
+                               NULL, &length))
+
+            ciphertext = CK_BYTE_buffer(length)
+
+            assertRV(C_Encrypt(self.session._handle,
+                               data, len(data),
+                               &ciphertext[0], &length))
+
+            return bytes(ciphertext[:length])
+
+
+    def _encrypt_generator(self, data,
+                           mechanism=None,
+                           mechanism_param=b'',
+                           buffer_size=8192):
         """
         Do chunked encryption. `data` will hae been converted to a generator
         for us by encrypt().
@@ -462,8 +491,37 @@ class DecryptMixin(types.DecryptMixin):
 
     def _decrypt(self, data,
                  mechanism=None,
-                 mechanism_param=b'',
-                 buffer_size=8192):
+                 mechanism_param=b''):
+        """
+        Non chunking encrypt. Needed for some mechanisms.
+        """
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_BYTE [:] plaintext
+        cdef CK_ULONG length
+
+        with self.session._operation_lock:
+            assertRV(C_DecryptInit(self.session._handle, &mech, self._handle))
+
+            # Call to find out the buffer length
+            assertRV(C_Decrypt(self.session._handle,
+                               data, len(data),
+                               NULL, &length))
+
+            plaintext = CK_BYTE_buffer(length)
+
+            assertRV(C_Decrypt(self.session._handle,
+                               data, len(data),
+                               &plaintext[0], &length))
+
+            return bytes(plaintext[:length])
+
+
+    def _decrypt_generator(self, data,
+                           mechanism=None,
+                           mechanism_param=b'',
+                           buffer_size=8192):
         """See EncryptMixin._encrypt for more info."""
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
@@ -615,7 +673,7 @@ cdef class lib:
                     continue
 
                 yield token
-            except PKCS11Error:
+            except (TokenNotPresent, TokenNotRecognised):
                 continue
 
     def get_token(self, **kwargs):
