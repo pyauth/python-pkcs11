@@ -451,11 +451,15 @@ class EncryptMixin(types.EncryptMixin):
                            mechanism_param=b'',
                            buffer_size=8192):
         """
-        Do chunked encryption. `data` will hae been converted to a generator
+        Do chunked encryption. `data` will have been converted to a generator
         for us by encrypt().
 
-        It's not clear what happen if you leave the generator without
-        consuming it. That's probably an error.
+        Failing to consume the generator will raise GeneratorExit when it
+        garbage collects. This will release the lock, but you'll still be
+        in the middle of an operation, and all future operations will raise
+        OperationActive, see tests/test_iterators.py:test_close_iterators().
+
+        FIXME: cancel the operation when we exit the generator early.
         """
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
@@ -493,7 +497,7 @@ class DecryptMixin(types.DecryptMixin):
                  mechanism=None,
                  mechanism_param=b''):
         """
-        Non chunking encrypt. Needed for some mechanisms.
+        Non chunking decrypt. Needed for some mechanisms.
         """
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
