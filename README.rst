@@ -73,7 +73,7 @@ RSA
         pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 2048, store=False)
 
         # Encrypt as one block
-        crypttext = pub.encrypt(data, buffer_size=None)
+        crypttext = pub.encrypt(data)
 
 
 Tested Compatibility

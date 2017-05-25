@@ -32,12 +32,6 @@ def _CK_MECHANISM_TYPE_to_enum(mechanism):
         return mechanism
 
 
-def _chunks(data, size):
-    """Yield successive `size`-sized chunks from `data`."""
-    for i in range(0, len(data), size):
-        yield data[i:i + size]
-
-
 class Slot:
     """
     A PKCS#11 device slot.
@@ -521,7 +515,9 @@ class EncryptMixin(Object):
         (be aware, more chunks will be output than input).
 
         If you do not specify `mechanism` then the default from
-        :attr:`DEFAULT_ENCRYPT_MECHANISMS` will be used.
+        :attr:`DEFAULT_ENCRYPT_MECHANISMS` will be used. If an iterable
+        is passed and the mechanism chosen does not support handling data
+        in chunks, an exception will be raised.
 
         Some mechanisms (including the default CBC mechanisms) require an
         initialisation vector (of key length) to set the initial state of
@@ -529,12 +525,10 @@ class EncryptMixin(Object):
         vector should contain quality random. This method will not return
         the value of the initialisation parameter.
 
+        When passing an iterable for data
         `buffer_size` must be sufficient to store the working buffer. An
         integer number of blocks and greater than or equal to the largest
-        input chunk is recommended. A `buffer_size` of `None` will do
-        the operation in a single request (required for some mechanisms).
-
-        Large single blocks of `data` will be chunked into the `buffer_size`.
+        input chunk is recommended.
 
         The returned generator obtains a lock on the :class:`Session`
         to prevent other threads from starting a simultaneous operation.
@@ -547,13 +541,28 @@ class EncryptMixin(Object):
             by deleting the generator. You must consume the generator to
             complete the operation.
 
+        An example of streaming a file is as follows:
+
+        ::
+
+            def encrypt_file(file_in, file_out):
+
+                with \\
+                        open(file_in, 'rb') as input_, \\
+                        open(file_out, 'wb') as output:
+
+                    chunks = iter(lambda: input_.read(8192), '')
+
+                    for chunk in key.encrypt(chunks, mechanism_param=iv):
+                        output.write(chunk)
+
         :param data: data to encrypt
         :type data: str, bytes or iter(bytes)
         :param Mechanism mechanism: optional encryption mechanism
             (or None for default)
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
-        :param int buffer_size: size of the working buffer (or None)
+        :param int buffer_size: size of the working buffer (for generators)
 
         :rtype: bytes or iter(bytes)
         """
@@ -562,15 +571,9 @@ class EncryptMixin(Object):
         if isinstance(data, str):
             data = data.encode('utf-8')
 
-        if buffer_size is None:
+        if isinstance(data, bytes):
             return self._encrypt(data, **kwargs)
 
-        # If we're not an iterable, call into our generator with an iterable
-        # version and join the result at the end.
-        if isinstance(data, bytes):
-            return b''.join(self._encrypt_generator(_chunks(data, buffer_size),
-                                                    buffer_size=buffer_size,
-                                                    **kwargs))
         else:
             return self._encrypt_generator(data,
                                            buffer_size=buffer_size, **kwargs)
@@ -593,20 +596,15 @@ class DecryptMixin(Object):
             (or None for default).
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
-        :param int buffer_size: size of the working buffer (or None).
+        :param int buffer_size: size of the working buffer (for generators).
 
         :rtype: bytes or iter(bytes)
         """
 
-        if buffer_size is None:
-            return self._decrypt(data, **kwargs)
-
         # If we're not an iterable, call into our generator with an iterable
         # version and join the result at the end.
         if isinstance(data, bytes):
-            return b''.join(self._decrypt_generator(_chunks(data, buffer_size),
-                                                    buffer_size=buffer_size,
-                                                    **kwargs))
+            return self._decrypt(data, **kwargs)
 
         else:
             return self._decrypt_generator(data,
@@ -614,7 +612,21 @@ class DecryptMixin(Object):
 
 
 class SignMixin(Object):
-    pass
+    """
+    This :class:`Object` supports the sign capability.
+    """
+
+    def sign(self, data, **kwargs):
+        """
+        Sign some `data`.
+
+        :param data: data to sign
+        :type data: bytes or iter(bytes)
+        :param Mechanism mechanism: optional signing mechanism
+        :param bytes mechanism_param: optional mechanism parameter
+
+        :rtype: bytes
+        """
 
 
 class VerifyMixin(Object):
