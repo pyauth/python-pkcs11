@@ -345,3 +345,11 @@ cdef extern from '../extern/pkcs11.h':
     CK_RV C_VerifyFinal(CK_SESSION_HANDLE session,
                         CK_BYTE *signature,
                         CK_ULONG sig_len)
+
+    ## Derive
+    CK_RV C_DeriveKey(CK_SESSION_HANDLE session,
+                      CK_MECHANISM *mechanism,
+                      CK_OBJECT_HANDLE src_key,
+                      CK_ATTRIBUTE *template,
+                      CK_ULONG count,
+                      CK_OBJECT_HANDLE *new_key)

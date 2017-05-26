@@ -222,6 +222,7 @@ class Session(types.Session):
             Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
             Attribute.SIGN: MechanismFlag.SIGN & capabilities,
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
+            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
         template_.update(template or {})
         attrs = AttributeList(template_)
@@ -265,7 +266,6 @@ class Session(types.Session):
             Attribute.LABEL: label or '',
             Attribute.TOKEN: store,
             Attribute.MODULUS_BITS: key_length,
-            Attribute.PUBLIC_EXPONENT: b'\1\0\1',
             # Capabilities
             Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
             Attribute.WRAP: MechanismFlag.WRAP & capabilities,
@@ -285,6 +285,7 @@ class Session(types.Session):
             Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
             Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
             Attribute.SIGN: MechanismFlag.SIGN & capabilities,
+            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
         private_template_.update(private_template or {})
         private_attrs = AttributeList(private_template_)
@@ -338,6 +339,7 @@ class Object(types.Object):
                     (Attribute.VERIFY, VerifyMixin),
                     (Attribute.WRAP, WrapMixin),
                     (Attribute.UNWRAP, UnwrapMixin),
+                    (Attribute.DERIVE, DeriveMixin),
             ):
                 try:
                     if self[attribute]:
@@ -412,6 +414,81 @@ class PublicKey(types.PublicKey):
 
 class PrivateKey(types.PrivateKey):
     pass
+
+
+class DomainParameters(types.DomainParameters):
+    def generate_keypair(self, key_type,
+                         id=None, label=None,
+                         store=False, capabilities=None,
+                         mechanism=None, mechanism_param=b'',
+                         public_template=None, private_template=None):
+
+        if not isinstance(key_type, KeyType):
+            raise ArgumentsBad("`key_type` must be KeyType.")
+
+        if capabilities is None:
+            try:
+                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
+            except KeyError:
+                raise ArgumentsBad("No default capabilities for this key "
+                                   "type. Please specify `capabilities`.")
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(key_type, DEFAULT_GENERATE_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_OBJECT_HANDLE public_key
+        cdef CK_OBJECT_HANDLE private_key
+
+        # Build attributes
+        public_template_ = {
+            Attribute.CLASS: ObjectClass.PUBLIC_KEY,
+            Attribute.ID: id or b'',
+            Attribute.LABEL: label or '',
+            Attribute.TOKEN: store,
+            # Capabilities
+            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
+            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
+            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
+        }
+
+        # Copy in our domain parameters
+        for attribute in (
+                Attribute.BASE,
+                Attribute.PRIME,
+                Attribute.SUBPRIME,
+        ):
+            try:
+                public_template_[attribute] = self[attribute]
+            except AttributeTypeInvalid:
+                pass
+
+        public_template_.update(public_template or {})
+        public_attrs = AttributeList(public_template_)
+
+        private_template_ = {
+            Attribute.CLASS: ObjectClass.PRIVATE_KEY,
+            Attribute.ID: id or b'',
+            Attribute.LABEL: label or '',
+            Attribute.TOKEN: store,
+            Attribute.PRIVATE: True,
+            Attribute.SENSITIVE: True,
+            # Capabilities
+            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
+            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
+            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
+            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
+        }
+        private_template_.update(private_template or {})
+        private_attrs = AttributeList(private_template_)
+
+        assertRV(C_GenerateKeyPair(self.session._handle,
+                                   &mech,
+                                   public_attrs.data, public_attrs.count,
+                                   private_attrs.data, private_attrs.count,
+                                   &public_key, &private_key))
+
+        return (Object._make(self.session, public_key),
+                Object._make(self.session, private_key))
 
 
 class EncryptMixin(types.EncryptMixin):
@@ -667,10 +744,69 @@ class UnwrapMixin(types.UnwrapMixin):
     pass
 
 
+class DeriveMixin(types.DeriveMixin):
+    """Expand DeriveMixin with an implementation."""
+
+    def derive_key(self, key_type, key_length,
+                   id=None, label=None,
+                   store=False, capabilities=None,
+                   mechanism=None, mechanism_param=b'',
+                   template=None):
+
+        if not isinstance(key_type, KeyType):
+            raise ArgumentsBad("`key_type` must be KeyType.")
+
+        if not isinstance(key_length, int):
+            raise ArgumentsBad("`key_length` is the length in bits.")
+
+        if capabilities is None:
+            try:
+                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
+            except KeyError:
+                raise ArgumentsBad("No default capabilities for this key "
+                                   "type. Please specify `capabilities`.")
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_DERIVE_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_OBJECT_HANDLE key
+
+        # Build attributes
+        template_ = {
+            Attribute.CLASS: ObjectClass.SECRET_KEY,
+            Attribute.KEY_TYPE: key_type,
+            Attribute.ID: id or b'',
+            Attribute.LABEL: label or '',
+            Attribute.TOKEN: store,
+            Attribute.VALUE_LEN: key_length // 8,  # In bytes
+            Attribute.PRIVATE: True,
+            Attribute.SENSITIVE: True,
+            # Capabilities
+            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
+            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
+            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
+            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
+            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
+            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
+            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
+        }
+        template_.update(template or {})
+        attrs = AttributeList(template_)
+
+        assertRV(C_DeriveKey(self.session._handle,
+                             &mech,
+                             self._handle,
+                             attrs.data, attrs.count,
+                             &key))
+
+        return Object._make(self.session, key)
+
+
 _CLASS_MAP = {
     ObjectClass.SECRET_KEY: SecretKey,
     ObjectClass.PUBLIC_KEY: PublicKey,
     ObjectClass.PRIVATE_KEY: PrivateKey,
+    ObjectClass.DOMAIN_PARAMETERS: DomainParameters,
 }
 
 

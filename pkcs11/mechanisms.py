@@ -12,11 +12,17 @@ class KeyType(IntEnum):
     """
     See the `RSA section
     <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850404>`_
-    of PKCS#11 for valid :class:`Mechanism` and
+    of PKCS#11 specification for valid :class:`Mechanism` and
     :class:`pkcs11.constants.Attribute` types.
     """
     DSA            = 0x00000001
     DH             = 0x00000002
+    """
+    See the `Diffie-Hellman section
+    <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850461>`_
+    of the PKCS#11 specification for valid :class:`Mechanism` and
+    :class:`pkcs11.constants.Attribute` types.
+    """
     ECDSA          = 0x00000003
     EC             = 0x00000003
     X9_42_DH       = 0x00000004
@@ -124,6 +130,7 @@ class Mechanism(IntEnum):
     SHA256_RSA_PKCS          = 0x00000040
     SHA384_RSA_PKCS          = 0x00000041
     SHA512_RSA_PKCS          = 0x00000042
+    """Default for signing/verification with :attr:`KeyType.RSA` keys."""
     SHA256_RSA_PKCS_PSS      = 0x00000043
     SHA384_RSA_PKCS_PSS      = 0x00000044
     SHA512_RSA_PKCS_PSS      = 0x00000045
@@ -205,6 +212,7 @@ class Mechanism(IntEnum):
     SHA384_HMAC_GENERAL      = 0x00000262
     SHA512                   = 0x00000270
     SHA512_HMAC              = 0x00000271
+    """This is the default for signing/verification with :class:`KeyType.AES`."""
     SHA512_HMAC_GENERAL      = 0x00000272
     SECURID_KEY_GEN          = 0x00000280
     SECURID                  = 0x00000282

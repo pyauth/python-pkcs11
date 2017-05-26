@@ -445,6 +445,22 @@ class Object:
         raise NotImplementedError()
 
 
+class DomainParameters(Object):
+    """
+    PKCS#11 Domain Parameters.
+    """
+
+    def generate_keypair(self, key_type,
+                         id=None, label=None,
+                         store=False, capabilities=None,
+                         mechanism=None, mechanism_param=b'',
+                         public_template=None, private_template=None):
+        """
+        Generate a key pair from these domain parameters.
+        """
+        raise NotImplementedError()
+
+
 class Key(Object):
     """Base class for all key :class:`Object` types."""
 
@@ -706,3 +722,39 @@ class WrapMixin(Object):
 
 class UnwrapMixin(Object):
     pass
+
+
+class DeriveMixin(Object):
+    """
+    This :class:`Object` supports the derive capability.
+    """
+
+    def derive_key(self, key_type, key_length,
+                   id=None, label=None,
+                   store=False, capabilities=None,
+                   mechanism=None, mechanism_param=b'',
+                   template=None):
+        """
+        Derive a new key from this key. Typically used to create session
+        keys from a PKCS key exchange.
+
+        Many key generation mechanisms, e.g. Diffie-Hellman, require you
+        to specify the other party's public piece of information as
+        the `mechanism_param`.
+
+        See :class:`Session.generate_key` for more documentation on key
+        generation.
+
+        :param KeyType key_type: Key type (e.g. KeyType.AES)
+        :param int key_length: Key length in bits (e.g. 256).
+        :param bytes id: Key identifier.
+        :param str label: Key label.
+        :param store: Store key on token (requires R/W session).
+        :param MechanismFlag capabilities: Key capabilities (or default).
+        :param Mechanism mechanism: Generation mechanism (or default).
+        :param bytes mechanism_param: Optional vector to the mechanism.
+        :param dict(Attribute,*) template: Additional attributes.
+
+        :rtype: Key
+        """
+        raise NotImplementedError()
