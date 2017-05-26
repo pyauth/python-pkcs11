@@ -306,7 +306,7 @@ class Session:
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,
-                     mechanism=None, mechanism_param=b'',
+                     mechanism=None, mechanism_param=None,
                      template=None):
         """
         Generate a single key (e.g. AES, DES).
@@ -344,7 +344,7 @@ class Session:
     def generate_keypair(self, key_type, key_length,
                          id=None, label=None,
                          store=True, capabilities=None,
-                         mechanism=None, mechanism_param=b'',
+                         mechanism=None, mechanism_param=None,
                          public_template=None, private_template=None):
         """
         Generate a asymmetric keypair (e.g. RSA).
@@ -463,7 +463,7 @@ class DomainParameters(Object):
 
     def generate_keypair(self, id=None, label=None,
                          store=False, capabilities=None,
-                         mechanism=None, mechanism_param=b'',
+                         mechanism=None, mechanism_param=None,
                          public_template=None, private_template=None):
         """
         Generate a key pair from these domain parameters (e.g. for
@@ -740,11 +740,56 @@ class VerifyMixin(Object):
 
 
 class WrapMixin(Object):
-    pass
+    """
+    This :class:`Object` supports the wrap capability.
+    """
+
+    def wrap_key(self, key,
+                 mechanism=None, mechanism_param=None):
+        """
+        Use this key to wrap (i.e. encrypt) `key` for export. Returns
+        an encrypted version of `key`.
+
+        `key` must have :attr:`Attribute.EXTRACTABLE` = True.
+
+        :param Key key: key to export
+        :param Mechanism mechanism: wrapping mechanism (or None for default).
+        :param bytes mechanism_param: mechanism parameter (if required)
+
+        :rtype: bytes
+        """
+        raise NotImplementedError()
 
 
 class UnwrapMixin(Object):
-    pass
+    """
+    This :class:`Object` supports the unwrap capability.
+    """
+
+    def unwrap_key(self, object_class, key_type, key_data,
+                   id=None, label=None,
+                   mechanism=None, mechanism_param=None,
+                   store=False, capabilities=None,
+                   template=None):
+        """
+        Use this key to unwrap (i.e. decrypt) and import `key_data`.
+
+        See :class:`Session.generate_key` for more information.
+
+        :param ObjectClass object_class: Object class to import as
+        :param KeyType key_type: Key type (e.g. KeyType.AES)
+        :param bytes key_data: Encrypted key to unwrap
+        :param bytes id: Key identifier.
+        :param str label: Key label.
+        :param store: Store key on token (requires R/W session).
+        :param MechanismFlag capabilities: Key capabilities (or default).
+        :param Mechanism mechanism: Generation mechanism (or default).
+        :param bytes mechanism_param: Optional vector to the mechanism.
+        :param dict(Attribute,*) template: Additional attributes.
+
+        :rtype: Key
+        """
+        raise NotImplementedError()
 
 
 class DeriveMixin(Object):
@@ -755,7 +800,7 @@ class DeriveMixin(Object):
     def derive_key(self, key_type, key_length,
                    id=None, label=None,
                    store=False, capabilities=None,
-                   mechanism=None, mechanism_param=b'',
+                   mechanism=None, mechanism_param=None,
                    template=None):
         """
         Derive a new key from this key. Used to create session

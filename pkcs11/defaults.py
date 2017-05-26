@@ -51,6 +51,11 @@ DEFAULT_SIGN_MECHANISMS = {
 Default mechanisms for sign/verify.
 """
 
+DEFAULT_WRAP_MECHANISMS = {
+    KeyType.AES: Mechanism.AES_KEY_WRAP_PAD,
+    KeyType.RSA: Mechanism.RSA_PKCS,
+}
+
 DEFAULT_DERIVE_MECHANISMS = {
     KeyType.DH: Mechanism.DH_PKCS_DERIVE,
 }

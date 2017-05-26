@@ -353,3 +353,21 @@ cdef extern from '../extern/pkcs11.h':
                       CK_ATTRIBUTE *template,
                       CK_ULONG count,
                       CK_OBJECT_HANDLE *new_key)
+
+    ## Wrap
+    CK_RV C_WrapKey(CK_SESSION_HANDLE session,
+                    CK_MECHANISM *mechanism,
+                    CK_OBJECT_HANDLE wrapping_key,
+                    CK_OBJECT_HANDLE key_to_wrap,
+                    CK_BYTE *wrapped_key,
+                    CK_ULONG *wrapped_key_len)
+
+    ## Unwrap
+    CK_RV C_UnwrapKey(CK_SESSION_HANDLE session,
+                      CK_MECHANISM *mechanism,
+                      CK_OBJECT_HANDLE unwrapping_key,
+                      CK_BYTE *wrapped_key,
+                      CK_ULONG wrapped_key_len,
+                      CK_ATTRIBUTE *attrs,
+                      CK_ULONG attr_len,
+                      CK_OBJECT_HANDLE *unwrapped_key)

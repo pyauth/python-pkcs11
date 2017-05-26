@@ -18,7 +18,7 @@ except KeyError:
     raise RuntimeError("Must define `PKCS11_MODULE' to run tests.")
 
 
-class PKCS11SecretKeyTests(unittest.TestCase):
+class PKCS11PKCTests(unittest.TestCase):
 
     def test_rsa_sign(self):
         lib = pkcs11.lib(LIB)
@@ -118,3 +118,28 @@ class PKCS11SecretKeyTests(unittest.TestCase):
             crypttext = alice_session.encrypt('HI BOB!', mechanism_param=iv)
             plaintext = bob_session.decrypt(crypttext, mechanism_param=iv)
             self.assertEqual(plaintext, b'HI BOB!')
+
+    def test_key_wrap(self):
+        lib = pkcs11.lib(LIB)
+        token = lib.get_token(token_label='DEMO')
+
+        with token.open(user_pin='1234') as session:
+            pub, priv = session.generate_keypair(KeyType.RSA, 1024,
+                                                 store=False)
+            key = session.generate_key(KeyType.AES, 128,
+                                       store=False,
+                                       template={
+                                           Attribute.EXTRACTABLE: True,
+                                           Attribute.SENSITIVE: False,
+                                       })
+
+            data = pub.wrap_key(key)
+            self.assertNotEqual(data, key[Attribute.VALUE])
+
+            key2 = priv.unwrap_key(ObjectClass.SECRET_KEY,
+                                   KeyType.AES,
+                                   data,
+                                   store=False,
+                                   template={
+                                           Attribute.SENSITIVE: False,
+                                   })

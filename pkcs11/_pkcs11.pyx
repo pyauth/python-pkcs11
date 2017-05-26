@@ -185,7 +185,7 @@ class Session(types.Session):
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,
-                     mechanism=None, mechanism_param=b'',
+                     mechanism=None, mechanism_param=None,
                      template=None):
 
         if not isinstance(key_type, KeyType):
@@ -237,7 +237,7 @@ class Session(types.Session):
     def generate_keypair(self, key_type, key_length,
                          id=None, label=None,
                          store=True, capabilities=None,
-                         mechanism=None, mechanism_param=b'',
+                         mechanism=None, mechanism_param=None,
                          public_template=None, private_template=None):
 
         if not isinstance(key_type, KeyType):
@@ -420,7 +420,7 @@ class DomainParameters(types.DomainParameters):
     def generate_keypair(self,
                          id=None, label=None,
                          store=False, capabilities=None,
-                         mechanism=None, mechanism_param=b'',
+                         mechanism=None, mechanism_param=None,
                          public_template=None, private_template=None):
 
         if capabilities is None:
@@ -492,7 +492,7 @@ class EncryptMixin(types.EncryptMixin):
     """Expand EncryptMixin with an implementation."""
 
     def _encrypt(self, data,
-                 mechanism=None, mechanism_param=b''):
+                 mechanism=None, mechanism_param=None):
         """
         Non chunking encrypt. Needed for some mechanisms.
         """
@@ -520,7 +520,7 @@ class EncryptMixin(types.EncryptMixin):
 
 
     def _encrypt_generator(self, data,
-                           mechanism=None, mechanism_param=b'',
+                           mechanism=None, mechanism_param=None,
                            buffer_size=8192):
         """
         Do chunked encryption.
@@ -565,7 +565,7 @@ class DecryptMixin(types.DecryptMixin):
     """Expand DecryptMixin with an implementation."""
 
     def _decrypt(self, data,
-                 mechanism=None, mechanism_param=b''):
+                 mechanism=None, mechanism_param=None):
         """Non chunking decrypt."""
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
@@ -591,7 +591,7 @@ class DecryptMixin(types.DecryptMixin):
 
 
     def _decrypt_generator(self, data,
-                           mechanism=None, mechanism_param=b'',
+                           mechanism=None, mechanism_param=None,
                            buffer_size=8192):
         """
         Chunking decrypt.
@@ -637,7 +637,7 @@ class SignMixin(types.SignMixin):
     """Expand SignMixin with an implementation."""
 
     def _sign(self, data,
-              mechanism=None, mechanism_param=b''):
+              mechanism=None, mechanism_param=None):
 
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
@@ -662,7 +662,7 @@ class SignMixin(types.SignMixin):
             return bytes(signature[:length])
 
     def _sign_generator(self, data,
-                        mechanism=None, mechanism_param=b''):
+                        mechanism=None, mechanism_param=None):
 
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
@@ -697,7 +697,7 @@ class VerifyMixin(types.VerifyMixin):
     """Expand VerifyMixin with an implementation."""
 
     def _verify(self, data, signature,
-                mechanism=None, mechanism_param=b''):
+                mechanism=None, mechanism_param=None):
 
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
@@ -712,7 +712,7 @@ class VerifyMixin(types.VerifyMixin):
                               signature, len(signature)))
 
     def _verify_generator(self, data, signature,
-                          mechanism=None, mechanism_param=b''):
+                          mechanism=None, mechanism_param=None):
 
         cdef CK_MECHANISM mech = \
             _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
@@ -734,11 +734,92 @@ class VerifyMixin(types.VerifyMixin):
 
 
 class WrapMixin(types.WrapMixin):
-    pass
+    """Expand WrapMixin with an implementation."""
+
+    def wrap_key(self, key,
+                 mechanism=None, mechanism_param=None):
+
+        if not isinstance(key, types.Key):
+            raise ArgumentsBad("`key` must be a Key.")
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_WRAP_MECHANISMS,
+                               mechanism, mechanism_param)
+
+        cdef CK_ULONG length
+
+        # Find out how many bytes we need to allocate
+        assertRV(C_WrapKey(self.session._handle,
+                           &mech,
+                           self._handle,
+                           key._handle,
+                           NULL, &length))
+
+        cdef CK_BYTE [:] data = CK_BYTE_buffer(length)
+
+        assertRV(C_WrapKey(self.session._handle,
+                           &mech,
+                           self._handle,
+                           key._handle,
+                           NULL, &length))
+
+        return bytes(data[:length])
 
 
 class UnwrapMixin(types.UnwrapMixin):
-    pass
+    """Expand UnwrapMixin with an implementation."""
+
+    def unwrap_key(self, object_class, key_type, key_data,
+                   id=None, label=None,
+                   mechanism=None, mechanism_param=None,
+                   store=False, capabilities=None,
+                   template=None):
+
+        if not isinstance(object_class, ObjectClass):
+            raise ArgumentsBad("`object_class` must be ObjectClass.")
+
+        if not isinstance(key_type, KeyType):
+            raise ArgumentsBad("`key_type` must be KeyType.")
+
+        if capabilities is None:
+            try:
+                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
+            except KeyError:
+                raise ArgumentsBad("No default capabilities for this key "
+                                   "type. Please specify `capabilities`.")
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(self.key_type, DEFAULT_WRAP_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_OBJECT_HANDLE key
+
+        # Build attributes
+        template_ = {
+            Attribute.CLASS: object_class,
+            Attribute.KEY_TYPE: key_type,
+            Attribute.ID: id or b'',
+            Attribute.LABEL: label or '',
+            Attribute.TOKEN: store,
+            # Capabilities
+            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
+            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
+            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
+            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
+            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
+            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
+            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
+        }
+        template_.update(template or {})
+        attrs = AttributeList(template_)
+
+        assertRV(C_UnwrapKey(self.session._handle,
+                             &mech,
+                             self._handle,
+                             key_data, len(key_data),
+                             attrs.data, attrs.count,
+                             &key))
+
+        return Object._make(self.session, key)
 
 
 class DeriveMixin(types.DeriveMixin):
@@ -747,7 +828,7 @@ class DeriveMixin(types.DeriveMixin):
     def derive_key(self, key_type, key_length,
                    id=None, label=None,
                    store=False, capabilities=None,
-                   mechanism=None, mechanism_param=b'',
+                   mechanism=None, mechanism_param=None,
                    template=None):
 
         if not isinstance(key_type, KeyType):

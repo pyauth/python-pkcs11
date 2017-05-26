@@ -34,8 +34,8 @@ cdef CK_MECHANISM _make_CK_MECHANISM(key_type, default_map,
 
     cdef CK_MECHANISM mech
     mech.mechanism = mechanism.value
-    mech.pParameter = <CK_CHAR *> param
-    mech.ulParameterLen = len(param)
+    mech.pParameter = <CK_CHAR *> param if param is not None else NULL
+    mech.ulParameterLen = len(param) if param is not None else 0
 
     return mech
 
