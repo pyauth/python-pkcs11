@@ -417,24 +417,21 @@ class PrivateKey(types.PrivateKey):
 
 
 class DomainParameters(types.DomainParameters):
-    def generate_keypair(self, key_type,
+    def generate_keypair(self,
                          id=None, label=None,
                          store=False, capabilities=None,
                          mechanism=None, mechanism_param=b'',
                          public_template=None, private_template=None):
 
-        if not isinstance(key_type, KeyType):
-            raise ArgumentsBad("`key_type` must be KeyType.")
-
         if capabilities is None:
             try:
-                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
+                capabilities = DEFAULT_KEY_CAPABILITIES[self.key_type]
             except KeyError:
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
         cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(key_type, DEFAULT_GENERATE_MECHANISMS,
+            _make_CK_MECHANISM(self.key_type, DEFAULT_GENERATE_MECHANISMS,
                                mechanism, mechanism_param)
         cdef CK_OBJECT_HANDLE public_key
         cdef CK_OBJECT_HANDLE private_key

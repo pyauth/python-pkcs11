@@ -337,7 +337,7 @@ class Session:
         :param bytes mechanism_param: Optional vector to the mechanism.
         :param dict(Attribute,*) template: Additional attributes.
 
-        :rtype: Key
+        :rtype: SecretKey
         """
         raise NotImplementedError()
 
@@ -448,15 +448,38 @@ class Object:
 class DomainParameters(Object):
     """
     PKCS#11 Domain Parameters.
+
+    Used to store domain parameters as part of the key generation step, e.g.
+    in DSA and Diffie-Hellman.
     """
 
-    def generate_keypair(self, key_type,
-                         id=None, label=None,
+    @property
+    def key_type(self):
+        """
+        Key type (:class:`pkcs11.mechanisms.KeyType`) these parameters
+        can be used to generate.
+        """
+        return self[Attribute.KEY_TYPE]
+
+    def generate_keypair(self, id=None, label=None,
                          store=False, capabilities=None,
                          mechanism=None, mechanism_param=b'',
                          public_template=None, private_template=None):
         """
-        Generate a key pair from these domain parameters.
+        Generate a key pair from these domain parameters (e.g. for
+        Diffie-Hellman.
+
+        See :meth:`Session.generate_key` for more information.
+
+        :param bytes id: Key identifier.
+        :param str label: Key label.
+        :param store: Store key on token (requires R/W session).
+        :param MechanismFlag capabilities: Key capabilities (or default).
+        :param Mechanism mechanism: Generation mechanism (or default).
+        :param bytes mechanism_param: Optional vector to the mechanism.
+        :param dict(Attribute,*) template: Additional attributes.
+
+        :rtype: (PublicKey, PrivateKey)
         """
         raise NotImplementedError()
 
@@ -735,15 +758,46 @@ class DeriveMixin(Object):
                    mechanism=None, mechanism_param=b'',
                    template=None):
         """
-        Derive a new key from this key. Typically used to create session
+        Derive a new key from this key. Used to create session
         keys from a PKCS key exchange.
 
-        Many key generation mechanisms, e.g. Diffie-Hellman, require you
-        to specify the other party's public piece of information as
+        Typically the mechanism, e.g. Diffie-Hellman, requires you
+        to specify the other party's piece of shared information as
         the `mechanism_param`.
 
         See :class:`Session.generate_key` for more documentation on key
         generation.
+
+        ::
+
+            # Diffie-Hellman domain parameters
+            # e.g. from RFC 3526, RFC 5114 or `openssl dhparam`
+            prime = [0xFF, ...]
+            base = [0x02]
+
+            parameters = session.create_object({
+                Attribute.CLASS: ObjectClass.DOMAIN_PARAMETERS,
+                Attribute.KEY_TYPE: KeyType.DH,
+                Attribute.PRIME: prime,
+                Attribute.BASE: base,
+            })
+
+            # Alice generates a DH key pair from the public
+            # Diffie-Hellman parameters
+            public, private = parameters.generate_keypair()
+            alices_value = public[Attribute.VALUE]
+
+            # Bob generates a DH key pair from the same parameters.
+
+            # Alice exchanges public values with Bob...
+            # She sends `alices_value` and receives `bobs_value`.
+            # (Assuming Alice is doing AES CBC, she also needs to send an IV)
+
+            # Alice generates a session key with Bob's public value
+            # Bob will generate the same session key using Alice's value.
+            session_key = private.derive_key(
+                KeyType.AES, 128,
+                mechanism_param=bobs_value)
 
         :param KeyType key_type: Key type (e.g. KeyType.AES)
         :param int key_length: Key length in bits (e.g. 256).
@@ -755,6 +809,6 @@ class DeriveMixin(Object):
         :param bytes mechanism_param: Optional vector to the mechanism.
         :param dict(Attribute,*) template: Additional attributes.
 
-        :rtype: Key
+        :rtype: SecretKey
         """
         raise NotImplementedError()

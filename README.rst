@@ -76,6 +76,39 @@ RSA
         crypttext = pub.encrypt(data)
 
 
+Diffie-Hellman
+~~~~~~~~~~~~~~
+
+::
+
+    import pkcs11
+
+    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+    token = lib.get_token(token_label='DEMO')
+
+    with token.open() as session:
+        # Given shared Diffie-Hellman parameters
+        parameters = session.create_object({
+            Attribute.CLASS: ObjectClass.DOMAIN_PARAMETERS,
+            Attribute.KEY_TYPE: KeyType.DH,
+            Attribute.PRIME: prime,  # Diffie-Hellman parameters
+            Attribute.BASE: base,
+        })
+
+        # Generate a DH key pair from the public parameters
+        public, private = parameters.generate_keypair()
+
+        # Share the public half of it with our other party.
+        _network_.write(public[Attribute.VALUE])
+        # And get their shared value
+        other_value = _network_.read()
+
+        # Derive a shared session key with perfect forward secrecy
+        session_key = private.derive_key(
+            KeyType.AES, 128,
+            mechanism_param=other_value)
+
+
 Tested Compatibility
 --------------------
 
@@ -94,6 +127,7 @@ Mechanisms:
 
 * AES
 * RSA
+* Diffie-Hellman
 
 Operations:
 
@@ -101,6 +135,7 @@ Operations:
 * Sign, Verify
 * Generate Key
 * Generate Keypair
+* Derive Key
 * Generate Random
 * Create, Copy and Destroy objects (if supported by backend)
 

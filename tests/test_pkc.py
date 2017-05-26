@@ -96,13 +96,11 @@ class PKCS11SecretKeyTests(unittest.TestCase):
             })
 
             # Alice generate a keypair
-            alice_public, alice_private = \
-                parameters.generate_keypair(KeyType.DH)
+            alice_public, alice_private = parameters.generate_keypair()
             alice_value = alice_public[Attribute.VALUE]
 
             # Bob generates a keypair
-            bob_public, bob_private = \
-                parameters.generate_keypair(KeyType.DH)
+            bob_public, bob_private = parameters.generate_keypair()
             bob_value = bob_public[Attribute.VALUE]
 
             self.assertNotEqual(alice_value, bob_value)

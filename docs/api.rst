@@ -111,6 +111,9 @@ Classes
     .. autoclass:: PrivateKey(Key)
         :members:
 
+    .. autoclass:: DomainParameters(Object)
+        :members:
+
     Object Capabilities
     ~~~~~~~~~~~~~~~~~~~
 
@@ -132,6 +135,9 @@ Classes
         :members:
 
     .. autoclass:: UnwrapMixin()
+        :members:
+
+    .. autoclass:: DeriveMixin()
         :members:
 
 
