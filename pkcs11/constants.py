@@ -54,6 +54,8 @@ class Attribute(IntEnum):
     PKCS#11 object attributes.
 
     Not all attributes are relevant to all objects.
+    Relevant attributes for each object type are given in
+    `PKCS #11 <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/pkcs11-curr-v2.40.html>`_.
     """
 
     CLASS              = 0x00000000

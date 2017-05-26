@@ -9,6 +9,12 @@ class KeyType(IntEnum):
     :class:`Mechanism` to be available.
     """
     RSA            = 0x00000000
+    """
+    See the `RSA section
+    <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850404>`_
+    of PKCS#11 for valid :class:`Mechanism` and
+    :class:`pkcs11.constants.Attribute` types.
+    """
     DSA            = 0x00000001
     DH             = 0x00000002
     ECDSA          = 0x00000003
@@ -32,6 +38,12 @@ class KeyType(IntEnum):
     JUNIPER        = 0x0000001D
     CDMF           = 0x0000001E
     AES            = 0x0000001F
+    """
+    See the `AES section
+    <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850484>`_
+    of PKCS#11 for valid :class:`Mechanism` and
+    :class:`pkcs11.constants.Attribute` types.
+    """
     BLOWFISH       = 0x00000020
     TWOFISH        = 0x00000021
     SECURID        = 0x00000022
@@ -65,22 +77,14 @@ class Mechanism(IntEnum):
     The list of supported cryptographic mechanisms for a :class:`pkcs11.Slot`
     can be retrieved with :meth:`pkcs11.Slot.get_mechanisms()`.
 
-    Descriptions of the block modes (ECB, CBC, CFB, OFB, and CTR) are available
-    in `NIST 800-38A <http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf>`_
-
-    The suffix `PAD` indicates the mechanism includes
-    `PKCS#7 <https://tools.ietf.org/html/rfc5652#section-6.3>`_
-    padding to align
-    input to the block size (or remove that padding as appropriate).
-
-    `KEY_GEN` and `KEY_PAIR_GEN` mechanisms can be used with
-    :meth:`pkcs11.Session.generate_key` and
-    :meth:`pkcs11.Session.generate_keypair` respectively.
-
-    A number of these mechanisms can be considered insecure or have security
-    concerns. If you're unsure, consult other documentation before choosing
-    a mechanism.
+    Descriptions of the `current
+    <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/pkcs11-curr-v2.40.html>`_
+    and `historical
+    <http://docs.oasis-open.org/pkcs11/pkcs11-hist/v2.40/pkcs11-hist-v2.40.html>`_
+    mechanisms, including their valid :class:`pkcs11.constants.Attribute`
+    types and `mechanism_param` can be found in the PKCS#11 specification.
     """
+
     RSA_PKCS_KEY_PAIR_GEN    = 0x00000000
     """Default for generating :attr:`KeyType.RSA` keys."""
     RSA_PKCS                 = 0x00000001

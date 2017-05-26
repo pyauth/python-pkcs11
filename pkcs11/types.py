@@ -315,10 +315,17 @@ class Session:
 
         An appropriate `mechanism` will be chosen for `key_type`
         (see :attr:`DEFAULT_GENERATE_MECHANISMS`) or this can be overridden.
-        Similarly the `capabilities` (see :attr:`DEFAULT_KEY_CAPABILITIES`).
+        Similarly for the `capabilities` (see
+        :attr:`DEFAULT_KEY_CAPABILITIES`).
 
         The `template` will extend the default template used to make the
         key.
+
+        Possible mechanisms and template attributes are defined by `PKCS #11
+        <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/pkcs11-curr-v2.40.html>`_.
+        Invalid mechanisms or attributes should raise
+        :exc:`pkcs11.exceptions.MechanismInvalid` and
+        :exc:`pkcs11.exceptions.AttributeTypeInvalid` respectively.
 
         :param KeyType key_type: Key type (e.g. KeyType.AES)
         :param int key_length: Key length in bits (e.g. 256).
@@ -342,14 +349,7 @@ class Session:
         """
         Generate a asymmetric keypair (e.g. RSA).
 
-        Keys should set at least `id` or `label`.
-
-        An appropriate `mechanism` will be chosen for `key_type`
-        (see :attr:`DEFAULT_GENERATE_MECHANISMS`) or this can be overridden.
-        Similarly the `capabilities` (see :attr:`DEFAULT_KEY_CAPABILITIES`).
-
-        The `template` will extend the default template used to make the
-        key.
+        See :meth:`generate_key` for more information.
 
         :param KeyType key_type: Key type (e.g. KeyType.AES)
         :param int key_length: Key length in bits (e.g. 256).
@@ -375,7 +375,7 @@ class Session:
 
     def generate_random(self, nbits):
         """
-        Generate `length` bytes of random or pseudo-random data (if supported).
+        Generate `length` bits of random or pseudo-random data (if supported).
 
         :param int nbits: Number of bits to generate.
         :rtype: bytes
@@ -389,6 +389,10 @@ class Object:
 
     Objects implement :meth:`__getitem__` and :meth:`__setitem__` to
     retrieve :class:`pkcs11.constants.Attribute` values on the object.
+    Valid attributes for an object are given in `PKCS #11
+    <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/pkcs11-curr-v2.40.html>`_.
+    Invalid attributes should raise
+    :exc:`pkcs11.exceptions.AttributeTypeInvalid`.
     """
 
     object_class = None
@@ -490,6 +494,11 @@ class PublicKey(Key):
 
     object_class = ObjectClass.PUBLIC_KEY
 
+    @property
+    def key_length(self):
+        """Key length in bits."""
+        return self[Attribute.MODULUS_BITS]
+
 
 class PrivateKey(Key):
     """
@@ -498,6 +507,11 @@ class PrivateKey(Key):
     """
 
     object_class = ObjectClass.PRIVATE_KEY
+
+    @property
+    def key_length(self):
+        """Key length in bits."""
+        return len(self[Attribute.MODULUS]) * 8
 
 
 class EncryptMixin(Object):
@@ -519,11 +533,11 @@ class EncryptMixin(Object):
         is passed and the mechanism chosen does not support handling data
         in chunks, an exception will be raised.
 
-        Some mechanisms (including the default CBC mechanisms) require an
-        initialisation vector (of key length) to set the initial state of
-        the mechanism.  Pass this as `mechanism_param`. The initialisation
-        vector should contain quality random. This method will not return
-        the value of the initialisation parameter.
+        Some mechanisms (including the default CBC mechanisms) require
+        additional parameters, e.g. an initialisation vector [#]_, to
+        the mechanism.  Pass this as `mechanism_param`.
+        Documentation of these parameters is given specified in
+        `PKCS #11 <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/pkcs11-curr-v2.40.html>`_.
 
         When passing an iterable for data
         `buffer_size` must be sufficient to store the working buffer. An
@@ -545,15 +559,17 @@ class EncryptMixin(Object):
 
         ::
 
-            def encrypt_file(file_in, file_out):
+            def encrypt_file(file_in, file_out, buffer_size=8192):
 
                 with \\
                         open(file_in, 'rb') as input_, \\
                         open(file_out, 'wb') as output:
 
-                    chunks = iter(lambda: input_.read(8192), '')
+                    chunks = iter(lambda: input_.read(buffer_size), '')
 
-                    for chunk in key.encrypt(chunks, mechanism_param=iv):
+                    for chunk in key.encrypt(chunks,
+                                             mechanism_param=iv,
+                                             buffer_size=buffer_size):
                         output.write(chunk)
 
         :param data: data to encrypt
@@ -565,6 +581,11 @@ class EncryptMixin(Object):
         :param int buffer_size: size of the working buffer (for generators)
 
         :rtype: bytes or iter(bytes)
+
+        .. [#] The initialisation vector should contain quality random,
+            e.g. from :meth:`Session.generate_random`.
+            This method will not return the value of the initialisation
+            vector as part of the encryption. You must store that yourself.
         """
 
         # If data is a string, encode it now as UTF-8.
