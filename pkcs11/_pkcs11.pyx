@@ -761,7 +761,7 @@ class WrapMixin(types.WrapMixin):
                            &mech,
                            self._handle,
                            key._handle,
-                           NULL, &length))
+                           &data[0], &length))
 
         return bytes(data[:length])
 

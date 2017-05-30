@@ -55,6 +55,9 @@ DEFAULT_WRAP_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_WRAP_PAD,
     KeyType.RSA: Mechanism.RSA_PKCS,
 }
+"""
+Default mechanism for wrap/unwrap.
+"""
 
 DEFAULT_DERIVE_MECHANISMS = {
     KeyType.DH: Mechanism.DH_PKCS_DERIVE,

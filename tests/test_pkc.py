@@ -141,5 +141,8 @@ class PKCS11PKCTests(unittest.TestCase):
                                    data,
                                    store=False,
                                    template={
+                                           Attribute.EXTRACTABLE: True,
                                            Attribute.SENSITIVE: False,
                                    })
+
+            self.assertEqual(key[Attribute.VALUE], key2[Attribute.VALUE])
