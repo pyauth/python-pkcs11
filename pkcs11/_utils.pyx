@@ -19,7 +19,7 @@ cdef CK_ULONG_buffer(length):
 
 
 cdef CK_MECHANISM _make_CK_MECHANISM(key_type, default_map,
-                                     mechanism=None, param=b'') except *:
+                                     mechanism=None, param=None) except *:
     """Build a CK_MECHANISM."""
 
     if mechanism is None:
@@ -34,8 +34,17 @@ cdef CK_MECHANISM _make_CK_MECHANISM(key_type, default_map,
 
     cdef CK_MECHANISM mech
     mech.mechanism = mechanism.value
-    mech.pParameter = <CK_CHAR *> param if param is not None else NULL
-    mech.ulParameterLen = len(param) if param is not None else 0
+
+    if param is None:
+        mech.pParameter = NULL
+        mech.ulParameterLen = 0
+
+    elif isinstance(param, bytes):
+        mech.pParameter = <CK_CHAR *> param
+        mech.ulParameterLen = len(param)
+
+    else:
+        raise ArgumentsBad("Unexpected argument to mechanism_param")
 
     return mech
 

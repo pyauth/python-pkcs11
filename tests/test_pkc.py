@@ -6,7 +6,6 @@ These tests assume SoftHSMv2 with a single token initialized called DEMO.
 
 import os
 import unittest
-import struct
 
 import pkcs11
 from pkcs11 import Attribute, KeyType, ObjectClass
@@ -88,9 +87,7 @@ class PKCS11PKCTests(unittest.TestCase):
                 0xF9,0xD3,0xF5,0x15,0x28,0xFE,0x2E,0xE2,0x7F,0xFE,0xD9,0xB9,
                 0x38,0x42,0x57,0x03,
             ]
-            parameters = session.create_object({
-                Attribute.CLASS: ObjectClass.DOMAIN_PARAMETERS,
-                Attribute.KEY_TYPE: KeyType.DH,
+            parameters = session.create_domain_parameters(KeyType.DH, {
                 Attribute.PRIME: prime,
                 Attribute.BASE: [0x2],
             })

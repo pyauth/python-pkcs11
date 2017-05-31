@@ -10,9 +10,10 @@ cdef extern from '../extern/pkcs11.h':
     ctypedef unsigned char CK_CHAR
     ctypedef unsigned long int CK_ULONG
     ctypedef CK_ULONG CK_ATTRIBUTE_TYPE
+    ctypedef CK_ULONG CK_EC_KDF_TYPE
     ctypedef CK_ULONG CK_FLAGS
     ctypedef CK_ULONG CK_MECHANISM_TYPE
-    ctypedef CK_ULONG CK_OBJECT_HANDLE;
+    ctypedef CK_ULONG CK_OBJECT_HANDLE
     ctypedef CK_ULONG CK_SESSION_HANDLE
     ctypedef CK_ULONG CK_SLOT_ID
 
@@ -202,6 +203,13 @@ cdef extern from '../extern/pkcs11.h':
         CK_ATTRIBUTE_TYPE type
         void *pValue
         CK_ULONG ulValueLen
+
+    ctypedef struct CK_ECDH1_DERIVE_PARAMS:
+        CK_EC_KDF_TYPE kdf
+        CK_ULONG ulSharedDataLen
+        CK_BYTE *pSharedData
+        CK_ULONG ulPublicDataLen
+        CK_BYTE *pPublicData
 
     CK_RV C_Initialize(void *)
     CK_RV C_Finalize(void *)

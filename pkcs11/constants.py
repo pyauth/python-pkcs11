@@ -180,8 +180,18 @@ class Attribute(IntEnum):
     MODIFIABLE = 0x00000170
     """Object can be modified (:class:`bool`)."""
 
-    ECDSA_PARAMS = 0x00000180
     EC_PARAMS = 0x00000180
+    """
+    DER-encoded ANSI X9.62 Elliptic-Curve domain parameters.
+
+    These can be output by OpenSSL.
+
+    ::
+
+        openssl ecparam -outform der -name <curve name> | base64
+
+    Or packed using :mod:`pyasn1`.
+    """
 
     EC_POINT = 0x00000181
 

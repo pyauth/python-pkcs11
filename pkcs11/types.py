@@ -4,6 +4,7 @@ Types for high level PKCS#11 wrapper.
 This module provides stubs that are overrideen in pkcs11._pkcs11.
 """
 
+import struct
 from threading import RLock
 from binascii import hexlify
 
@@ -18,6 +19,7 @@ from .constants import (
 from .mechanisms import Mechanism
 from .exceptions import (
     ArgumentsBad,
+    AttributeTypeInvalid,
     NoSuchKey,
     MultipleObjectsReturned,
     SignatureInvalid,
@@ -359,6 +361,18 @@ class Session:
         """
         raise NotImplementedError()
 
+    def create_domain_parameters(self, key_type, attrs, local=False):
+        """
+        Create domain parameters.
+
+        :param KeyType key_type: Key type these parameters are for
+        :param dict(Attribute,*): Domain parameters (specific tp `key_type`)
+        :param local: if True, do not write these to the HSM.
+        :rtype: DomainParameters
+        """
+
+        raise NotImplementedError()
+
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,
@@ -508,6 +522,25 @@ class DomainParameters(Object):
     Used to store domain parameters as part of the key generation step, e.g.
     in DSA and Diffie-Hellman.
     """
+
+    def __init__(self, session, handle, params=None):
+        super().__init__(session, handle)
+        self.params = params
+
+    def __getitem__(self, key):
+        if self._handle is None:
+            try:
+                return self.params[key]
+            except KeyError:
+                raise AttributeTypeInvalid
+        else:
+            return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        if self._handle is None:
+            self.params[key] = value
+        else:
+            super().__setitem__(key, value)
 
     @property
     def key_type(self):
@@ -864,10 +897,13 @@ class DeriveMixin(Object):
 
         Typically the mechanism, e.g. Diffie-Hellman, requires you
         to specify the other party's piece of shared information as
-        the `mechanism_param`.
+        the `mechanism_param`.  Some mechanisms require a tuple of data (see
+        :class:`pkcs11.mechanisms.Mechanism`).
 
         See :class:`Session.generate_key` for more documentation on key
         generation.
+
+        Diffie-Hellman example:
 
         ::
 
@@ -876,12 +912,10 @@ class DeriveMixin(Object):
             prime = [0xFF, ...]
             base = [0x02]
 
-            parameters = session.create_object({
-                Attribute.CLASS: ObjectClass.DOMAIN_PARAMETERS,
-                Attribute.KEY_TYPE: KeyType.DH,
+            parameters = session.create_domain_parameters(KeyType.DH, {
                 Attribute.PRIME: prime,
                 Attribute.BASE: base,
-            })
+            }, local=True)
 
             # Alice generates a DH key pair from the public
             # Diffie-Hellman parameters
@@ -899,6 +933,34 @@ class DeriveMixin(Object):
             session_key = private.derive_key(
                 KeyType.AES, 128,
                 mechanism_param=bobs_value)
+
+        Elliptic-Curve Diffie-Hellman example:
+
+        ::
+
+            # DER encoded EC params, e.g. from OpenSSL
+            # openssl ecparam -outform der -name prime192v1 | base64
+            #
+            # Check what EC parameters the module supports with
+            # slot.get_module_info()
+            parameters = session.create_domain_parameters(KeyType.EC, {
+                Attribute.EC_PARAMS: b'...',
+            }, local=True)
+
+            # Alice generates a EC key pair, and gets her public value
+            public, private = parameters.generate_keypair()
+            alices_value = public[Attribute.EC_POINT]
+
+            # Bob generates a DH key pair from the same parameters.
+
+            # Alice exchanges public values with Bob...
+            # She sends `alices_value` and receives `bobs_value`.
+
+            # Alice generates a session key with Bob's public value
+            # Bob will generate the same session key using Alice's value.
+            session_key = private.derive_key(
+                KeyType.AES, 128,
+                mechanism_param=(KDF.NULL, None, bobs_value))
 
         :param KeyType key_type: Key type (e.g. KeyType.AES)
         :param int key_length: Key length in bits (e.g. 256).

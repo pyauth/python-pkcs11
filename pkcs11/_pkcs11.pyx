@@ -187,6 +187,16 @@ class Session(types.Session):
 
         return Object._make(self, new)
 
+    def create_domain_parameters(self, key_type, attrs, local=False):
+        attrs = dict(attrs)
+        attrs[Attribute.CLASS] = ObjectClass.DOMAIN_PARAMETERS
+        attrs[Attribute.KEY_TYPE] = key_type
+
+        if local:
+            return DomainParameters(self, None, attrs)
+        else:
+            return self.create_object(attrs)
+
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,
@@ -453,11 +463,13 @@ class DomainParameters(types.DomainParameters):
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
         }
 
-        # Copy in our domain parameters
+        # Copy in our domain parameters.
+        # Not all parameters are appropriate for all domains.
         for attribute in (
                 Attribute.BASE,
                 Attribute.PRIME,
                 Attribute.SUBPRIME,
+                Attribute.EC_PARAMS,
         ):
             try:
                 public_template_[attribute] = self[attribute]
@@ -849,10 +861,36 @@ class DeriveMixin(types.DeriveMixin):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_DERIVE_MECHANISMS,
-                               mechanism, mechanism_param)
+        cdef CK_MECHANISM mech
+        cdef CK_ECDH1_DERIVE_PARAMS ecdh1_params
         cdef CK_OBJECT_HANDLE key
+
+        # Do the mechanism param ourselves so we can handle complex mechanism
+        # params like ECDH1.
+        # FIXME: this won't scale, we need a better solution than this!
+        mech = _make_CK_MECHANISM(self.key_type,
+                                  DEFAULT_DERIVE_MECHANISMS,
+                                  mechanism, None)
+
+        if mech.mechanism == Mechanism.ECDH1_DERIVE:
+            mech.pParameter = &ecdh1_params
+            mech.ulParameterLen = sizeof(CK_ECDH1_DERIVE_PARAMS)
+
+            (kdf, shared_data, public_data) = mechanism_param
+            ecdh1_params.kdf = kdf
+
+            if shared_data is None:
+                ecdh1_params.pSharedData = NULL
+                ecdh1_params.ulSharedDataLen = 0
+            else:
+                ecdh1_params.pSharedData = shared_data
+                ecdh1_params.ulSharedDataLen = len(shared_data)
+
+            ecdh1_params.pPublicData = public_data
+            ecdh1_params.ulPublicDataLen = len(public_data)
+        else:
+            mech.pParameter = <CK_CHAR *> mechanism_param
+            mech.ulParameterLen = len(mechanism_param)
 
         # Build attributes
         template_ = {

@@ -23,8 +23,13 @@ class KeyType(IntEnum):
     of the PKCS#11 specification for valid :class:`Mechanism` and
     :class:`pkcs11.constants.Attribute` types.
     """
-    ECDSA = 0x00000003
     EC = 0x00000003
+    """
+    See the `Elliptic Curve section
+    <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/csd01/pkcs11-curr-v2.40-csd01.html#_Toc372721391>`_
+    of the PKCS#11 specification for valid :class:`Mechanism` and
+    :class:`pkcs11.constants.Attribute` types.
+    """
     X9_42_DH = 0x00000004
     KEA = 0x00000005
     GENERIC_SECRET = 0x00000010
@@ -120,7 +125,22 @@ class Mechanism(IntEnum):
     DSA_SHA384 = 0x00000015
     DSA_SHA512 = 0x00000016
     DH_PKCS_KEY_PAIR_GEN = 0x00000020
+    """
+    Default mechanism for generating :attr:`KeyType.DH` keypairs from
+    :class:`pkcs11.DomainParameters`.
+
+    Requires :class:`pkcs11.DomainParameters` of
+    :attr:`pkcs11.constants.Attribute.BASE` and
+    :attr:`pkcs11.constants.Attribute.PRIME`.
+    """
     DH_PKCS_DERIVE = 0x00000021
+    """
+    Default mechanism for deriving shared keys from :attr:`KeyType.DH` private
+    keys.
+
+    Takes the other participant's public key
+    :attr:`pkcs11.constants.Attribute.VALUE` as the `mechanism_param`.
+    """
 
     X9_42_DH_KEY_PAIR_GEN = 0x00000030
     X9_42_DH_DERIVE = 0x00000031
@@ -375,8 +395,14 @@ class Mechanism(IntEnum):
     BATON_SHUFFLE = 0x00001035
     BATON_WRAP = 0x00001036
 
-    ECDSA_KEY_PAIR_GEN = 0x00001040
     EC_KEY_PAIR_GEN = 0x00001040
+    """
+    Default mechanism for generating :attr:`KeyType.EC` keypairs from
+    :class:`pkcs11.DomainParameters`.
+
+    Requires :class:`pkcs11.DomainParameters` of
+    :attr:`pkcs11.constants.Attribute.EC_PARAMS`.
+    """
 
     ECDSA = 0x00001041
     ECDSA_SHA1 = 0x00001042
@@ -386,6 +412,19 @@ class Mechanism(IntEnum):
     ECDSA_SHA512 = 0x00001046
 
     ECDH1_DERIVE = 0x00001050
+    """
+    Default mechanism for deriving shared keys from :attr:`KeyType.EC` private
+    keys.
+
+    Takes a tuple of:
+
+    * key derivation function (:class:`pkcs11.mechanisms.KDF`);
+    * shared value (:class:`bytes`); and
+    * other participant's :attr:`pkcs11.constants.Attribute.EC_POINT`
+      (:class:`bytes`)
+
+    as the `mechanism_param`.
+    """
     ECDH1_COFACTOR_DERIVE = 0x00001051
     ECMQV_DERIVE = 0x00001052
 
@@ -464,3 +503,22 @@ class Mechanism(IntEnum):
 
     def __repr__(self):
         return '<Mechanism.%s>' % self.name
+
+
+class KDF(IntEnum):
+    """
+    Key Derivation Functions.
+    """
+    NULL = 0x00000001
+    SHA1 = 0x00000002
+
+    SHA1_ASN1 = 0x00000003
+    SHA1_CONCATENATE = 0x00000004
+    SHA224 = 0x00000005
+    SHA256 = 0x00000006
+    SHA384 = 0x00000007
+    SHA512 = 0x00000008
+    CPDIVERSIFY = 0x00000009
+
+    def __repr__(self):
+        return '<KDF.%s>' % self.name

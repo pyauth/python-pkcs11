@@ -15,23 +15,21 @@ DEFAULT_GENERATE_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_GEN,
     KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
     KeyType.DH: Mechanism.DH_PKCS_KEY_PAIR_GEN,
+    KeyType.EC: Mechanism.EC_KEY_PAIR_GEN,
 }
 """
 Default mechanisms for generating keys.
 """
 
-_DEFAULT_CAPS = \
-    MechanismFlag.ENCRYPT | \
-    MechanismFlag.DECRYPT | \
-    MechanismFlag.SIGN | \
-    MechanismFlag.VERIFY | \
-    MechanismFlag.WRAP | \
-    MechanismFlag.UNWRAP
+_ENCRYPTION = MechanismFlag.ENCRYPT | MechanismFlag.DECRYPT
+_SIGNING = MechanismFlag.SIGN | MechanismFlag.VERIFY
+_WRAPPING = MechanismFlag.WRAP | MechanismFlag.UNWRAP
 
 DEFAULT_KEY_CAPABILITIES = {
-    KeyType.AES: _DEFAULT_CAPS,
-    KeyType.RSA: _DEFAULT_CAPS,
-    KeyType.DH: _DEFAULT_CAPS | MechanismFlag.DERIVE,
+    KeyType.AES: _ENCRYPTION | _SIGNING | _WRAPPING,
+    KeyType.RSA: _ENCRYPTION | _SIGNING | _WRAPPING,
+    KeyType.DH: MechanismFlag.DERIVE,
+    KeyType.EC: _SIGNING | MechanismFlag.DERIVE,
 }
 """
 Default capabilities for generating keys.
@@ -63,6 +61,7 @@ Default mechanism for wrap/unwrap.
 
 DEFAULT_DERIVE_MECHANISMS = {
     KeyType.DH: Mechanism.DH_PKCS_DERIVE,
+    KeyType.EC: Mechanism.ECDH1_DERIVE,
 }
 """
 Default mechanisms for key derivation
@@ -95,6 +94,8 @@ ATTRIBUTE_TYPES = {
     Attribute.CLASS: _enum(ObjectClass),
     Attribute.DECRYPT: _bool,
     Attribute.DERIVE: _bool,
+    Attribute.EC_PARAMS: _bytes,
+    Attribute.EC_POINT: _bytes,
     Attribute.ENCRYPT: _bool,
     Attribute.EXTRACTABLE: _bool,
     Attribute.ID: _bytes,
