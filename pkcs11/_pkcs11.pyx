@@ -33,8 +33,6 @@ cdef class AttributeList:
     A list of CK_ATTRIBUTE objects.
     """
 
-    cdef dict attrs
-    """Python representation of the data."""
     cdef CK_ATTRIBUTE *data
     """CK_ATTRIBUTE * representation of the data."""
     cdef size_t count
@@ -43,7 +41,7 @@ cdef class AttributeList:
     cdef _values
 
     def __cinit__(self, attrs):
-        self.attrs = dict(attrs)
+        attrs = dict(attrs)
         self.count = count = len(attrs)
 
         self.data = <CK_ATTRIBUTE *> PyMem_Malloc(count * sizeof(CK_ATTRIBUTE))
@@ -53,11 +51,11 @@ cdef class AttributeList:
         # Turn the values into bytes and store them so we have pointers
         # to them.
         self._values = [
-            _pack_attribute(key, value)
-            for key, value in self.attrs.items()
+            (key, _pack_attribute(key, value))
+            for key, value in attrs.items()
         ]
 
-        for index, (key, value) in enumerate(zip(attrs.keys(), self._values)):
+        for index, (key, value) in enumerate(self._values):
             self.data[index].type = key
             self.data[index].pValue = <CK_CHAR *> value
             self.data[index].ulValueLen = len(value)

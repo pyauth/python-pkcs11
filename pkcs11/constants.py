@@ -48,6 +48,9 @@ class ObjectClass(IntEnum):
 
     VENDOR_DEFINED    = 0x80000000
 
+    def __repr__(self):
+        return '<ObjectClass.%s>' % self.name
+
 
 class Attribute(IntEnum):
     """
@@ -231,6 +234,9 @@ class Attribute(IntEnum):
     # ALLOWED_MECHANISMS        = (CKF_ARRAY_ATTRIBUTE|0x00000600)
 
     VENDOR_DEFINED            = 0x80000000
+
+    def __repr__(self):
+        return '<Attribute.%s>' % self.name
 
 
 @unique
