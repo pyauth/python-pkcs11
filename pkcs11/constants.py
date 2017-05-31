@@ -78,7 +78,10 @@ class Attribute(IntEnum):
     """Object label (:class:`str`)."""
     APPLICATION = 0x00000010
     VALUE = 0x00000011
-    """Object value. May be `SENSITIVE` (:class:`bytes`)."""
+    """
+    Object value. Usually represents a secret or private key.
+    May be `SENSITIVE` (:class:`bytes`).
+    """
     OBJECT_ID = 0x00000012
     CERTIFICATE_TYPE = 0x00000080
     ISSUER = 0x00000081
@@ -184,16 +187,28 @@ class Attribute(IntEnum):
     """
     DER-encoded ANSI X9.62 Elliptic-Curve domain parameters.
 
-    These can be output by OpenSSL.
+    These can be output by OpenSSL (for named curves):
 
     ::
 
         openssl ecparam -outform der -name <curve name> | base64
 
-    Or packed using :mod:`pyasn1`.
+    Or packed using :mod:`pyasn1`:
+
+    ::
+
+        from pyasn1_modules.rfc3279 import EcpkParameters, prime256v1
+        from pyasn1.codec.der import encoder
+
+        ecParams = EcpkParameters()
+        ecParams['namedCurve'] = prime256v1
+        ecParams = encoder.encode(ecParams)
     """
 
     EC_POINT = 0x00000181
+    """
+    Public key for :attr:`KeyType.EC`.
+    """
 
     SECONDARY_AUTH = 0x00000200
     AUTH_PIN_FLAGS = 0x00000201
