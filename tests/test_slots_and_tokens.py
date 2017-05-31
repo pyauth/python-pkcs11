@@ -43,6 +43,13 @@ class PKCS11SlotTokenTests(unittest.TestCase):
         mechanisms = slot.get_mechanisms()
         self.assertIn(pkcs11.Mechanism.RSA_PKCS, mechanisms)
 
+    def test_get_mechanism_info(self):
+        lib = pkcs11.lib(LIB)
+        slot, *_ = lib.get_slots()
+        info = slot.get_mechanism_info(pkcs11.Mechanism.EC_KEY_PAIR_GEN)
+        self.assertIsInstance(info, pkcs11.MechanismInfo)
+        self.assertIn(pkcs11.MechanismFlag.EC_NAMEDCURVE, info.flags)
+
     def test_get_tokens(self):
         lib = pkcs11.lib(LIB)
 

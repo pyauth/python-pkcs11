@@ -158,6 +158,10 @@ Key Types & Mechanisms
     :inherited-members:
     :undoc-members:
 
+.. autoclass:: pkcs11.MechanismInfo()
+    :members:
+    :inherited-members:
+
 
 Exceptions
 ----------

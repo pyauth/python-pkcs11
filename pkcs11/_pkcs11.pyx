@@ -85,6 +85,13 @@ class Slot(types.Slot):
 
         return set(map(_CK_MECHANISM_TYPE_to_enum, mechanisms))
 
+    def get_mechanism_info(self, mechanism):
+        cdef CK_MECHANISM_INFO info
+
+        assertRV(C_GetMechanismInfo(self.slot_id, mechanism, &info))
+
+        return types.MechanismInfo(self, mechanism, **info)
+
 
 class Token(types.Token):
     """Extend Token with implementation."""

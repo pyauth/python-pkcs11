@@ -271,13 +271,25 @@ class MechanismFlag(IntFlag):
     DERIVE            = 0x00080000
     """Can derive a key from another key."""
 
+    EC_F_P            = 0x00100000
+    EC_F_2M           = 0x00200000
+    EC_ECPARAMETERS   = 0x00400000
+    EC_NAMEDCURVE     = 0x00800000
+    EC_UNCOMPRESS     = 0x01000000
+    EC_COMPRESS       = 0x02000000
+
+    EXTENSION         = 0x80000000
+
 
 @unique
 class SlotFlag(IntFlag):
     """:class:`pkcs11.Slot` flags."""
 
     TOKEN_PRESENT    = 0x00000001
-    """A token is there (N.B. some hardware known not to set this.)"""
+    """
+    A token is present in the slot
+    (N.B. some hardware known not to set this for soft-tokens.)
+    """
     REMOVABLE_DEVICE = 0x00000002
     """Removable devices."""
     HW_SLOT          = 0x00000004

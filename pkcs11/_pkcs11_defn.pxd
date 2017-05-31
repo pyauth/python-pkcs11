@@ -167,6 +167,11 @@ cdef extern from '../extern/pkcs11.h':
         CK_VERSION hardwareVersion
         CK_VERSION firmwareVersion
 
+    ctypedef struct CK_MECHANISM_INFO:
+        CK_ULONG ulMinKeySize
+        CK_ULONG ulMaxKeySize
+        CK_FLAGS flags
+
     ctypedef struct CK_TOKEN_INFO:
         CK_UTF8CHAR label[32]
         CK_UTF8CHAR manufacturerID[32]
@@ -210,9 +215,14 @@ cdef extern from '../extern/pkcs11.h':
                         CK_SLOT_INFO *info)
     CK_RV C_GetTokenInfo(CK_SLOT_ID slotID,
                          CK_TOKEN_INFO *info)
+
     CK_RV C_GetMechanismList(CK_SLOT_ID slotID,
                              CK_MECHANISM_TYPE *mechanismList,
                              CK_ULONG *count)
+    CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID,
+                             CK_MECHANISM_TYPE mechanism,
+                             CK_MECHANISM_INFO *info)
+
     CK_RV C_OpenSession(CK_SLOT_ID slotID,
                         CK_FLAGS flags,
                         void *application,

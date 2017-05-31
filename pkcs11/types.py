@@ -32,6 +32,40 @@ def _CK_MECHANISM_TYPE_to_enum(mechanism):
         return mechanism
 
 
+class MechanismInfo:
+    """
+    Information about a mechanism.
+
+    See :meth:`pkcs11.Slot.get_mechanism_info`.
+    """
+
+    def __init__(self,
+                 slot,
+                 mechanism,
+                 ulMinKeySize=None,
+                 ulMaxKeySize=None,
+                 flags=None,
+                 **kwargs):
+
+        self.slot = slot
+        """:class:`pkcs11.Slot` this information is for."""
+        self.mechanism = mechanism
+        """:class:`pkcs11.mechanisms.Mechanism` this information is for."""
+        self.min_key_length = ulMinKeySize
+        """Minimum key length in bits (:class:`int`)."""
+        self.max_key_length = ulMaxKeySize
+        """Maximum key length in bits (:class:`int`)."""
+        self.flags = MechanismFlag(flags)
+        """Mechanism capabilities (:class:`pkcs11.constants.MechanismFlag`)."""
+
+    def __str__(self):
+        return '\n'.join((
+            "Supported key lengths: [%s, %s]" % (self.min_key_length,
+                                                 self.max_key_length),
+            "Flags: %s" % self.flags,
+        ))
+
+
 class Slot:
     """
     A PKCS#11 device slot.
@@ -77,6 +111,15 @@ class Slot:
         Returns the mechanisms supported by this device.
 
         :rtype: set(Mechanism)
+        """
+        raise NotImplementedError()
+
+    def get_mechanism_info(self, mechanism):
+        """
+        Returns information about the mechanism.
+
+        :param Mechanism mechanism: mechanism to learn about
+        :rtype: MechanismInfo
         """
         raise NotImplementedError()
 
