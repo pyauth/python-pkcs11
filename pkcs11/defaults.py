@@ -5,8 +5,10 @@ None of this is provided for in PKCS#11 and its correctness should not be
 assumed.
 """
 
-from .constants import *
-from .mechanisms import *
+from struct import Struct
+
+from .constants import Attribute, MechanismFlag, ObjectClass
+from .mechanisms import Mechanism, KeyType
 
 
 DEFAULT_GENERATE_MECHANISMS = {

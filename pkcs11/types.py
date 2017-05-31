@@ -7,9 +7,22 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 from threading import RLock
 from binascii import hexlify
 
-from .constants import *
-from .mechanisms import *
-from .exceptions import *
+from .constants import (
+    Attribute,
+    MechanismFlag,
+    ObjectClass,
+    SlotFlag,
+    TokenFlag,
+    UserType,
+)
+from .mechanisms import Mechanism
+from .exceptions import (
+    ArgumentsBad,
+    NoSuchKey,
+    MultipleObjectsReturned,
+    SignatureInvalid,
+    SignatureLenRange,
+)
 
 
 def _CK_UTF8CHAR_to_str(data):
@@ -618,8 +631,8 @@ class EncryptMixin(Object):
         Some mechanisms (including the default CBC mechanisms) require
         additional parameters, e.g. an initialisation vector [#]_, to
         the mechanism.  Pass this as `mechanism_param`.
-        Documentation of these parameters is given specified in
-        `PKCS #11 <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/pkcs11-curr-v2.40.html>`_.
+        Documentation of these parameters is given specified in `PKCS #11
+        <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/pkcs11-curr-v2.40.html>`_.
 
         When passing an iterable for data
         `buffer_size` must be sufficient to store the working buffer. An

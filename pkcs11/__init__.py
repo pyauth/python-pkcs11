@@ -2,10 +2,10 @@
 :mod:`pkcs11` defines a high-level, "Pythonic" interface to PKCS#11.
 """
 
-from .constants import *
-from .exceptions import *
-from .mechanisms import *
-from .types import *
+from .constants import *  # noqa: F403
+from .exceptions import *  # noqa: F403
+from .mechanisms import *  # noqa: F403
+from .types import *  # noqa: F403
 
 
 _so = None
@@ -22,7 +22,8 @@ def lib(so):
 
     if _lib:
         if _so != so:
-            raise AlreadyInitialized("Already initialized with %s" % so)
+            raise AlreadyInitialized(  # noqa: F405
+                "Already initialized with %s" % so)
         else:
             return _lib
 
