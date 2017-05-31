@@ -114,11 +114,17 @@ Tested Compatibility
 
 Things that should almost certainly work.
 
+Python version:
+
+* 3.4 (with `aenum`)
+* 3.5 (with `aenum`)
+* 3.6
+
 PKCS#11 version:
 
 * 2.4
 
-Libraries:
+Devices/Libraries:
 
 * SoftHSMv2
 * Thales nCipher (Security World)
@@ -133,6 +139,7 @@ Operations:
 
 * Encrypt, Decrypt
 * Sign, Verify
+* Wrap, Unwrap
 * Generate Key
 * Generate Keypair
 * Derive Key
@@ -142,6 +149,8 @@ Operations:
 Feel free to send pull requests for any functionality that's not exposed. The
 code is designed to be readable and expose the PKCS#11 spec in a
 straight-forward way.
+
+If you want your device supported, get in touch!
 
 More info on PKCS#11
 --------------------
