@@ -22,6 +22,7 @@ class PKCS11SlotTokenTests(unittest.TestCase):
         with self.assertRaises(pkcs11.AlreadyInitialized):
             pkcs11.lib('somethingelse.so')
 
+    @Only.softhsm2
     def test_get_slots(self):
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()

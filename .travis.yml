@@ -9,6 +9,8 @@ python:
 env:
     global:
         - PKCS11_MODULE=/home/travis/lib/softhsm/libsofthsm2.so
+        - PKCS11_TOKEN_LABEL=TEST
+        - PKCS11_TOKEN_PIN=1234
 
 cache:
     - pip
@@ -22,7 +24,7 @@ before_install:
 
 before_script:
     # Initialise a token on the SoftHSM
-    - $HOME/bin/softhsm2-util --init-token --free --label DEMO --pin 1234 --so-pin 5678
+    - $HOME/bin/softhsm2-util --init-token --free --label TEST --pin 1234 --so-pin 5678
     # Build our extension
     - python setup.py build_ext -i
 
