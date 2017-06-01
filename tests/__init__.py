@@ -46,13 +46,20 @@ class TestCase(unittest.TestCase):
         super().tearDown()
 
 
+class Is:
+    """
+    Test what device we're using.
+    """
+    softhsm2 = LIB.endswith('libsofthsm2.so')
+    nfast = LIB.endswith('libcknfast.so')
+
+
 class Only:
     """
     Limit tests to given devices
     """
 
-    softhsm2 = unittest.skipUnless(LIB.endswith('libsofthsm2.so'),
-                                   "SoftHSMv2 only")
+    softhsm2 = unittest.skipUnless(Is.softhsm2, "SoftHSMv2 only")
 
 
 class Not:
@@ -60,5 +67,4 @@ class Not:
     Ignore tests for given devices
     """
 
-    nfast = unittest.skipIf(LIB.endswith('libcknfast.so'),
-                            "Not supported by nFast")
+    nfast = unittest.skipIf(Is.nfast, "Not supported by nFast")

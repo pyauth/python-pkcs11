@@ -1,7 +1,5 @@
 """
 PKCS#11 Sessions
-
-These tests assume SoftHSMv2 with a single token initialized called DEMO.
 """
 
 import pkcs11
@@ -9,10 +7,11 @@ import pkcs11
 from . import TestCase, TOKEN_PIN, Only, Not
 
 
-class PKCS11SessionTests(TestCase):
+class SessionTests(TestCase):
 
     with_session = False
 
+    @Not.nfast
     def test_open_session(self):
         with self.token.open() as session:
             self.assertIsInstance(session, pkcs11.Session)
@@ -61,8 +60,13 @@ class PKCS11SessionTests(TestCase):
 
     def test_generate_keypair(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
-            pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 768,
-                                                 store=False)
+            pub, priv = session.generate_keypair(
+                pkcs11.KeyType.RSA, 1024,
+                store=False, public_template={
+                    # Some PKCS#11 implementations need a public exponent
+                    # to create RSA keys.
+                    pkcs11.Attribute.PUBLIC_EXPONENT: b'\1\0\1',
+                })
             self.assertIsInstance(pub, pkcs11.PublicKey)
             self.assertIsInstance(priv, pkcs11.PrivateKey)
 
@@ -104,6 +108,7 @@ class PKCS11SessionTests(TestCase):
 
             self.assertEqual(list(session.get_objects()), [])
 
+    @Only.softhsm2
     def test_copy_object(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128,
@@ -138,12 +143,13 @@ class PKCS11SessionTests(TestCase):
             with self.assertRaises(pkcs11.MultipleObjectsReturned):
                 session.get_key(key_type=pkcs11.KeyType.AES)
 
+    @Not.nfast
     def test_seed_random(self):
         with self.token.open() as session:
             session.seed_random(b'12345678')
 
     def test_generate_random(self):
-        with self.token.open() as session:
+        with self.token.open(user_pin=TOKEN_PIN) as session:
             random = session.generate_random(16 * 8)
             self.assertEqual(len(random), 16)
             # Ensure we didn't get 16 bytes of zeros

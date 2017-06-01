@@ -1,18 +1,17 @@
 """
 PKCS#11 Elliptic Curve Cryptography.
-
-These tests assume SoftHSMv2 with a single token initialized called DEMO.
 """
 
 import base64
 
 from pkcs11 import Attribute, KeyType, KDF
 
-from . import TestCase
+from . import TestCase, Not
 
 
-class PKCS11ECCTests(TestCase):
-    def test_ecc_derive_key(self):
+@Not.nfast  # No ECC on our nfast device
+class ECCTests(TestCase):
+    def test_derive_key(self):
         # DER encoded EC params from OpenSSL
         # openssl ecparam -out ec_param.der -name prime192v1
         ecparams = base64.b64decode(b'BggqhkjOPQMBAQ==')

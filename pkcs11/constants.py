@@ -140,7 +140,12 @@ class Attribute(IntEnum):
     (:class:`int`).
     """
     PUBLIC_EXPONENT = 0x00000122
-    """RSA public exponent (e)."""
+    """
+    RSA public exponent (e).
+
+    Some PKCS#11 implementations require this to be passed when generating
+    a keypair.
+    """
     PRIVATE_EXPONENT = 0x00000123
     """RSA private exponent (d)."""
     PRIME_1 = 0x00000124

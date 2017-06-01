@@ -1,17 +1,15 @@
 """
 PKCS#11 Slots and Tokens
-
-These tests assume SoftHSMv2 with a single token initialized called DEMO.
 """
 
 import unittest
 
 import pkcs11
 
-from . import LIB, TOKEN, Only
+from . import LIB, TOKEN, Only, Not
 
 
-class PKCS11SlotTokenTests(unittest.TestCase):
+class SlotsAndTokensTests(unittest.TestCase):
 
     def test_double_initialise(self):
         self.assertIsNotNone(pkcs11.lib(LIB))
@@ -39,6 +37,7 @@ class PKCS11SlotTokenTests(unittest.TestCase):
         mechanisms = slot.get_mechanisms()
         self.assertIn(pkcs11.Mechanism.RSA_PKCS, mechanisms)
 
+    @Not.nfast
     def test_get_mechanism_info(self):
         lib = pkcs11.lib(LIB)
         slot, *_ = lib.get_slots()

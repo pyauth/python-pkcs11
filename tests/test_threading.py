@@ -9,10 +9,11 @@ import threading
 
 import pkcs11
 
-from . import TestCase
+from . import TestCase, Not
 
 
-class PKCS11SlotTokenTests(TestCase):
+@Not.nfast  # Deadlocks nfast ... something wrong with threading?
+class ThreadingTests(TestCase):
 
     def test_concurrency(self):
         # Multiplexing a session between processes

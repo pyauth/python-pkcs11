@@ -359,7 +359,9 @@ class Object(types.Object):
                 try:
                     if self[attribute]:
                         bases += (mixin,)
-                except AttributeTypeInvalid:
+                # nFast returns FunctionFailed when you request an attribute
+                # it doesn't like.
+                except (AttributeTypeInvalid, FunctionFailed):
                     pass
 
             bases += (cls,)
@@ -473,7 +475,8 @@ class DomainParameters(types.DomainParameters):
         ):
             try:
                 public_template_[attribute] = self[attribute]
-            except AttributeTypeInvalid:
+                # nFast returns FunctionFailed for parameters it doesn't like
+            except (AttributeTypeInvalid, FunctionFailed):
                 pass
 
         public_template_.update(public_template or {})

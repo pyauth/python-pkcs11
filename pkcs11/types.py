@@ -365,6 +365,10 @@ class Session:
         """
         Create domain parameters.
 
+        The `local` parameter creates an object that is not created on the
+        HSM. This is useful if you only need the domain parameters to create
+        another object, and do not need a real object in the session.
+
         :param KeyType key_type: Key type these parameters are for
         :param dict(Attribute,*): Domain parameters (specific tp `key_type`)
         :param local: if True, do not write these to the HSM.

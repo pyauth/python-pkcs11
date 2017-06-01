@@ -1,5 +1,5 @@
 """
-Diffie-Hellman tests
+PKCS#11 Diffie-Hellman tests
 """
 
 from pkcs11 import Attribute, KeyType
@@ -7,9 +7,9 @@ from pkcs11 import Attribute, KeyType
 from . import TestCase
 
 
-class PKCS11DHTests(TestCase):
+class DHTests(TestCase):
 
-    def test_dh_key_derive(self):
+    def test_derive_key(self):
         # Alice and Bob each create a Diffie-Hellman keypair from the
         # publicly available DH parameters
         #
@@ -43,7 +43,7 @@ class PKCS11DHTests(TestCase):
         parameters = self.session.create_domain_parameters(KeyType.DH, {
             Attribute.PRIME: prime,
             Attribute.BASE: [0x2],
-        })
+        }, local=True)
 
         # Alice generate a keypair
         alice_public, alice_private = parameters.generate_keypair()
@@ -60,10 +60,19 @@ class PKCS11DHTests(TestCase):
 
         alice_session = alice_private.derive_key(
             KeyType.AES, 128, store=False,
-            mechanism_param=bob_value)
+            mechanism_param=bob_value, template={
+                Attribute.SENSITIVE: False,
+                Attribute.EXTRACTABLE: True,
+            })
         bob_session = bob_private.derive_key(
             KeyType.AES, 128, store=False,
-            mechanism_param=alice_value)
+            mechanism_param=alice_value, template={
+                Attribute.SENSITIVE: False,
+                Attribute.EXTRACTABLE: True,
+            })
+
+        self.assertEqual(alice_session[Attribute.VALUE],
+                         bob_session[Attribute.VALUE])
 
         crypttext = alice_session.encrypt('HI BOB!', mechanism_param=iv)
         plaintext = bob_session.decrypt(crypttext, mechanism_param=iv)

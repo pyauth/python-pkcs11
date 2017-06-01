@@ -1,23 +1,28 @@
 """
-PKCS#11 Public Key Cryptography
-
-These tests assume SoftHSMv2 with a single token initialized called DEMO.
+PKCS#11 RSA Public Key Cryptography
 """
 
 from pkcs11 import Attribute, KeyType, ObjectClass
 
-from . import TestCase
+from . import TestCase, Is
 
 
-class PKCS11PKCTests(TestCase):
+class RSATests(TestCase):
 
     def setUp(self):
         super().setUp()
-        self.public, self.private = self.session.generate_keypair(KeyType.RSA,
-                                                                  1024,
-                                                                  store=False)
 
-    def test_rsa_sign(self):
+        public_template = {}
+
+        # Some implementations cannot default public_exponent
+        if Is.nfast:
+            public_template[Attribute.PUBLIC_EXPONENT] = [0x1, 0x0, 0x1]
+
+        self.public, self.private = \
+            self.session.generate_keypair(KeyType.RSA, 1024, store=False,
+                                          public_template=public_template)
+
+    def test_sign(self):
         data = b'HELLO WORLD' * 1024
 
         signature = self.private.sign(data)
@@ -26,7 +31,7 @@ class PKCS11PKCTests(TestCase):
         self.assertTrue(self.public.verify(data, signature))
         self.assertFalse(self.public.verify(data, b'1234'))
 
-    def test_rsa_sign_stream(self):
+    def test_sign_stream(self):
         data = (
             b'I' * 16,
             b'N' * 16,

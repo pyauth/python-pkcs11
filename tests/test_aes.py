@@ -1,22 +1,20 @@
 """
-PKCS#11 Secret Keys
-
-These tests assume SoftHSMv2 with a single token initialized called DEMO.
+PKCS#11 AES Secret Keys
 """
 
 import pkcs11
 
-from . import TestCase
+from . import TestCase, Is
 
 
-class PKCS11SecretKeyTests(TestCase):
+class AESTests(TestCase):
 
     def setUp(self):
         super().setUp()
         self.key = self.session.generate_key(pkcs11.KeyType.AES, 128,
                                              store=False)
 
-    def test_aes_encrypt(self):
+    def test_encrypt(self):
         data = b'INPUT DATA'
         iv = b'0' * 16
 
@@ -31,7 +29,7 @@ class PKCS11SecretKeyTests(TestCase):
         text = self.key.decrypt(crypttext, mechanism_param=iv)
         self.assertEqual(data, text)
 
-    def test_aes_encrypt_stream(self):
+    def test_encrypt_stream(self):
         data = (
             b'I' * 16,
             b'N' * 16,
@@ -56,7 +54,7 @@ class PKCS11SecretKeyTests(TestCase):
         text = b''.join(self.key.decrypt(cryptblocks, mechanism_param=iv))
         self.assertEqual(b''.join(data), text)
 
-    def test_aes_encrypt_whacky_sizes(self):
+    def test_encrypt_whacky_sizes(self):
         data = [
             (char * ord(char)).encode('utf-8')
             for char in 'HELLO WORLD'
@@ -68,7 +66,7 @@ class PKCS11SecretKeyTests(TestCase):
 
         self.assertEqual(b''.join(data), b''.join(textblocks))
 
-    def test_aes_big_string(self):
+    def test_encrypt_big_string(self):
         data = b'HELLO WORLD' * 1024
 
         iv = self.session.generate_random(128)
@@ -77,16 +75,26 @@ class PKCS11SecretKeyTests(TestCase):
 
         self.assertEqual(text, data)
 
-    def test_aes_sign(self):
+    def test_sign(self):
+        if Is.nfast:  # SHA512_HMAC requires a special `HMAC' key on nFast
+            mechanism = pkcs11.Mechanism.AES_MAC
+        else:
+            mechanism = None
+
         data = b'HELLO WORLD' * 1024
 
-        signature = self.key.sign(data)
+        signature = self.key.sign(data, mechanism=mechanism)
         self.assertIsNotNone(signature)
         self.assertIsInstance(signature, bytes)
-        self.assertTrue(self.key.verify(data, signature))
-        self.assertFalse(self.key.verify(data, b'1234'))
+        self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
+        self.assertFalse(self.key.verify(data, b'1234', mechanism=mechanism))
 
-    def test_aes_sign_stream(self):
+    def test_sign_stream(self):
+        if Is.nfast:  # SHA512_HMAC requires a special `HMAC' key on nFast
+            mechanism = pkcs11.Mechanism.AES_MAC
+        else:
+            mechanism = None
+
         data = (
             b'I' * 16,
             b'N' * 16,
@@ -95,7 +103,7 @@ class PKCS11SecretKeyTests(TestCase):
             b'T' * 10,  # don't align to the blocksize
         )
 
-        signature = self.key.sign(data)
+        signature = self.key.sign(data, mechanism=mechanism)
         self.assertIsNotNone(signature)
         self.assertIsInstance(signature, bytes)
-        self.assertTrue(self.key.verify(data, signature))
+        self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))

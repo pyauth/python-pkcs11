@@ -1,3 +1,7 @@
+"""
+Iterator tests
+"""
+
 import unittest
 
 import pkcs11
@@ -5,7 +9,7 @@ import pkcs11
 from . import TestCase
 
 
-class PKCS11SessionTests(TestCase):
+class IteratorTests(TestCase):
 
     def test_partial_decrypt(self):
         self.session.generate_key(pkcs11.KeyType.AES, 128,
