@@ -462,8 +462,11 @@ class Session:
 
         `data` can be a single value or an iterator.
 
+        :class:`Key` objects can also be digested, optionally interspersed
+        with :class:`bytes`.
+
         :param data: Data to digest
-        :type data: str, bytes or iter(bytes)
+        :type data: str, bytes, Key or iter(bytes, Key)
         :param Mechanism mechanism: digest mechanism
         :param bytes mechanism_param: optional mechanism parameter
 
@@ -477,8 +480,10 @@ class Session:
         if isinstance(data, bytes):
             return self._digest(data, **kwargs)
 
-        else:
-            return self._digest_generator(data, **kwargs)
+        elif isinstance(data, Key):
+            data = (data,)
+
+        return self._digest_generator(data, **kwargs)
 
 
 class Object:

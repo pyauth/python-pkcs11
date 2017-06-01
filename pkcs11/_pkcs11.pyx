@@ -359,7 +359,10 @@ class Session(types.Session):
             assertRV(C_DigestInit(self._handle, &mech))
 
             for block in data:
-                assertRV(C_DigestUpdate(self._handle, block, len(block)))
+                if isinstance(block, types.Key):
+                    assertRV(C_DigestKey(self._handle, block._handle))
+                else:
+                    assertRV(C_DigestUpdate(self._handle, block, len(block)))
 
             # Run once to get the length
             assertRV(C_DigestFinal(self._handle, NULL, &length))
