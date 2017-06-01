@@ -4,16 +4,11 @@ PKCS#11 Slots and Tokens
 These tests assume SoftHSMv2 with a single token initialized called DEMO.
 """
 
-import os
 import unittest
 
 import pkcs11
 
-
-try:
-    LIB = os.environ['PKCS11_MODULE']
-except KeyError:
-    raise RuntimeError("Must define `PKCS11_MODULE' to run tests.")
+from . import LIB, TOKEN, Only
 
 
 class PKCS11SlotTokenTests(unittest.TestCase):
@@ -50,21 +45,23 @@ class PKCS11SlotTokenTests(unittest.TestCase):
         self.assertIsInstance(info, pkcs11.MechanismInfo)
         self.assertIn(pkcs11.MechanismFlag.EC_NAMEDCURVE, info.flags)
 
+    @Only.softhsm2
     def test_get_tokens(self):
         lib = pkcs11.lib(LIB)
 
         tokens = lib.get_tokens(token_flags=pkcs11.TokenFlag.RNG)
         self.assertEqual(len(list(tokens)), 2)
 
-        tokens = lib.get_tokens(token_label='DEMO')
+        tokens = lib.get_tokens(token_label=TOKEN)
         self.assertEqual(len(list(tokens)), 1)
 
+    @Only.softhsm2
     def test_get_token(self):
         lib = pkcs11.lib(LIB)
         slot, *_ = lib.get_slots()
         token = slot.get_token()
 
         self.assertIsInstance(token, pkcs11.Token)
-        self.assertEqual(token.label, 'DEMO')
+        self.assertEqual(token.label, TOKEN)
         self.assertIn(pkcs11.TokenFlag.TOKEN_INITIALIZED, token.flags)
         self.assertIn(pkcs11.TokenFlag.LOGIN_REQUIRED, token.flags)
