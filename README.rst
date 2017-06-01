@@ -140,7 +140,58 @@ Elliptic-Curve Diffie-Hellman
 Tested Compatibility
 --------------------
 
-Things that should almost certainly work.
++-----------------------------+-----------+-----------------+
+| Functionality               | SoftHSMv2 | Thales nCipher  |
++=============================+===========+=================+
+| Get Slots/Tokens            | Works     | Works           |
++-----------------------------+-----------+-----------------+
+| Get Mechanisms              | Works     | Works           |
++-----------------------------+-----------+-----------------+
+| Initialize token            | Not implemented             |
++-----------------------------+-----------+-----------------+
+| Slot events                 | Not implemented             |
++-----------------------------+-----------+-----------------+
+| Create/Copy Object          | Works     | Works           |
++-----------------------------+-----------+-----------------+
+| Destroy Object              | Works     | N/A             |
++-----------------------------+-----------+-----------------+
+| Generate Random             | Works     | Works           |
++-----------------------------+-----------+-----------------+
+| Seed Random                 | Works     | N/A             |
++--------+--------------------+-----------+-----------------+
+| AES    | Generate Key       | Works     | Works           |
+|        +--------------------+-----------+-----------------+
+|        | Encrypt/Decrypt    | Works     | Works           |
+|        +--------------------+-----------+-----------------+
+|        | Wrap/Unwrap        | ? [1]_    | ?               |
+|        +--------------------+-----------+-----------------+
+|        | Sign/Verify        | Works     | Works [2]_      |
++--------+--------------------+-----------+-----------------+
+| RSA    | Generate Keypair   | Works     | Works [3]_      |
+|        +--------------------+-----------+-----------------+
+|        | Encrypt/Decrypt    | Works     | Works           |
+|        +--------------------+-----------+-----------------+
+|        | Wrap/Unwrap        | Works     | Works           |
+|        +--------------------+-----------+-----------------+
+|        | Sign/Verify        | Works     | Works           |
++--------+--------------------+-----------+-----------------+
+| DH     | Generate Keypair   | Works     | Partial [4]_    |
+|        +--------------------+-----------+-----------------+
+|        | Derive Key         | Works     | Works [5]_      |
++--------+--------------------+-----------+-----------------+
+| ECDH   | Generate Keypair   | Works     | ? [1]_          |
+|        +--------------------+-----------+-----------------+
+|        | Derive Key         | Works     | ? [1]_          |
++--------+--------------------+-----------+-----------------+
+| Proprietary extensions      | N/A       | Not implemented |
++--------+--------------------+-----------+-----------------+
+
+.. [1] Untested: requires support in device.
+.. [2] Default mechanism not supported, must provide alternative,
+       e.g. `Mechanism.AES_MAC`.
+.. [3] Requires `Attribute.PUBLIC_EXPONENT`.
+.. [4] Cannot store `DomainParameters` in session. Must be local.
+.. [5] Generates security warnings about the derived key.
 
 Python version:
 
@@ -151,29 +202,6 @@ Python version:
 PKCS#11 version:
 
 * 2.4
-
-Devices/Libraries:
-
-* SoftHSMv2
-* Thales nCipher (Security World)
-
-Mechanisms:
-
-* AES
-* RSA
-* Diffie-Hellman
-* ECDH
-
-Operations:
-
-* Encrypt, Decrypt
-* Sign, Verify
-* Wrap, Unwrap
-* Generate Key
-* Generate Keypair
-* Derive Key
-* Generate Random
-* Create, Copy and Destroy objects (if supported by backend)
 
 Feel free to send pull requests for any functionality that's not exposed. The
 code is designed to be readable and expose the PKCS#11 spec in a
