@@ -275,6 +275,22 @@ cdef extern from '../extern/pkcs11.h':
                            CK_BYTE *random,
                            CK_ULONG length)
 
+    CK_RV C_DigestInit(CK_SESSION_HANDLE session,
+                       CK_MECHANISM *mechanism)
+    CK_RV C_Digest(CK_SESSION_HANDLE session,
+                   CK_BYTE *data,
+                   CK_ULONG data_len,
+                   CK_BYTE *digest,
+                   CK_ULONG *digest_len)
+    CK_RV C_DigestUpdate(CK_SESSION_HANDLE session,
+                         CK_BYTE *data,
+                         CK_ULONG data_len)
+    CK_RV C_DigestFinal(CK_SESSION_HANDLE session,
+                        CK_BYTE *digest,
+                        CK_ULONG *digest_len)
+    CK_RV C_DigestKey(CK_SESSION_HANDLE session,
+                      CK_OBJECT_HANDLE key)
+
     # Object Methods
     CK_RV C_GetAttributeValue(CK_SESSION_HANDLE session,
                               CK_OBJECT_HANDLE key,

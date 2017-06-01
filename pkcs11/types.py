@@ -456,6 +456,30 @@ class Session:
         """
         raise NotImplementedError()
 
+    def digest(self, data, **kwargs):
+        """
+        Digest `data` using `mechanism`.
+
+        `data` can be a single value or an iterator.
+
+        :param data: Data to digest
+        :type data: str, bytes or iter(bytes)
+        :param Mechanism mechanism: digest mechanism
+        :param bytes mechanism_param: optional mechanism parameter
+
+        :rtype: bytes
+        """
+
+        # If data is a string, encode it now as UTF-8.
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+
+        if isinstance(data, bytes):
+            return self._digest(data, **kwargs)
+
+        else:
+            return self._digest_generator(data, **kwargs)
+
 
 class Object:
     """

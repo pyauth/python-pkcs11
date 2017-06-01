@@ -326,6 +326,50 @@ class Session(types.Session):
 
         return bytes(random)
 
+    def _digest(self, data, mechanism=None, mechanism_param=None):
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(None, {}, mechanism, mechanism_param)
+        cdef CK_BYTE [:] digest
+        cdef CK_ULONG length
+
+        with self._operation_lock:
+            assertRV(C_DigestInit(self._handle, &mech))
+
+            # Run once to get the length
+            assertRV(C_Digest(self._handle,
+                              data, len(data),
+                              NULL, &length))
+
+            digest = CK_BYTE_buffer(length)
+
+            assertRV(C_Digest(self._handle,
+                              data, len(data),
+                              &digest[0], &length))
+
+            return bytes(digest[:length])
+
+    def _digest_generator(self, data, mechanism=None, mechanism_param=None):
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(None, {}, mechanism, mechanism_param)
+        cdef CK_BYTE [:] digest
+        cdef CK_ULONG length
+
+        with self._operation_lock:
+            assertRV(C_DigestInit(self._handle, &mech))
+
+            for block in data:
+                assertRV(C_DigestUpdate(self._handle, block, len(block)))
+
+            # Run once to get the length
+            assertRV(C_DigestFinal(self._handle, NULL, &length))
+
+            digest = CK_BYTE_buffer(length)
+
+            assertRV(C_DigestFinal(self._handle, &digest[0], &length))
+
+            return bytes(digest[:length])
+
 
 class Object(types.Object):
     """Expand Object with an implementation."""
