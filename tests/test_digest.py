@@ -6,7 +6,7 @@ import hashlib
 
 from pkcs11 import Mechanism, KeyType, Attribute
 
-from . import TestCase
+from . import TestCase, Not
 
 
 class DigestTests(TestCase):
@@ -33,6 +33,7 @@ class DigestTests(TestCase):
 
         self.assertEqual(digest, m.digest())
 
+    @Not.nfast
     def test_digest_key(self):
         key = self.session.generate_key(KeyType.AES, 128,
                                         store=False, template={
@@ -45,6 +46,7 @@ class DigestTests(TestCase):
         self.assertEqual(digest,
                          hashlib.sha256(key[Attribute.VALUE]).digest())
 
+    @Not.nfast
     def test_digest_key_data(self):
         key = self.session.generate_key(KeyType.AES, 128,
                                         store=False, template={

@@ -158,16 +158,18 @@ Tested Compatibility
 | Generate Random             | Works     | Works           |
 +-----------------------------+-----------+-----------------+
 | Seed Random                 | Works     | N/A             |
++-----------------------------+-----------+-----------------+
+| Digest (Data & Keys)        | Works     | Works [1]_      |
 +--------+--------------------+-----------+-----------------+
 | AES    | Generate Key       | Works     | Works           |
 |        +--------------------+-----------+-----------------+
 |        | Encrypt/Decrypt    | Works     | Works           |
 |        +--------------------+-----------+-----------------+
-|        | Wrap/Unwrap        | ? [1]_    | ?               |
+|        | Wrap/Unwrap        | ? [2]_    | ?               |
 |        +--------------------+-----------+-----------------+
-|        | Sign/Verify        | Works     | Works [2]_      |
+|        | Sign/Verify        | Works     | Works [3]_      |
 +--------+--------------------+-----------+-----------------+
-| RSA    | Generate Keypair   | Works     | Works [3]_      |
+| RSA    | Generate Keypair   | Works     | Works [4]_      |
 |        +--------------------+-----------+-----------------+
 |        | Encrypt/Decrypt    | Works     | Works           |
 |        +--------------------+-----------+-----------------+
@@ -175,23 +177,24 @@ Tested Compatibility
 |        +--------------------+-----------+-----------------+
 |        | Sign/Verify        | Works     | Works           |
 +--------+--------------------+-----------+-----------------+
-| DH     | Generate Keypair   | Works     | Partial [4]_    |
+| DH     | Generate Keypair   | Works     | Partial [5]_    |
 |        +--------------------+-----------+-----------------+
-|        | Derive Key         | Works     | Works [5]_      |
+|        | Derive Key         | Works     | Works [6]_      |
 +--------+--------------------+-----------+-----------------+
-| ECDH   | Generate Keypair   | Works     | ? [1]_          |
+| ECDH   | Generate Keypair   | Works     | ? [2]_          |
 |        +--------------------+-----------+-----------------+
-|        | Derive Key         | Works     | ? [1]_          |
+|        | Derive Key         | Works     | ? [2]_          |
 +--------+--------------------+-----------+-----------------+
 | Proprietary extensions      | N/A       | Not implemented |
 +--------+--------------------+-----------+-----------------+
 
-.. [1] Untested: requires support in device.
-.. [2] Default mechanism not supported, must provide alternative,
+.. [1] Digesting keys is not supported.
+.. [2] Untested: requires support in device.
+.. [3] Default mechanism not supported, must provide alternative,
        e.g. `Mechanism.AES_MAC`.
-.. [3] Requires `Attribute.PUBLIC_EXPONENT`.
-.. [4] Cannot store `DomainParameters` in session. Must be local.
-.. [5] Generates security warnings about the derived key.
+.. [4] Requires `Attribute.PUBLIC_EXPONENT`.
+.. [5] Cannot store `DomainParameters` in session. Must be local.
+.. [6] Generates security warnings about the derived key.
 
 Python version:
 
