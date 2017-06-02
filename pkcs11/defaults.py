@@ -52,6 +52,7 @@ Default mechanisms for encrypt/decrypt.
 DEFAULT_SIGN_MECHANISMS = {
     KeyType.AES: Mechanism.SHA512_HMAC,
     KeyType.RSA: Mechanism.SHA512_RSA_PKCS,
+    KeyType.EC: Mechanism.ECDSA,
 }
 """
 Default mechanisms for sign/verify.
