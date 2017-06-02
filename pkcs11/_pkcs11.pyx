@@ -555,6 +555,10 @@ class DomainParameters(types.DomainParameters):
                 Object._make(self.session, private_key))
 
 
+class Certificate(types.Certificate):
+    pass
+
+
 class EncryptMixin(types.EncryptMixin):
     """Expand EncryptMixin with an implementation."""
 
@@ -978,6 +982,7 @@ _CLASS_MAP = {
     ObjectClass.PUBLIC_KEY: PublicKey,
     ObjectClass.PRIVATE_KEY: PrivateKey,
     ObjectClass.DOMAIN_PARAMETERS: DomainParameters,
+    ObjectClass.CERTIFICATE: Certificate,
 }
 
 

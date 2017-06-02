@@ -114,6 +114,9 @@ Classes
     .. autoclass:: DomainParameters(Object)
         :members:
 
+    .. autoclass:: Certificate(Object)
+        :members:
+
     Object Capabilities
     ~~~~~~~~~~~~~~~~~~~
 

@@ -16,4 +16,4 @@ set -xe
 
 pip install -U pip six
 pip install -U setuptools cython
-pip install -r requirements.txt
+pip install -r requirements.txt -r dev-requirements.txt

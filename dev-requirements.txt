@@ -13,6 +13,8 @@ imagesize==0.7.1          # via sphinx
 jinja2==2.9.6             # via sphinx
 markupsafe==1.0           # via jinja2
 mccabe==0.6.1             # via flake8
+pyasn1-modules==0.0.9
+pyasn1==0.2.3
 pycodestyle==2.3.1        # via flake8
 pyflakes==1.5.0           # via flake8
 pygments==2.2.0           # via sphinx

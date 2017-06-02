@@ -675,6 +675,22 @@ class PrivateKey(Key):
         return len(self[Attribute.MODULUS]) * 8
 
 
+class Certificate(Object):
+    """
+    Certificate object.
+    """
+    object_class = ObjectClass.CERTIFICATE
+
+    @property
+    def certificate_type(self):
+        """
+        A PKCS#11 :attr:`pkcs11.constants.ObjectClass.CERTIFICATE` object.
+
+        :rtype: CertificateType
+        """
+        return self[Attribute.CERTIFICATE_TYPE]
+
+
 class EncryptMixin(Object):
     """
     This :class:`Object` supports the encrypt capability.

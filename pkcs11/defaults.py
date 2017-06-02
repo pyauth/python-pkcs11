@@ -5,9 +5,15 @@ None of this is provided for in PKCS#11 and its correctness should not be
 assumed.
 """
 
+import datetime
 from struct import Struct
 
-from .constants import Attribute, MechanismFlag, ObjectClass
+from .constants import (
+    Attribute,
+    CertificateType,
+    MechanismFlag,
+    ObjectClass,
+)
 from .mechanisms import Mechanism, KeyType
 
 
@@ -72,6 +78,8 @@ Default mechanisms for key derivation
 _bool = (Struct('?').pack, lambda v: Struct('?').unpack(v)[0])
 _ulong = (Struct('L').pack, lambda v: Struct('L').unpack(v)[0])
 _str = (lambda s: s.encode('utf-8'), lambda b: b.decode('utf-8'))
+_date = (lambda s: datetime.strptime(s, '%Y%m%d').date(),
+         lambda s: s.strftime('%Y%m%d'))
 _bytes = (bytes, bytes)
 # The PKCS#11 biginteger type is considered as an array of bytes
 # in network byte order.
@@ -90,6 +98,7 @@ ATTRIBUTE_TYPES = {
     Attribute.ALWAYS_AUTHENTICATE: _bool,
     Attribute.ALWAYS_SENSITIVE: _bool,
     Attribute.BASE: _biginteger,
+    Attribute.CERTIFICATE_TYPE: _enum(CertificateType),
     Attribute.CHECK_VALUE: _bytes,
     Attribute.CLASS: _enum(ObjectClass),
     Attribute.DECRYPT: _bool,
@@ -97,8 +106,10 @@ ATTRIBUTE_TYPES = {
     Attribute.EC_PARAMS: _bytes,
     Attribute.EC_POINT: _bytes,
     Attribute.ENCRYPT: _bool,
+    Attribute.END_DATE: _date,
     Attribute.EXTRACTABLE: _bool,
     Attribute.ID: _bytes,
+    Attribute.ISSUER: _bytes,
     Attribute.KEY_GEN_MECHANISM: _enum(Mechanism),
     Attribute.KEY_TYPE: _enum(KeyType),
     Attribute.LABEL: _str,
@@ -113,13 +124,17 @@ ATTRIBUTE_TYPES = {
     Attribute.PRIVATE_EXPONENT: _biginteger,
     Attribute.PUBLIC_EXPONENT: _biginteger,
     Attribute.SENSITIVE: _bool,
+    Attribute.SERIAL_NUMBER: _bytes,
     Attribute.SIGN: _bool,
     Attribute.SIGN_RECOVER: _bool,
+    Attribute.START_DATE: _date,
+    Attribute.SUBJECT: _bytes,
     Attribute.SUBPRIME: _biginteger,
     Attribute.SUBPRIME_BITS: _ulong,
     Attribute.TOKEN: _bool,
     Attribute.TRUSTED: _bool,
     Attribute.UNWRAP: _bool,
+    Attribute.URL: _str,
     Attribute.VALUE: _biginteger,
     Attribute.VALUE_BITS: _ulong,
     Attribute.VALUE_LEN: _ulong,
