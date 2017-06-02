@@ -7,7 +7,7 @@ import base64
 from pyasn1.codec.der import encoder
 from pyasn1_modules.rfc3279 import EcpkParameters, prime256v1
 
-from pkcs11 import Attribute, KeyType, KDF
+from pkcs11 import Attribute, KeyType, KDF, Mechanism
 
 from . import TestCase, Not
 
@@ -24,9 +24,11 @@ class ECCTests(TestCase):
         }, local=True)
 
         pub, priv = parameters.generate_keypair()
+
+        mechanism = Mechanism.ECDSA  # SoftHSMv2 doesn't support ECDSA_SHA512
         data = b'HI BOB!'
-        ecdsa = priv.sign(data)
-        self.assertTrue(pub.verify(data, ecdsa))
+        ecdsa = priv.sign(data, mechanism=mechanism)
+        self.assertTrue(pub.verify(data, ecdsa, mechanism=mechanism))
 
     def test_derive_key(self):
         # DER encoded EC params from OpenSSL
