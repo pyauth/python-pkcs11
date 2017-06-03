@@ -28,7 +28,12 @@ from . import TestCase
 
 
 # X.509 self-signed certificate (generated with OpenSSL)
-# openssl req -x509 -newkey rsa:512 -keyout key.pem -out cert.pem -days 365 -nodes
+# openssl req -x509 \
+#   -newkey rsa:512 \
+#   -keyout key.pem \
+#   -out cert.pem \
+#   -days 365 \
+#   -nodes
 CERT = base64.b64decode("""
 MIICKzCCAdWgAwIBAgIJAK3BO9rnLZd9MA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
 BAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
@@ -82,8 +87,10 @@ class X509Tests(TestCase):
 
     def test_self_sign_certificate(self):
         # Warning: proof of concept code only!
-        pub, priv = self.session.generate_keypair(KeyType.RSA, 1024,
-                                                  store=False)
+        pub, priv = self.session.generate_keypair(
+            KeyType.RSA, 1024, store=False, public_template={
+                Attribute.PUBLIC_EXPONENT: b'\1\0\1',
+            })
 
         cert = rfc2459.Certificate()
         cert['tbsCertificate'] = tbs = rfc2459.TBSCertificate()
