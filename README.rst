@@ -150,24 +150,28 @@ Tested Compatibility
 | Initialize token             | Not implemented              |
 +------------------------------+------------------------------+
 | Slot events                  | Not implemented              |
-+------------------------------+------------+-----------------+
-| Create/Copy Object           | Works      | Works           |
-+------------------------------+------------+-----------------+
++-------------+----------------+------------+-----------------+
+| Create/Copy | Keys           | Works      | Works           |
+|             +----------------+------------+-----------------+
+|             | Certificates   | Partial    | Partial [1]_    |
+|             +----------------+------------+-----------------+
+|             | Domain Params  | Partial    | Partial [1]_    |
++-------------+----------------+------------+-----------------+
 | Destroy Object               | Works      | N/A             |
 +------------------------------+------------+-----------------+
 | Generate Random              | Works      | Works           |
 +------------------------------+------------+-----------------+
 | Seed Random                  | Works      | N/A             |
 +------------------------------+------------+-----------------+
-| Digest (Data & Keys)         | Works      | Works [1]_      |
+| Digest (Data & Keys)         | Works      | Works [2]_      |
 +--------+---------------------+------------+-----------------+
 | AES    | Generate Key        | Works      | Works           |
 |        +---------------------+------------+-----------------+
 |        | Encrypt/Decrypt     | Works      | Works           |
 |        +---------------------+------------+-----------------+
-|        | Wrap/Unwrap         | ? [2]_     | ?               |
+|        | Wrap/Unwrap         | ? [3]_     | ?               |
 |        +---------------------+------------+-----------------+
-|        | Sign/Verify         | Works      | Works [3]_      |
+|        | Sign/Verify         | Works      | Works [4]_      |
 +--------+---------------------+------------+-----------------+
 | RSA    | Generate Keypair    | Works      | Works           |
 |        +---------------------+------------+-----------------+
@@ -177,23 +181,23 @@ Tested Compatibility
 |        +---------------------+------------+-----------------+
 |        | Sign/Verify         | Works      | Works           |
 +--------+---------------------+------------+-----------------+
-| DH     | Generate Keypair    | Works      | Partial [4]_    |
+| DH     | Generate Keypair    | Works      | Partial         |
 |        +---------------------+------------+-----------------+
 |        | Derive Key          | Works      | Works [5]_      |
 +--------+---------------------+------------+-----------------+
-| EC     | Generate Keypair    | Works      | ? [2]_          |
+| EC     | Generate Keypair    | Partial    | ? [3]_          |
 |        +---------------------+------------+-----------------+
-|        | Sign/Verify (ECDSA) | Works [3]_ | ? [2]_          |
+|        | Sign/Verify (ECDSA) | Works [4]_ | ? [3]_          |
 |        +---------------------+------------+-----------------+
-|        | Derive Key (ECDH)   | Works      | ? [2]_          |
+|        | Derive Key (ECDH)   | Works      | ? [3]_          |
 +--------+---------------------+------------+-----------------+
 | Proprietary extensions       | N/A        | Not implemented |
 +------------------------------+------------+-----------------+
 
-.. [1] Digesting keys is not supported.
-.. [2] Untested: requires support in device.
-.. [3] Default mechanism not supported, must specify a mechanism.
-.. [4] Cannot store `DomainParameters` in session. Must be local.
+.. [1] Device supports limited set of attributes.
+.. [2] Digesting keys is not supported.
+.. [3] Untested: requires support in device.
+.. [4] Default mechanism not supported, must specify a mechanism.
 .. [5] Generates security warnings about the derived key.
 
 Python version:

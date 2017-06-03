@@ -19,13 +19,11 @@ from pkcs11.util.rsa import (
 from pkcs11.util.x509 import decode_x509_certificate
 from pkcs11 import (
     Attribute,
-    CertificateType,
     KeyType,
     Mechanism,
-    ObjectClass,
 )
 
-from . import TestCase, Is
+from . import TestCase, Not
 
 
 # X.509 self-signed certificate (generated with OpenSSL)
@@ -53,16 +51,15 @@ n28DytHEdAoltksfJ2Ds3XAjQqcpI5eBbhIoN9Ckxg==
 
 class X509Tests(TestCase):
 
-    def test_import_ca_certificate(self):
+    def test_import_ca_certificate_easy(self):
         cert = self.session.create_object(decode_x509_certificate(CERT))
         self.assertIsInstance(cert, pkcs11.Certificate)
 
-        try:
-            print(cert[Attribute.START_DATE])
-        except:
-            # This is broken on SoftHSM2 for some reason
-            if not Is.softhsm2:
-                raise
+    @Not.nfast
+    def test_import_ca_certificate(self):
+        cert = self.session.create_object(
+            decode_x509_certificate(CERT, extended_set=True))
+        self.assertIsInstance(cert, pkcs11.Certificate)
 
         self.assertEqual(cert[Attribute.HASH_OF_ISSUER_PUBLIC_KEY],
                          b'\xf9\xc1\xb6\xe3\x43\xf3\xcf\x4c\xba\x8a'

@@ -26,25 +26,22 @@ def _decode_x509_extension(extn):
     return value
 
 
-def decode_x509_certificate(der):
+def decode_x509_certificate(der, extended_set=False):
     """
     Decode a DER-encoded X.509 certificate into a dictionary of
     attributes able to be passed to :meth:`pkcs11.Session.create_object`.
 
+    Optionally pass `extended_set` to include additional attributes:
+    start date, end date and key identifiers.
+
     :param bytes der: DER-encoded certificate
+    :param extended_set: decodes more metadata about the certificate
     :rtype: dict(Attribute, *)
     """
     x509, _ = der_decoder.decode(der, asn1Spec=Certificate())
     subject = der_encoder.encode(x509['tbsCertificate']['subject'])
     issuer = der_encoder.encode(x509['tbsCertificate']['issuer'])
     serial = der_encoder.encode(x509['tbsCertificate']['serialNumber'])
-
-    start_date = datetime.strptime(
-        str(x509['tbsCertificate']['validity']['notBefore']['utcTime']),
-        '%y%m%d%H%M%SZ').date()
-    end_date = datetime.strptime(
-        str(x509['tbsCertificate']['validity']['notAfter']['utcTime']),
-        '%y%m%d%H%M%SZ').date()
 
     # Build a map of the extensions, maybe we can find the key identifiers
     # We're not using the certificate or checking its validity, so we don't
@@ -60,23 +57,34 @@ def decode_x509_certificate(der):
         Attribute.SUBJECT: subject,
         Attribute.ISSUER: issuer,
         Attribute.SERIAL_NUMBER: serial,
-        Attribute.START_DATE: start_date,
-        Attribute.END_DATE: end_date,
         # Yes the standard says BER
         Attribute.VALUE: ber_encoder.encode(x509),
     }
 
-    # FIXME: is this correct?
-    try:
-        template[Attribute.HASH_OF_SUBJECT_PUBLIC_KEY] = \
-            extensions[id_ce_subjectKeyIdentifier]
-    except KeyError:
-        pass
+    if extended_set:
+        start_date = datetime.strptime(
+            str(x509['tbsCertificate']['validity']['notBefore']['utcTime']),
+            '%y%m%d%H%M%SZ').date()
+        end_date = datetime.strptime(
+            str(x509['tbsCertificate']['validity']['notAfter']['utcTime']),
+            '%y%m%d%H%M%SZ').date()
 
-    try:
-        template[Attribute.HASH_OF_ISSUER_PUBLIC_KEY] = \
-            extensions[id_ce_authorityKeyIdentifier]['keyIdentifier']
-    except KeyError:
-        pass
+        template.update({
+            Attribute.START_DATE: start_date,
+            Attribute.END_DATE: end_date,
+        })
+
+        # FIXME: is this correct?
+        try:
+            template[Attribute.HASH_OF_SUBJECT_PUBLIC_KEY] = \
+                extensions[id_ce_subjectKeyIdentifier]
+        except KeyError:
+            pass
+
+        try:
+            template[Attribute.HASH_OF_ISSUER_PUBLIC_KEY] = \
+                extensions[id_ce_authorityKeyIdentifier]['keyIdentifier']
+        except KeyError:
+            pass
 
     return template
