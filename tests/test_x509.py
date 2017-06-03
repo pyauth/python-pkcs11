@@ -9,7 +9,8 @@ from binascii import hexlify
 from pyasn1.codec.der import encoder as derencoder, decoder as derdecoder
 from pyasn1.codec.ber import encoder as berencoder
 from pyasn1.type.univ import BitString, Null
-from pyasn1_modules import rfc2459
+from pyasn1.type import tag
+from pyasn1_modules import rfc2459, rfc2314
 
 import pkcs11
 from pkcs11.rsautils import (
@@ -121,6 +122,7 @@ class X509Tests(TestCase):
             priv.sign(value,
                       mechanism=Mechanism.SHA1_RSA_PKCS)))
 
+        # Pipe our certificate to OpenSSL to verify it
         with subprocess.Popen(('openssl', 'verify'),
                               stdin=subprocess.PIPE,
                               stdout=subprocess.DEVNULL) as proc:
@@ -128,6 +130,51 @@ class X509Tests(TestCase):
             proc.stdin.write(b'-----BEGIN CERTIFICATE-----\n')
             proc.stdin.write(base64.encodebytes(derencoder.encode(cert)))
             proc.stdin.write(b'-----END CERTIFICATE-----\n')
+            proc.stdin.close()
+
+            self.assertEqual(proc.wait(), 0)
+
+    def test_sign_csr(self):
+        # Warning: proof of concept code only!
+        pub, priv = self.session.generate_keypair(
+            KeyType.RSA, 1024, store=False, public_template={
+                Attribute.PUBLIC_EXPONENT: b'\1\0\1',
+            })
+
+        csr = rfc2314.CertificationRequest()
+        csr['certificationRequestInfo'] = info = \
+            rfc2314.CertificationRequestInfo()
+        info['version'] = 0
+        info['subject'] = rfc2459.RDNSequence()
+
+        attrpos = info.componentType.getPositionByName('attributes')
+        attrtype = info.componentType.getTypeByPosition(attrpos)
+        info['attributes'] = attrtype.clone()
+
+        info['subjectPublicKeyInfo'] = keyinfo = rfc2459.SubjectPublicKeyInfo()
+        keyinfo['algorithm'] = algorithm = rfc2459.AlgorithmIdentifier()
+        algorithm['algorithm'] = rfc2459.rsaEncryption
+        algorithm['parameters'] = Null()
+        key = encode_rsa_public_key(pub)
+        keyinfo['subjectPublicKey'] = BitString(hexValue=hexlify(key))
+
+        value = berencoder.encode(info)
+        csr['signature'] = BitString(hexValue=hexlify(
+            priv.sign(value,
+                      mechanism=Mechanism.SHA1_RSA_PKCS)))
+        csr['signatureAlgorithm'] = algorithm = rfc2459.AlgorithmIdentifier()
+        algorithm['algorithm'] = rfc2459.sha1WithRSAEncryption
+        algorithm['parameters'] = Null()
+
+        # Pipe our CSR to OpenSSL to verify it
+        with subprocess.Popen(('openssl', 'req',
+                               '-inform', 'der',
+                               '-noout',
+                               '-verify'),
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.DEVNULL) as proc:
+
+            proc.stdin.write(derencoder.encode(csr))
             proc.stdin.close()
 
             self.assertEqual(proc.wait(), 0)
