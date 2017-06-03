@@ -169,7 +169,7 @@ Tested Compatibility
 |        +---------------------+------------+-----------------+
 |        | Sign/Verify         | Works      | Works [3]_      |
 +--------+---------------------+------------+-----------------+
-| RSA    | Generate Keypair    | Works      | Works [4]_      |
+| RSA    | Generate Keypair    | Works      | Works           |
 |        +---------------------+------------+-----------------+
 |        | Encrypt/Decrypt     | Works      | Works           |
 |        +---------------------+------------+-----------------+
@@ -177,9 +177,9 @@ Tested Compatibility
 |        +---------------------+------------+-----------------+
 |        | Sign/Verify         | Works      | Works           |
 +--------+---------------------+------------+-----------------+
-| DH     | Generate Keypair    | Works      | Partial [5]_    |
+| DH     | Generate Keypair    | Works      | Partial [4]_    |
 |        +---------------------+------------+-----------------+
-|        | Derive Key          | Works      | Works [6]_      |
+|        | Derive Key          | Works      | Works [5]_      |
 +--------+---------------------+------------+-----------------+
 | EC     | Generate Keypair    | Works      | ? [2]_          |
 |        +---------------------+------------+-----------------+
@@ -193,9 +193,8 @@ Tested Compatibility
 .. [1] Digesting keys is not supported.
 .. [2] Untested: requires support in device.
 .. [3] Default mechanism not supported, must specify a mechanism.
-.. [4] Requires `Attribute.PUBLIC_EXPONENT`.
-.. [5] Cannot store `DomainParameters` in session. Must be local.
-.. [6] Generates security warnings about the derived key.
+.. [4] Cannot store `DomainParameters` in session. Must be local.
+.. [5] Generates security warnings about the derived key.
 
 Python version:
 

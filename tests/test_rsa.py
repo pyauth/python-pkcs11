@@ -4,7 +4,7 @@ PKCS#11 RSA Public Key Cryptography
 
 from pkcs11 import Attribute, KeyType, ObjectClass
 
-from . import TestCase, Is
+from . import TestCase
 
 
 class RSATests(TestCase):

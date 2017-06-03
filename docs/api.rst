@@ -192,3 +192,10 @@ EC Key Utilities
 .. automodule:: pkcs11.ecutils
     :members:
     :undoc-members:
+
+X.509 Certificate Utilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: pkcs11.x509utils
+    :members:
+    :undoc-members:

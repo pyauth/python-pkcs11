@@ -9,7 +9,6 @@ from binascii import hexlify
 from pyasn1.codec.der import encoder as derencoder, decoder as derdecoder
 from pyasn1.codec.ber import encoder as berencoder
 from pyasn1.type.univ import BitString, Null
-from pyasn1.type import tag
 from pyasn1_modules import rfc2459, rfc2314
 
 import pkcs11
@@ -17,6 +16,7 @@ from pkcs11.rsautils import (
     decode_rsa_public_key,
     encode_rsa_public_key,
 )
+from pkcs11.x509utils import decode_x509_certificate
 from pkcs11 import (
     Attribute,
     CertificateType,
@@ -25,7 +25,7 @@ from pkcs11 import (
     ObjectClass,
 )
 
-from . import TestCase
+from . import TestCase, Is
 
 
 # X.509 self-signed certificate (generated with OpenSSL)
@@ -54,21 +54,26 @@ n28DytHEdAoltksfJ2Ds3XAjQqcpI5eBbhIoN9Ckxg==
 class X509Tests(TestCase):
 
     def test_import_ca_certificate(self):
-        x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
-        subject = derencoder.encode(x509['tbsCertificate']['subject'])
-        issuer = derencoder.encode(x509['tbsCertificate']['issuer'])
-        value = berencoder.encode(x509)
-
-        cert = self.session.create_object({
-            Attribute.CLASS: ObjectClass.CERTIFICATE,
-            Attribute.CERTIFICATE_TYPE: CertificateType.X_509,
-            Attribute.SUBJECT: subject,
-            Attribute.ISSUER: issuer,
-            Attribute.VALUE: value,
-        })
+        cert = self.session.create_object(decode_x509_certificate(CERT))
         self.assertIsInstance(cert, pkcs11.Certificate)
 
+        try:
+            print(cert[Attribute.START_DATE])
+        except:
+            # This is broken on SoftHSM2 for some reason
+            if not Is.softhsm2:
+                raise
+
+        self.assertEqual(cert[Attribute.HASH_OF_ISSUER_PUBLIC_KEY],
+                         b'\xf9\xc1\xb6\xe3\x43\xf3\xcf\x4c\xba\x8a'
+                         b'\x0b\x66\x86\x79\x35\xfb\x52\x85\xbf\xa8')
+        # Cert is self signed
+        self.assertEqual(cert[Attribute.HASH_OF_SUBJECT_PUBLIC_KEY],
+                         b'\xf9\xc1\xb6\xe3\x43\xf3\xcf\x4c\xba\x8a'
+                         b'\x0b\x66\x86\x79\x35\xfb\x52\x85\xbf\xa8')
+
     def test_verify_certificate(self):
+        # Warning: proof of concept code only!
         x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
         key = bytes(x509
                     ['tbsCertificate']

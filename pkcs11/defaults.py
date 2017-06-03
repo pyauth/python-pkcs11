@@ -5,7 +5,7 @@ None of this is provided for in PKCS#11 and its correctness should not be
 assumed.
 """
 
-import datetime
+from datetime import datetime
 from struct import Struct
 
 from .constants import (
@@ -79,8 +79,8 @@ Default mechanisms for key derivation
 _bool = (Struct('?').pack, lambda v: Struct('?').unpack(v)[0])
 _ulong = (Struct('L').pack, lambda v: Struct('L').unpack(v)[0])
 _str = (lambda s: s.encode('utf-8'), lambda b: b.decode('utf-8'))
-_date = (lambda s: datetime.strptime(s, '%Y%m%d').date(),
-         lambda s: s.strftime('%Y%m%d'))
+_date = (lambda s: s.strftime('%Y%m%d').encode('ascii'),
+         lambda s: datetime.strptime(s.decode('ascii'), '%Y%m%d').date())
 _bytes = (bytes, bytes)
 # The PKCS#11 biginteger type is an array of bytes in network byte order.
 # If you have an int type, wrap it in biginteger()
@@ -112,6 +112,8 @@ ATTRIBUTE_TYPES = {
     Attribute.EXPONENT_1: _biginteger,
     Attribute.EXPONENT_2: _biginteger,
     Attribute.EXTRACTABLE: _bool,
+    Attribute.HASH_OF_ISSUER_PUBLIC_KEY: _bytes,
+    Attribute.HASH_OF_SUBJECT_PUBLIC_KEY: _bytes,
     Attribute.ID: _bytes,
     Attribute.ISSUER: _bytes,
     Attribute.KEY_GEN_MECHANISM: _enum(Mechanism),
