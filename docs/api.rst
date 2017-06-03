@@ -177,25 +177,30 @@ Exceptions
 Utilities
 ---------
 
-.. autofunction:: pkcs11.biginteger
+General Utilities
+~~~~~~~~~~~~~~~~~
+
+.. automodule:: pkcs11.util
+    :members:
+    :undoc-members:
 
 RSA Key Utilities
 ~~~~~~~~~~~~~~~~~
 
-.. automodule:: pkcs11.rsautils
+.. automodule:: pkcs11.util.rsa
     :members:
     :undoc-members:
 
 EC Key Utilities
 ~~~~~~~~~~~~~~~~
 
-.. automodule:: pkcs11.ecutils
+.. automodule:: pkcs11.util.ec
     :members:
     :undoc-members:
 
 X.509 Certificate Utilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: pkcs11.x509utils
+.. automodule:: pkcs11.util.x509
     :members:
     :undoc-members:

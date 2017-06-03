@@ -15,7 +15,7 @@ from pyasn1_modules.rfc2459 import (
     id_ce_subjectKeyIdentifier,
 )
 
-from .constants import Attribute, ObjectClass, CertificateType
+from ..constants import Attribute, ObjectClass, CertificateType
 
 
 def _decode_x509_extension(extn):

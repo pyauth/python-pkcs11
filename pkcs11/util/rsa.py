@@ -7,10 +7,10 @@ These utilities depend on the :mod:`pyasn1` and :mod:`pyasn1_modules`.
 from pyasn1.codec.der import encoder, decoder
 from pyasn1_modules.rfc2437 import RSAPrivateKey, RSAPublicKey
 
-from .types import biginteger
-from .constants import Attribute, ObjectClass, MechanismFlag
-from .mechanisms import KeyType
-from .defaults import DEFAULT_KEY_CAPABILITIES
+from . import biginteger
+from ..constants import Attribute, ObjectClass, MechanismFlag
+from ..mechanisms import KeyType
+from ..defaults import DEFAULT_KEY_CAPABILITIES
 
 
 def decode_rsa_private_key(der, capabilities=None):

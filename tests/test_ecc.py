@@ -7,7 +7,7 @@ import base64
 from pyasn1_modules.rfc3279 import prime256v1
 
 from pkcs11 import Attribute, KeyType, KDF, Mechanism
-from pkcs11.ecutils import encode_named_curve_parameters
+from pkcs11.util.ec import encode_named_curve_parameters
 
 from . import TestCase, Not
 

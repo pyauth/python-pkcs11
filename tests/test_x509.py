@@ -12,11 +12,11 @@ from pyasn1.type.univ import BitString, Null
 from pyasn1_modules import rfc2459, rfc2314
 
 import pkcs11
-from pkcs11.rsautils import (
+from pkcs11.util.rsa import (
     decode_rsa_public_key,
     encode_rsa_public_key,
 )
-from pkcs11.x509utils import decode_x509_certificate
+from pkcs11.util.x509 import decode_x509_certificate
 from pkcs11 import (
     Attribute,
     CertificateType,
