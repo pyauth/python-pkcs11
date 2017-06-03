@@ -286,6 +286,14 @@ class Session(types.Session):
             Attribute.WRAP: MechanismFlag.WRAP & capabilities,
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
         }
+
+        if key_type is KeyType.RSA:
+            # Some PKCS#11 implementations don't default this, it makes sense
+            # to do it here
+            public_template_.update({
+                Attribute.PUBLIC_EXPONENT: b'\1\0\1',
+            })
+
         public_template_.update(public_template or {})
         public_attrs = AttributeList(public_template_)
 

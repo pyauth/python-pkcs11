@@ -182,8 +182,7 @@ class Attribute(IntEnum):
     """
     RSA public exponent (e) (`biginteger` as :class:`bytes`).
 
-    Some PKCS#11 implementations require this to be passed when generating
-    a keypair.
+    Default is b'\1\0\1' (65537).
     """
     PRIVATE_EXPONENT = 0x00000123
     """RSA private exponent (d) (`biginteger` as :class:`bytes`)."""

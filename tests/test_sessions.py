@@ -61,12 +61,7 @@ class SessionTests(TestCase):
     def test_generate_keypair(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             pub, priv = session.generate_keypair(
-                pkcs11.KeyType.RSA, 1024,
-                store=False, public_template={
-                    # Some PKCS#11 implementations need a public exponent
-                    # to create RSA keys.
-                    pkcs11.Attribute.PUBLIC_EXPONENT: b'\1\0\1',
-                })
+                pkcs11.KeyType.RSA, 1024, store=False)
             self.assertIsInstance(pub, pkcs11.PublicKey)
             self.assertIsInstance(priv, pkcs11.PrivateKey)
 

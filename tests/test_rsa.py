@@ -12,15 +12,8 @@ class RSATests(TestCase):
     def setUp(self):
         super().setUp()
 
-        public_template = {}
-
-        # Some implementations cannot default public_exponent
-        if Is.nfast:
-            public_template[Attribute.PUBLIC_EXPONENT] = [0x1, 0x0, 0x1]
-
         self.public, self.private = \
-            self.session.generate_keypair(KeyType.RSA, 1024, store=False,
-                                          public_template=public_template)
+            self.session.generate_keypair(KeyType.RSA, 1024, store=False)
 
     def test_sign(self):
         data = b'HELLO WORLD' * 1024
