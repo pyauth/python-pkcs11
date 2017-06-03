@@ -82,8 +82,8 @@ _str = (lambda s: s.encode('utf-8'), lambda b: b.decode('utf-8'))
 _date = (lambda s: datetime.strptime(s, '%Y%m%d').date(),
          lambda s: s.strftime('%Y%m%d'))
 _bytes = (bytes, bytes)
-# The PKCS#11 biginteger type is considered as an array of bytes
-# in network byte order.
+# The PKCS#11 biginteger type is an array of bytes in network byte order.
+# If you have an int type, wrap it in biginteger()
 _biginteger = _bytes
 
 
@@ -102,12 +102,15 @@ ATTRIBUTE_TYPES = {
     Attribute.CERTIFICATE_TYPE: _enum(CertificateType),
     Attribute.CHECK_VALUE: _bytes,
     Attribute.CLASS: _enum(ObjectClass),
+    Attribute.COEFFICIENT: _biginteger,
     Attribute.DECRYPT: _bool,
     Attribute.DERIVE: _bool,
     Attribute.EC_PARAMS: _bytes,
     Attribute.EC_POINT: _bytes,
     Attribute.ENCRYPT: _bool,
     Attribute.END_DATE: _date,
+    Attribute.EXPONENT_1: _biginteger,
+    Attribute.EXPONENT_2: _biginteger,
     Attribute.EXTRACTABLE: _bool,
     Attribute.ID: _bytes,
     Attribute.ISSUER: _bytes,
@@ -121,6 +124,8 @@ ATTRIBUTE_TYPES = {
     Attribute.NEVER_EXTRACTABLE: _bool,
     Attribute.PRIME: _biginteger,
     Attribute.PRIME_BITS: _ulong,
+    Attribute.PRIME_1: _biginteger,
+    Attribute.PRIME_2: _biginteger,
     Attribute.PRIVATE: _bool,
     Attribute.PRIVATE_EXPONENT: _biginteger,
     Attribute.PUBLIC_EXPONENT: _biginteger,

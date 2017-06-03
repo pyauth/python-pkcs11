@@ -172,3 +172,16 @@ Exceptions
 .. automodule:: pkcs11.exceptions
     :members:
     :undoc-members:
+
+
+Utilities
+---------
+
+.. autofunction:: pkcs11.biginteger
+
+RSA Key Utilities
+~~~~~~~~~~~~~~~~~
+
+.. automodule:: pkcs11.rsautils
+    :members:
+    :undoc-members:
