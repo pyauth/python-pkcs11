@@ -665,6 +665,10 @@ class PublicKey(Key):
     """
     A PKCS#11 :attr:`pkcs11.constants.ObjectClass.PUBLIC_KEY` object
     (asymmetric public key).
+
+    RSA private keys can be imported and exported from PKCS#1 DER-encoding
+    using :func:`pkcs11.rsautils.decode_rsa_public_key` and
+    :func:`pkcs11.rsautils.encode_rsa_public_key` respectively.
     """
 
     object_class = ObjectClass.PUBLIC_KEY
@@ -679,6 +683,14 @@ class PrivateKey(Key):
     """
     A PKCS#11 :attr:`pkcs11.constants.ObjectClass.PRIVATE_KEY` object
     (asymmetric private key).
+
+    RSA private keys can be imported from PKCS#1 DER-encoding using
+    :func:`pkcs11.rsautils.decode_rsa_private_key`.
+
+    .. warning::
+
+        Private keys imported directly, rather than unwrapped from a trusted
+        private key should be considered insecure.
     """
 
     object_class = ObjectClass.PRIVATE_KEY
@@ -691,14 +703,19 @@ class PrivateKey(Key):
 
 class Certificate(Object):
     """
-    Certificate object.
+    A PKCS#11 :attr:`pkcs11.constants.ObjectClass.CERTIFICATE` object.
+
+    PKCS#11 is limited in its handling of certificates, and does not
+    provide features like parsing of X.509 etc. These should be handled in
+    an external library. PKCS#11 will not set attributes on the certificate
+    based on the `VALUE`.
     """
     object_class = ObjectClass.CERTIFICATE
 
     @property
     def certificate_type(self):
         """
-        A PKCS#11 :attr:`pkcs11.constants.ObjectClass.CERTIFICATE` object.
+        The type of certificate.
 
         :rtype: CertificateType
         """

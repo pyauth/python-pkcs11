@@ -80,31 +80,70 @@ class Attribute(IntEnum):
     VALUE = 0x00000011
     """
     Object value. Usually represents a secret or private key.
+    For certificates this is the complete certificate in the certificate's
+    native format (e.g. BER-encoded X.509 or WTLS encoding).
+
     May be `SENSITIVE` (:class:`bytes`).
     """
     OBJECT_ID = 0x00000012
     CERTIFICATE_TYPE = 0x00000080
+    """
+    Certificate type (:class:`CertificateType`).
+    """
     ISSUER = 0x00000081
+    """
+    Certificate issuer in certificate's native format
+    (e.g. X.509 DER-encoding or WTLS encoding) (:class:`bytes`).
+    """
     SERIAL_NUMBER = 0x00000082
+    """
+    Certificate serial number in certificate's native format
+    (e.g. X.509 DER-encoding) (:class:`bytes`).
+    """
     AC_ISSUER = 0x00000083
+    """
+    Attribute Certificate Issuer. Different from `ISSUER` because the
+    encoding is different (:class:`bytes`).
+    """
     OWNER = 0x00000084
+    """
+    Attribute Certificate Owner. Different from `SUBJECT` because the
+    encoding is different (:class:`bytes`).
+    """
     ATTR_TYPES = 0x00000085
+    """
+    BER-encoding of a sequence of object identifier values corresponding to the
+    attribute types contained in the certificate. When present, this field
+    offers an opportunity for applications to search for a particular attribute
+    certificate without fetching and parsing the certificate itself.
+    """
     TRUSTED = 0x00000086
     """
-    This key can be used to wrap keys with `WRAP_WITH_TRUSTED` set
+    This key can be used to wrap keys with `WRAP_WITH_TRUSTED` set;
+    or this certificate can be trusted.
     (:class:`bool`).
     """
     CERTIFICATE_CATEGORY = 0x00000087
+    """
+    Certificate category (:class:`CertificateCategory`).
+    """
     JAVA_MIDP_SECURITY_DOMAIN = 0x00000088
     URL = 0x00000089
+    """URL where the complete certificate can be obtained."""
     HASH_OF_SUBJECT_PUBLIC_KEY = 0x0000008A
+    """Hash of the certificate subject's public key."""
     HASH_OF_ISSUER_PUBLIC_KEY = 0x0000008B
+    """Hash of the certificate issuer's public key."""
     CHECK_VALUE = 0x00000090
     """`VALUE` checksum. Key Check Value (:class:`bytes`)."""
 
     KEY_TYPE = 0x00000100
     """Key type (:class:`KeyType`)."""
     SUBJECT = 0x00000101
+    """
+    Certificate subject in certificate's native format
+    (e.g. X.509 DER-encoding or WTLS encoding) (:class:`bytes`).
+    """
     ID = 0x00000102
     """Key ID (bytes)."""
     SENSITIVE = 0x00000103
@@ -129,11 +168,11 @@ class Attribute(IntEnum):
     DERIVE = 0x0000010C
     """Key supports key derivation (:class:`bool`)."""
     START_DATE = 0x00000110
-    """Start date for the object's validity."""
+    """Start date for the object's validity (:class:`datetime.date`)."""
     END_DATE = 0x00000111
-    """End date for the object's validity."""
+    """End date for the object's validity (:class:`datetime.date`)."""
     MODULUS = 0x00000120
-    """RSA private key modulus (n)."""
+    """RSA private key modulus (n) (`biginteger` as :class:`bytes`)."""
     MODULUS_BITS = 0x00000121
     """
     RSA private key modulus length. Use this for private key generation
@@ -141,29 +180,53 @@ class Attribute(IntEnum):
     """
     PUBLIC_EXPONENT = 0x00000122
     """
-    RSA public exponent (e).
+    RSA public exponent (e) (`biginteger` as :class:`bytes`).
 
     Some PKCS#11 implementations require this to be passed when generating
     a keypair.
     """
     PRIVATE_EXPONENT = 0x00000123
-    """RSA private exponent (d)."""
+    """RSA private exponent (d) (`biginteger` as :class:`bytes`)."""
     PRIME_1 = 0x00000124
-    """RSA private key prime #1 (p). May not be stored."""
+    """
+    RSA private key prime #1 (p). May not be stored.
+    (`biginteger` as :class:`bytes`).
+    """
     PRIME_2 = 0x00000125
-    """RSA private key prime #2 (q). May not be stored."""
+    """
+    RSA private key prime #2 (q). May not be stored.
+    (`biginteger` as :class:`bytes`).
+    """
     EXPONENT_1 = 0x00000126
-    """RSA private key exponent #1 (d mod p-1). May not be stored."""
+    """
+    RSA private key exponent #1 (d mod p-1). May not be stored.
+    (`biginteger` as :class:`bytes`).
+    """
     EXPONENT_2 = 0x00000127
-    """RSA private key exponent #2 (d mod q-1). May not be stored."""
+    """
+    RSA private key exponent #2 (d mod q-1). May not be stored.
+    (`biginteger` as :class:`bytes`).
+    """
     COEFFICIENT = 0x00000128
-    """RSA private key CRT coefficient (q^-1 mod p). May not be stored."""
+    """
+    RSA private key CRT coefficient (q^-1 mod p). May not be stored.
+    (`biginteger` as :class:`bytes`).
+    """
     PRIME = 0x00000130
-    """Prime number 'q' (used for DH)."""
+    """
+    Prime number 'q' (used for DH).
+    (`biginteger` as :class:`bytes`).
+    """
     SUBPRIME = 0x00000131
-    """Subprime number 'q' (used for DH)."""
+    """
+    Subprime number 'q' (used for DH).
+    (`biginteger` as :class:`bytes`).
+    """
     BASE = 0x00000132
-    """Base number 'g' (used for DH)."""
+    """
+    Base number 'g' (used for DH).
+    (`biginteger` as :class:`bytes`).
+    """
 
     PRIME_BITS = 0x00000133
     SUBPRIME_BITS = 0x00000134
@@ -190,7 +253,7 @@ class Attribute(IntEnum):
 
     EC_PARAMS = 0x00000180
     """
-    DER-encoded ANSI X9.62 Elliptic-Curve domain parameters.
+    DER-encoded ANSI X9.62 Elliptic-Curve domain parameters (:class:`bytes`).
 
     These can be output by OpenSSL (for named curves):
 
@@ -202,17 +265,15 @@ class Attribute(IntEnum):
 
     ::
 
-        from pyasn1_modules.rfc3279 import EcpkParameters, prime256v1
-        from pyasn1.codec.der import encoder
+        from pyasn1_modules.rfc3279 import prime256v1
+        from pkcs11.ecutils import encode_named_curve_parameters
 
-        ecParams = EcpkParameters()
-        ecParams['namedCurve'] = prime256v1
-        ecParams = encoder.encode(ecParams)
+        ecParams = encode_named_curve_parameters(prime256v1)
     """
 
     EC_POINT = 0x00000181
     """
-    Public key for :attr:`KeyType.EC`.
+    DER-encoded ANSI X9.62 Public key for :attr:`KeyType.EC` (:class:`bytes`).
     """
 
     SECONDARY_AUTH = 0x00000200

@@ -4,10 +4,10 @@ PKCS#11 Elliptic Curve Cryptography.
 
 import base64
 
-from pyasn1.codec.der import encoder
-from pyasn1_modules.rfc3279 import EcpkParameters, prime256v1
+from pyasn1_modules.rfc3279 import prime256v1
 
 from pkcs11 import Attribute, KeyType, KDF, Mechanism
+from pkcs11.ecutils import encode_named_curve_parameters
 
 from . import TestCase, Not
 
@@ -15,12 +15,8 @@ from . import TestCase, Not
 @Not.nfast  # No ECC on our nfast device
 class ECCTests(TestCase):
     def test_sign(self):
-        # Create EC_PARAMS for the named curve 'prime256v1'
-        ecparams = EcpkParameters()
-        ecparams['namedCurve'] = prime256v1
-
         parameters = self.session.create_domain_parameters(KeyType.EC, {
-            Attribute.EC_PARAMS: encoder.encode(ecparams),
+            Attribute.EC_PARAMS: encode_named_curve_parameters(prime256v1)
         }, local=True)
 
         pub, priv = parameters.generate_keypair()

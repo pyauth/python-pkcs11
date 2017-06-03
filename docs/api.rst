@@ -185,3 +185,10 @@ RSA Key Utilities
 .. automodule:: pkcs11.rsautils
     :members:
     :undoc-members:
+
+EC Key Utilities
+~~~~~~~~~~~~~~~~
+
+.. automodule:: pkcs11.ecutils
+    :members:
+    :undoc-members:
