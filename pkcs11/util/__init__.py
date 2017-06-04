@@ -9,5 +9,5 @@ def biginteger(value):
 
     value = int(value)  # In case it's a PyASN1 type or similar
 
-    return value.to_bytes(value.bit_length() + 7 // 8,
+    return value.to_bytes((value.bit_length() + 7) // 8,
                           byteorder='big')

@@ -2,7 +2,10 @@
 PKCS#11 Diffie-Hellman tests
 """
 
-from pkcs11 import Attribute, KeyType
+import base64
+
+from pkcs11 import Attribute, KeyType, DomainParameters
+from pkcs11.util.dh import decode_dh_domain_parameters
 
 from . import TestCase
 
@@ -77,3 +80,29 @@ class DHTests(TestCase):
         crypttext = alice_session.encrypt('HI BOB!', mechanism_param=iv)
         plaintext = bob_session.decrypt(crypttext, mechanism_param=iv)
         self.assertEqual(plaintext, b'HI BOB!')
+
+    def test_load_params(self):
+        # This is RFC5114 #2
+        PARAMS = base64.b64decode("""
+        MIICKQKCAQEArRB+HpEjqdDWYPqnlVnFH6INZOVoO5/RtUsVl7YdCnXm+hQd+VpW
+        26+aPEB7od8V6z1oijCcGA4d5rhaEnSgpm0/gVKtasISkDfJ7e/aTfjZHo/vVbc5
+        S3rVt9C2wSIHyfmNEe002/bGugssi7wnvmoA4KC5xJcIs7+KMXCRiDaBKGEwvImF
+        2xYC5xRBXZMwJ4Jzx94x79xzEPcSH9WgdBWYfZrcCkhtzfk6zEQyg4cxXXXhmMZB
+        pIDNhqG55YfovmDmnMkosrnFIXLkEwQumyPxCw4W55djybU9z0uoCinj+3PBa451
+        uX7zY+L/ox9xz53lOE5xuBwKxN/+DBDmTwKCAQEArEAy708tmuOd8wtcj/2sUGze
+        vnuJmYyvdIZqCM/k/+OmgkpOELmm8N2SHwGnDEr6q3OddwDCn1LFfbF8YgqGUr5e
+        kAGo1mrXwXZpEBmZAkr00CcnWsE0i7inYtBSG8mK4kcVBCLqHtQJk51U2nRgzbX2
+        xrJQcXy+8YDrNBGOmNEZUppF1vg0Vm4wJeMWozDvu3eobwwasVsFGuPUKMj4rLcK
+        gTcVC47rEOGD7dGZY93Z4mPkdwWJ72qiHn9fL/OBtTnM40CdE81Wavu0jWwBkYHh
+        vP6UswJp7f5y/ptqpL17Wg8ccc//TBnEGOH27AF5gbwIfypwZbOEuJDTGR8r+gId
+        AIAcDTTFjZP+mXF3EB+AU1pHOM68vziambNjces=
+        """)
+
+        params = self.session.create_domain_parameters(
+            KeyType.DH,
+            decode_dh_domain_parameters(PARAMS),
+            local=True)
+        self.assertIsInstance(params, DomainParameters)
+        self.assertEqual(len(params[Attribute.SUBPRIME]) * 8, 224)
+        self.assertEqual(params[Attribute.PRIME][:4],
+                         b'\xAD\x10\x7E\x1E')
