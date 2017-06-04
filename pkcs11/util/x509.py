@@ -36,7 +36,7 @@ def decode_x509_certificate(der, extended_set=False):
 
     :param bytes der: DER-encoded certificate
     :param extended_set: decodes more metadata about the certificate
-    :rtype: dict(Attribute, *)
+    :rtype: dict(Attribute,*)
     """
     x509, _ = der_decoder.decode(der, asn1Spec=Certificate())
     subject = der_encoder.encode(x509['tbsCertificate']['subject'])
