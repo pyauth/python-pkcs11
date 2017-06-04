@@ -187,10 +187,15 @@ class Session(types.Session):
 
         return Object._make(self, new)
 
-    def create_domain_parameters(self, key_type, attrs, local=False):
+    def create_domain_parameters(self, key_type, attrs,
+                                 local=False, store=False):
+        if local and store:
+            raise ArgumentsBad("Cannot set both `local` and `store`")
+
         attrs = dict(attrs)
         attrs[Attribute.CLASS] = ObjectClass.DOMAIN_PARAMETERS
         attrs[Attribute.KEY_TYPE] = key_type
+        attrs[Attribute.TOKEN] = store
 
         if local:
             return DomainParameters(self, None, attrs)

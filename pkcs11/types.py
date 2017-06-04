@@ -360,17 +360,21 @@ class Session:
         """
         raise NotImplementedError()
 
-    def create_domain_parameters(self, key_type, attrs, local=False):
+    def create_domain_parameters(self, key_type, attrs,
+                                 local=False, store=False):
         """
         Create domain parameters.
 
-        The `local` parameter creates an object that is not created on the
-        HSM. This is useful if you only need the domain parameters to create
-        another object, and do not need a real object in the session.
+        The `local` parameter creates a Python object that is not created on
+        the HSM (its object handle will be unset). This is useful if you only
+        need the domain parameters to create another object, and do not need a
+        real PKCS #11 object in the session.
 
         :param KeyType key_type: Key type these parameters are for
-        :param dict(Attribute,*): Domain parameters (specific tp `key_type`)
-        :param local: if True, do not write these to the HSM.
+        :param dict(Attribute,*) attrs: Domain parameters
+            (specific tp `key_type`)
+        :param local: if True, do not transfer parameters to the HSM.
+        :param store: if True, store these parameters permanently in the HSM.
         :rtype: DomainParameters
         """
 
@@ -652,8 +656,8 @@ class PublicKey(Key):
     (asymmetric public key).
 
     RSA private keys can be imported and exported from PKCS#1 DER-encoding
-    using :func:`pkcs11.rsautils.decode_rsa_public_key` and
-    :func:`pkcs11.rsautils.encode_rsa_public_key` respectively.
+    using :func:`pkcs11.util.rsa.decode_rsa_public_key` and
+    :func:`pkcs11.util.rsa.encode_rsa_public_key` respectively.
     """
 
     object_class = ObjectClass.PUBLIC_KEY
@@ -670,7 +674,7 @@ class PrivateKey(Key):
     (asymmetric private key).
 
     RSA private keys can be imported from PKCS#1 DER-encoding using
-    :func:`pkcs11.rsautils.decode_rsa_private_key`.
+    :func:`pkcs11.util.rsa.decode_rsa_private_key`.
 
     .. warning::
 
@@ -694,6 +698,9 @@ class Certificate(Object):
     provide features like parsing of X.509 etc. These should be handled in
     an external library. PKCS#11 will not set attributes on the certificate
     based on the `VALUE`.
+
+    :func:`pkcs11.util.x509.decode_x509_certificate` will extract attributes
+    from a certificate to create the object.
     """
     object_class = ObjectClass.CERTIFICATE
 

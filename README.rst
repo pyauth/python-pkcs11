@@ -150,6 +150,11 @@ Tested Compatibility
 | Initialize token             | Not implemented                |
 +------------------------------+--------------------------------+
 | Slot events                  | Not implemented                |
++------------------------------+--------------------------------+
+| Alternative authentication   | Not implemented                |
+| path                         |                                |
++------------------------------+--------------------------------+
+| `Always authenticate` keys   | Not implemented                |
 +-------------+----------------+--------------+-----------------+
 | Create/Copy | Keys           | Works        | Works           |
 |             +----------------+--------------+-----------------+
