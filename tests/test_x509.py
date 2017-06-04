@@ -4,7 +4,6 @@ X.509 Certificate Tests
 
 import base64
 import subprocess
-from binascii import hexlify
 
 from pyasn1.codec.der import encoder as derencoder, decoder as derdecoder
 from pyasn1.codec.ber import encoder as berencoder
@@ -115,12 +114,12 @@ class X509Tests(TestCase):
         algorithm['algorithm'] = rfc2459.rsaEncryption
         algorithm['parameters'] = Null()
         key = encode_rsa_public_key(pub)
-        keyinfo['subjectPublicKey'] = BitString(hexValue=hexlify(key))
+        keyinfo['subjectPublicKey'] = BitString.fromOctetString(key)
 
         value = berencoder.encode(tbs)
-        cert['signatureValue'] = BitString(hexValue=hexlify(
+        cert['signatureValue'] = BitString.fromOctetString(
             priv.sign(value,
-                      mechanism=Mechanism.SHA1_RSA_PKCS)))
+                      mechanism=Mechanism.SHA1_RSA_PKCS))
 
         # Pipe our certificate to OpenSSL to verify it
         with subprocess.Popen(('openssl', 'verify'),
@@ -154,12 +153,12 @@ class X509Tests(TestCase):
         algorithm['algorithm'] = rfc2459.rsaEncryption
         algorithm['parameters'] = Null()
         key = encode_rsa_public_key(pub)
-        keyinfo['subjectPublicKey'] = BitString(hexValue=hexlify(key))
+        keyinfo['subjectPublicKey'] = BitString.fromOctetString(key)
 
         value = berencoder.encode(info)
-        csr['signature'] = BitString(hexValue=hexlify(
+        csr['signature'] = BitString.fromOctetString(
             priv.sign(value,
-                      mechanism=Mechanism.SHA1_RSA_PKCS)))
+                      mechanism=Mechanism.SHA1_RSA_PKCS))
         csr['signatureAlgorithm'] = algorithm = rfc2459.AlgorithmIdentifier()
         algorithm['algorithm'] = rfc2459.sha1WithRSAEncryption
         algorithm['parameters'] = Null()
