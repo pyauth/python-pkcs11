@@ -72,7 +72,7 @@ def encode_rsa_public_key(key):
     """
     Encode an RSA public key into PKCS#1 DER-encoded format.
 
-    :param: PublicKey key: RSA public key
+    :param PublicKey key: RSA public key
     :rtype: bytes
     """
     asn1 = RSAPublicKey()

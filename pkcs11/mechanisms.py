@@ -12,25 +12,34 @@ class KeyType(IntEnum):
     """
     See the `RSA section
     <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850404>`_
-    of PKCS#11 specification for valid :class:`Mechanism` and
+    of the PKCS #11 specification for valid :class:`Mechanism` and
     :class:`pkcs11.constants.Attribute` types.
     """
     DSA = 0x00000001
+    """
+    See the `DSA section
+    <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850428>`_
+    of the PKCS #11 specification for valid :class:`Mechanism` and
+    :class:`pkcs11.constants.Attribute` types.
+    """
     DH = 0x00000002
     """
-    See the `Diffie-Hellman section
+    PKCS #3 Diffie-Hellman key. See the `Diffie-Hellman section
     <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850461>`_
-    of the PKCS#11 specification for valid :class:`Mechanism` and
+    of the PKCS #11 specification for valid :class:`Mechanism` and
     :class:`pkcs11.constants.Attribute` types.
     """
     EC = 0x00000003
     """
     See the `Elliptic Curve section
     <http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/csd01/pkcs11-curr-v2.40-csd01.html#_Toc372721391>`_
-    of the PKCS#11 specification for valid :class:`Mechanism` and
+    of the PKCS #11 specification for valid :class:`Mechanism` and
     :class:`pkcs11.constants.Attribute` types.
     """
     X9_42_DH = 0x00000004
+    """
+    X9.42 Diffie-Hellman key.
+    """
     KEA = 0x00000005
     GENERIC_SECRET = 0x00000010
     RC2 = 0x00000011
@@ -118,12 +127,23 @@ class Mechanism(IntEnum):
     SHA1_RSA_PKCS_PSS = 0x0000000E
 
     DSA_KEY_PAIR_GEN = 0x00000010
+    """
+    Default mechanism for generating :attr:`KeyType.DSA` keypairs from
+    :class:`pkcs11.DomainParameters`.
+    """
     DSA = 0x00000011
+    """
+    DSA without hashing.
+    """
     DSA_SHA1 = 0x00000012
     DSA_SHA224 = 0x00000013
     DSA_SHA256 = 0x00000014
     DSA_SHA384 = 0x00000015
     DSA_SHA512 = 0x00000016
+    """
+    DSA with SHA512 hashing.
+    Default for signing/verification with :attr:`KeyType.DSA` keys.
+    """
     DH_PKCS_KEY_PAIR_GEN = 0x00000020
     """
     Default mechanism for generating :attr:`KeyType.DH` keypairs from
@@ -498,6 +518,9 @@ class Mechanism(IntEnum):
     GOST28147_KEY_WRAP = 0x00001224
 
     DSA_PARAMETER_GEN = 0x00002000
+    """
+    Default mechanism for generating :attr:`KeyType.DSA` domain parameters.
+    """
     DH_PKCS_PARAMETER_GEN = 0x00002001
     """
     Default mechanism for generating :attr:`KeyType.DH` domain parameters.
@@ -505,6 +528,10 @@ class Mechanism(IntEnum):
     """
 
     X9_42_DH_PARAMETER_GEN = 0x00002002
+    """
+    Default mechanism for generating :attr:`KeyType.X9_42_DH` domain
+    parameters (X9.42 DH).
+    """
 
     AES_OFB = 0x00002104
     AES_CFB64 = 0x00002105
