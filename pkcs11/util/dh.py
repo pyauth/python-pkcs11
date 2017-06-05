@@ -75,5 +75,5 @@ def decode_dh_public_key(der):
     :rtype: bytes
     """
 
-    asn1, _ = decoder.decode(der, asn1Spec=DomainParameters())
+    asn1, _ = decoder.decode(der, asn1Spec=DHPublicKey())
     return biginteger(asn1)
