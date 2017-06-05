@@ -192,6 +192,12 @@ RSA Key Utilities
     :members:
     :undoc-members:
 
+DSA Key Utilities
+
+.. automodule:: pkcs11.util.dsa
+    :members:
+    :undoc-members:
+
 DH Key Utilities
 ~~~~~~~~~~~~~~~~
 
