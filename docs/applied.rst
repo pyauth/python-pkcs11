@@ -988,6 +988,7 @@ To digest a message (e.g. with SHA-256):
 You can also pass an iterable of data:
 
 ::
+
     with open(file_in, 'rb') as input:
         # A generator yielding chunks of the file
         chunks = iter(lambda: input.read(buffer_size), '')
