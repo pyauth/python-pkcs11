@@ -5,13 +5,13 @@ PKCS#11 DSA Tests
 import base64
 
 import pkcs11
-from pkcs11 import KeyType, Attribute
+from pkcs11 import KeyType, Attribute, Mechanism
 from pkcs11.util.dsa import (
     encode_dsa_domain_parameters,
     decode_dsa_domain_parameters,
 )
 
-from . import TestCase
+from . import TestCase, Not
 
 
 DHPARAMS = base64.b64decode("""
@@ -26,6 +26,7 @@ ouQbj2Vq
 
 class DSATests(TestCase):
 
+    @Not.nfast
     def test_generate_params(self):
         parameters = self.session.generate_domain_parameters(KeyType.DSA, 1024)
         self.assertIsInstance(parameters, pkcs11.DomainParameters)
@@ -44,5 +45,6 @@ class DSATests(TestCase):
         self.assertIsInstance(private, pkcs11.PrivateKey)
 
         data = 'Message to sign'
-        signature = private.sign(data)
-        self.assertTrue(public.verify(data, signature))
+        signature = private.sign(data, mechanism=Mechanism.DSA_SHA1)
+        self.assertTrue(public.verify(data, signature,
+                                      mechanism=Mechanism.DSA_SHA1))
