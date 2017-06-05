@@ -946,8 +946,7 @@ shared value must be `None`.
 
 ::
 
-    from pkcs11.constants import KeyType
-    from pkcs11.mechanisms import KDF
+    from pkcs11 import KeyType, KDF
 
     # Given our DH private key `private` and the other party's public key
     # `other_public`
@@ -970,5 +969,81 @@ as `EXTRACTABLE`:
     # This is our shared secret key
     print(key[Attribute.VALUE])
 
-Importing Certificates
-----------------------
+Digesting and Hashing
+---------------------
+
+PKCS #11 exposes the ability to hash or digest data via a number of mechanisms.
+For performance reasons, this is rarely done in the HSM, and is usually done
+in your process. There are unlikely any advantages to using this functionality
+over :mod:`hashlib`.
+
+To digest a message (e.g. with SHA-256):
+
+::
+
+    from pkcs11 import Mechanism
+
+    digest = session.digest(data, mechanism=Mechanism.SHA256)
+
+You can also pass an iterable of data:
+
+::
+    with open(file_in, 'rb') as input_:
+        # A generator yielding chunks of the file
+        chunks = iter(lambda: input_.read(buffer_size), '')
+        digest = session.digest(chunks, mechanism=Mechanism.SHA512)
+
+
+Certificates
+------------
+
+Certificates can be stored in the HSM as objects.  PKCS#11 is limited in its
+handling of certificates, and does not provide features like parsing of X.509
+etc. These should be handled in an external library. PKCS#11 will not set
+attributes on the certificate based on the `VALUE` and these must be specified
+when creating the object.
+
+X.509
+~~~~~
+
+:func:`pkcs11.util.x509.decode_x509_certificate` can be used to decode
+X.509 certificates for storage in the HSM:
+
+::
+
+    from pkcs11.util.x509 import decode_x509_certificate
+
+    cert = self.session.create_object(decode_x509_certificate(b'DER encoded X.509 cert...'))
+
+The following attributes are defined:
+
+.. glossary::
+
+    VALUE
+        The certificate (BER-encoded binary in X.509 format)
+
+    SUBJECT
+        The certificate subject (DER-encoded X.509 distinguished name)
+
+    ISSUER
+        The certificate issuer (DER-encoded X.509 distinguished name)
+
+    SERIAL
+        The certificate serial (DER-encoded integer)
+
+Additionally an extended set of attributes may be imported if your HSM supports
+it:
+
+.. glossary::
+
+    START_DATE
+        The certificate start date (notBefore)
+
+    END_DATE
+        The certificate end date (notAfter)
+
+    HASH_OF_SUBJECT_PUBLIC_KEY
+        The identifier of the subject's public key (bytes)
+
+    HASH_OF_ISSUER_PUBLIC_KEY
+        The identifier of the issuer's public key (bytes)
