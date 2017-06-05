@@ -405,12 +405,16 @@ class Mechanism(IntEnum):
     """
 
     ECDSA = 0x00001041
+    """ECDSA with no hashing. Input truncated to 1024-bits."""
     ECDSA_SHA1 = 0x00001042
     ECDSA_SHA224 = 0x00001043
     ECDSA_SHA256 = 0x00001044
     ECDSA_SHA384 = 0x00001045
     ECDSA_SHA512 = 0x00001046
-    """Default for signing/verification with :attr:`KeyType.EC` keys."""
+    """
+    ECDSA with SHA512 hashing.
+    Default for signing/verification with :attr:`KeyType.EC` keys.
+    """
 
     ECDH1_DERIVE = 0x00001050
     """

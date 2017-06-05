@@ -724,24 +724,141 @@ A simple example:
 Signing/Verifying
 -----------------
 
+Signing and verification mechanisms require two components:
+
+* the cipher; and
+* the hashing function.
+
+Raw versions for some mechanisms also exist. These require you to do your
+own hashing outside of PKCS #11.
+
+Signing functions typically work on a finite length of data, so the signing
+of large amounts of data requires hashing with a secure one-way hash function.
+
 AES
 ~~~
 
+A `MAC` is required for signing with AES. The default mechanism is
+`SHA512_HMAC` (aka HMAC-SHA512).
+
+A number of other hashing functions and MACs are available depending on
+your implementation.
+
+::
+
+    # Given a secret key, `key`
+    signature = key.sign(data)
+
+    assert key.verify(data, signature)
+
 RSA
 ~~~
+
+The default signing and verification mechanism for RSA is `RSA_SHA512_PKCS`.
+
+Other mechanisms are available:
+
++-------------------+-------------------------------------------+
+| Mechanism         | Notes                                     |
++===================+===========================================+
+| RSA_PKCS          | No hashing. Supply your own.              |
++-------------------+-------------------------------------------+
+| SHA*_RSA_PKCS     | SHAx message digesting.                   |
++-------------------+-------------------------------------------+
+| RSA_PKCS_PSS      | Not currently implemented.                |
++-------------------+                                           |
+| SHA*_RSA_PKCS_PSS |                                           |
++-------------------+-------------------------------------------+
+| RSA_9796          | ISO/IES 9796 RSA signing.                 |
++-------------------+-------------------------------------------+
+| RSA_X_509         | X.509 (raw) RSA signing.                  |
++-------------------+-------------------------------------------+
+| RSA_X9_31         | X9.31 RSA signing.                        |
++-------------------+-------------------------------------------+
+
+::
+
+    # Given a private key `private`
+    signature = private.sign(data)
+
+    # Given a public key `public`
+    assert public.verify(data, signature)
 
 ECDSA
 ~~~~~
 
+The default signing and verification mechanism for ECDSA is `ECDSA_SHA512`.
+
+Other mechanisms are available:
+
++------------+-------------------------------------------+
+| Mechanism  | Notes                                     |
++============+===========================================+
+| ECDSA      | No hashing. Input truncated to 1024 bits. |
++------------+-------------------------------------------+
+| ECDSA_SHA* | ECDSA with SHAx message digesting.        |
++------------+-------------------------------------------+
+
+::
+
+    # Given a private key `private`
+    signature = private.sign(data)
+
+    # Given a public key `public`
+    assert public.verify(data, signature)
 
 Wrapping/Unwrapping
 -------------------
 
+The expectation when using HSMs is that secret and private keys never leave
+the secure boundary of the HSM. However, there is a use case for transmitting
+secret and private keys over insecure mediums. We can do this using key
+wrapping.
+
+Key wrapping is similar to encryption and decryption except instead of turning
+plaintext into crypttext it turns key objects into crypttext and vice versa.
+
+Keys must be marked as `EXTRACTABLE` to remove them from the HSM, even wrapped.
+
 AES
 ~~~
 
+The key we're wrapping can be any sensitive key, either a secret key or
+a private key. In this example we're extracting an AES secret key:
+
+::
+
+    # Given two secret keys, `key1` and `key2`, we can extract an encrypted
+    # version of `key2`
+    crypttext = key1.wrap_key(key2)
+
+Wrapping doesn't store any parameters about the keys. We must supply those
+to import the key.
+
+::
+
+    key = key1.unwrap_key(ObjectClass.SECRET_KEY, KeyType.AES, crypttext)
+
 RSA
 ~~~
+
+The key we're wrapping can be any sensitive key, either a secret key or
+a private key. In this example we're extracting an AES secret key:
+
+::
+
+    # Given a public key, `public`, and a secret key `key`, we can extract an
+    encrypted version of `key`
+    crypttext = public.wrap_key(key)
+
+Wrapping doesn't store any parameters about the keys. We must supply those
+to import the key.
+
+::
+
+    # Given a private key, `private`, matching `public` above we can decrypt
+    # and import `key`.
+    key = private.unwrap_key(ObjectClass.SECRET_KEY, KeyType.AES, crypttext)
 
 Deriving Shared Keys
 --------------------
