@@ -67,4 +67,5 @@ class Not:
     Ignore tests for given devices
     """
 
+    softhsm2 = unittest.skipIf(Is.softhsm2, "Not supported by SoftHSMv2")
     nfast = unittest.skipIf(Is.nfast, "Not supported by nFast")

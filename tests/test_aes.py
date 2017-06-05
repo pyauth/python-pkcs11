@@ -4,7 +4,7 @@ PKCS#11 AES Secret Keys
 
 import pkcs11
 
-from . import TestCase, Is
+from . import TestCase, Is, Not
 
 
 class AESTests(TestCase):
@@ -106,3 +106,21 @@ class AESTests(TestCase):
         self.assertIsNotNone(signature)
         self.assertIsInstance(signature, bytes)
         self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
+
+    @Not.softhsm2
+    def test_wrap(self):
+        key = self.session.generate_key(pkcs11.KeyType.AES, 128, template={
+            pkcs11.Attribute.EXTRACTABLE: True,
+            pkcs11.Attribute.SENSITIVE: False,
+        })
+        data = self.key.wrap_key(key)
+
+        key2 = self.key.unwrap_key(pkcs11.ObjectClass.SECRET_KEY,
+                                   pkcs11.KeyType.AES,
+                                   data, template={
+                                        pkcs11.Attribute.EXTRACTABLE: True,
+                                        pkcs11.Attribute.SENSITIVE: False,
+                                   })
+
+        self.assertEqual(key[pkcs11.Attribute.VALUE],
+                         key2[pkcs11.Attribute.VALUE])

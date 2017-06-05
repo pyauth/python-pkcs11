@@ -440,6 +440,11 @@ class Mechanism(IntEnum):
     AES_KEY_GEN = 0x00001080
     """Default for generating :attr:`KeyType.AES` keys."""
     AES_ECB = 0x00001081
+    """
+    Default wrapping mechanism for :attr:`KeyType.AES` keys.
+
+    Not suitable for encrypting data of >1 block. Use `CBC` instead.
+    """
     AES_CBC = 0x00001082
     AES_MAC = 0x00001083
     AES_MAC_GENERAL = 0x00001084
