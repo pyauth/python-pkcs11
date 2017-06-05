@@ -255,7 +255,7 @@ class Mechanism(IntEnum):
     DES3_KEY_GEN = 0x00000131
     DES3_ECB = 0x00000132
     """
-    .. warning:: Do not use for encrypting > 1 block.
+    .. warning:: Identical blocks will encipher to the same result.
     """
     DES3_CBC = 0x00000133
     DES3_MAC = 0x00000134
@@ -458,7 +458,7 @@ class Mechanism(IntEnum):
     SEED_KEY_GEN = 0x00000650
     SEED_ECB = 0x00000651
     """
-    .. warning:: Do not use for encrypting > 1 block.
+    .. warning:: Identical blocks will encipher to the same result.
     """
     SEED_CBC = 0x00000652
     SEED_MAC = 0x00000653
@@ -549,7 +549,7 @@ class Mechanism(IntEnum):
     """
     .. note:: Default wrapping mechanism for :attr:`KeyType.AES` keys.
 
-    .. warning:: Not suitable for encrypting data of >1 block.
+    .. warning:: Identical blocks will encipher to the same result.
     """
     AES_CBC = 0x00001082
     AES_CBC_PAD = 0x00001085
@@ -597,7 +597,7 @@ class Mechanism(IntEnum):
     GOST28147_KEY_GEN = 0x00001220
     GOST28147_ECB = 0x00001221
     """
-    .. warning:: Do not use for > 1 block.
+    .. warning:: Identical blocks will encipher to the same result.
     """
     GOST28147 = 0x00001222
     GOST28147_MAC = 0x00001223
