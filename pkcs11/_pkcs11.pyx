@@ -202,6 +202,36 @@ class Session(types.Session):
         else:
             return self.create_object(attrs)
 
+    def generate_domain_parameters(self, key_type, param_length, store=False,
+                                   mechanism=None, mechanism_param=None,
+                                   template=None):
+        if not isinstance(key_type, KeyType):
+            raise ArgumentsBad("`key_type` must be KeyType.")
+
+        if not isinstance(param_length, int):
+            raise ArgumentsBad("`param_length` is the length in bits.")
+
+        cdef CK_MECHANISM mech = \
+            _make_CK_MECHANISM(key_type, DEFAULT_PARAM_GENERATE_MECHANISMS,
+                               mechanism, mechanism_param)
+        cdef CK_OBJECT_HANDLE obj
+
+        template_ = {
+            Attribute.CLASS: ObjectClass.DOMAIN_PARAMETERS,
+            Attribute.TOKEN: store,
+            Attribute.PRIME_BITS: param_length,
+        }
+
+        template_.update(template or {})
+        attrs = AttributeList(template_)
+
+        assertRV(C_GenerateKey(self._handle,
+                               &mech,
+                               attrs.data, attrs.count,
+                               &obj))
+
+        return Object._make(self, obj)
+
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
                      store=True, capabilities=None,

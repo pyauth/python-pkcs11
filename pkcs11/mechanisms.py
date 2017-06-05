@@ -127,7 +127,7 @@ class Mechanism(IntEnum):
     DH_PKCS_KEY_PAIR_GEN = 0x00000020
     """
     Default mechanism for generating :attr:`KeyType.DH` keypairs from
-    :class:`pkcs11.DomainParameters`.
+    :class:`pkcs11.DomainParameters`. This is the mechanism defined in PKCS #3.
 
     Requires :class:`pkcs11.DomainParameters` of
     :attr:`pkcs11.constants.Attribute.BASE` and
@@ -136,7 +136,7 @@ class Mechanism(IntEnum):
     DH_PKCS_DERIVE = 0x00000021
     """
     Default mechanism for deriving shared keys from :attr:`KeyType.DH` private
-    keys.
+    keys. This is the mechanism defined in PKCS #3.
 
     Takes the other participant's public key
     :attr:`pkcs11.constants.Attribute.VALUE` as the `mechanism_param`.
@@ -490,6 +490,11 @@ class Mechanism(IntEnum):
 
     DSA_PARAMETER_GEN = 0x00002000
     DH_PKCS_PARAMETER_GEN = 0x00002001
+    """
+    Default mechanism for generating :attr:`KeyType.DH` domain parameters.
+    This is the mechanism defined in PKCS #3.
+    """
+
     X9_42_DH_PARAMETER_GEN = 0x00002002
 
     AES_OFB = 0x00002104

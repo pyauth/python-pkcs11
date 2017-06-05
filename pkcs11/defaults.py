@@ -21,6 +21,7 @@ DEFAULT_GENERATE_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_GEN,
     KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
     KeyType.DH: Mechanism.DH_PKCS_KEY_PAIR_GEN,
+    KeyType.X9_42_DH: Mechanism.X9_42_DH_KEY_PAIR_GEN,
     KeyType.EC: Mechanism.EC_KEY_PAIR_GEN,
 }
 """
@@ -68,10 +69,19 @@ Default mechanism for wrap/unwrap.
 
 DEFAULT_DERIVE_MECHANISMS = {
     KeyType.DH: Mechanism.DH_PKCS_DERIVE,
+    KeyType.X9_42_DH: Mechanism.X9_42_DH_DERIVE,
     KeyType.EC: Mechanism.ECDH1_DERIVE,
 }
 """
 Default mechanisms for key derivation
+"""
+
+DEFAULT_PARAM_GENERATE_MECHANISMS = {
+    KeyType.DH: Mechanism.DH_PKCS_PARAMETER_GEN,
+    KeyType.X9_42_DH: Mechanism.X9_42_DH_PARAMETER_GEN,
+}
+"""
+Default mechanisms for domain parameter generation
 """
 
 
@@ -124,6 +134,7 @@ ATTRIBUTE_TYPES = {
     Attribute.MODULUS: _biginteger,
     Attribute.MODULUS_BITS: _ulong,
     Attribute.NEVER_EXTRACTABLE: _bool,
+    Attribute.OBJECT_ID: _bytes,
     Attribute.PRIME: _biginteger,
     Attribute.PRIME_BITS: _ulong,
     Attribute.PRIME_1: _biginteger,

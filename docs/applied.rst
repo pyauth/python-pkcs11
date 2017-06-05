@@ -350,7 +350,8 @@ Diffie-Hellman
 ^^^^^^^^^^^^^^
 
 Diffie-Hellman key pairs require several domain parameters, specified as
-`bigintegers`:
+`bigintegers`.  There are two forms of Diffie-Hellman domain parameters: PKCS
+#3 and X9.42.
 
 .. glossary::
 
@@ -361,7 +362,7 @@ Diffie-Hellman key pairs require several domain parameters, specified as
         The prime modulus (p).
 
     SUBPRIME
-        (Optional) The subprime (q).
+        (X9.42 only) The subprime (q).
 
 ::
 
@@ -375,7 +376,38 @@ Diffie-Hellman key pairs require several domain parameters, specified as
     public, private = parameters.generate_keypair()
 
 `RFC 3279 <https://tools.ietf.org/html/rfc3279#section-2.3.3>`_ defines a
-standard ASN.1 encoding for DH parameters.
+standard ASN.1 encoding for DH parameters, which can be loaded with
+:func:`pkcs11.util.dh.decode_x9_42_dh_domain_parameters`:
+
+::
+
+    params = self.session.create_domain_parameters(
+        KeyType.X9_42_DH,
+        decode_x9_42_dh_domain_parameters(b'DER-encoded parameters'),
+        local=True)
+
+
+If supported, unique domain parameters can also be generated for a given
+`PRIME` length (e.g. 512 bits) with
+:meth:`pkcs11.Session.generate_domain_parameters`:
+
+::
+
+    params = self.session.generate_domain_parameters(KeyType.DH, 512)
+
+X9.42 format domain parameters can be encoded back to their RFC 3279 format
+with :func:`pkcs11.util.dh.encode_x9_42_dh_domain_parameters`.
+
+Key pairs can be generated from the domain parameters:
+
+::
+
+    public, private = parameters.generate_keypair()
+    # This is the public key
+    print(public[Attribute.VALUE])
+
+The public key has the attribute, `VALUE` of type `biginteger`. This can
+be encoded in RFC 3279 format with :func:`pkcs11.util.dh.encode_dh_public_key`.
 
 Elliptic Curve
 ^^^^^^^^^^^^^^
@@ -418,3 +450,14 @@ Named curves (e.g. `prime256v1`) can be specified like this:
     parameters = session.create_domain_parameters(KeyType.EC, {
         Attribute.EC_PARAMS: encode_named_curve_parameters(prime256v1)
     }, local=True)
+
+Key pairs can be generated from the domain parameters:
+
+::
+
+    public, private = parameters.generate_keypair()
+    # This is the public key
+    print(public[Attribute.EC_POINT])
+
+The public key has the attribute, `EC_POINT` which is the X.62 DER-encoded
+value.

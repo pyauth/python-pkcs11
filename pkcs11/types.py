@@ -363,18 +363,57 @@ class Session:
     def create_domain_parameters(self, key_type, attrs,
                                  local=False, store=False):
         """
-        Create domain parameters.
+        Create a domain parameters object from known parameters.
+
+        Domain parameters are used for key generation of key types such
+        as DH, DSA and EC.
+
+        You can also generate new parameters using
+        :meth:`generate_domain_parameters`.
 
         The `local` parameter creates a Python object that is not created on
         the HSM (its object handle will be unset). This is useful if you only
         need the domain parameters to create another object, and do not need a
         real PKCS #11 object in the session.
 
+        .. warning::
+
+            Domain parameters have no id or labels. Storing them is possible
+            but be aware they may be difficult to retrieve.
+
         :param KeyType key_type: Key type these parameters are for
         :param dict(Attribute,*) attrs: Domain parameters
             (specific tp `key_type`)
         :param local: if True, do not transfer parameters to the HSM.
         :param store: if True, store these parameters permanently in the HSM.
+        :rtype: DomainParameters
+        """
+
+        raise NotImplementedError()
+
+    def generate_domain_parameters(self, key_type, param_length, store=False,
+                                   mechanism=None, mechanism_param=None,
+                                   template=None):
+        """
+        Generate domain parameters.
+
+        See :meth:`create_domain_parameters` for creating domain parameter
+        objects from known parameters.
+
+        See :meth:`generate_key` for documentation on mechanisms and templates.
+
+        .. warning::
+
+            Domain parameters have no id or labels. Storing them is possible
+            but be aware they may be difficult to retrieve.
+
+        :param KeyType key_type: Key type these parameters are for
+        :param int params_length: Size of the parameters (e.g. prime length)
+            in bits.
+        :param store: Store these parameters in the HSM
+        :param Mechanism mechanism: Optional generation mechanism (or default)
+        :param bytes mechanism_param: Optional mechanism parameter.
+        :param dict(Attribute,*) template: Optional additional attributes.
         :rtype: DomainParameters
         """
 
