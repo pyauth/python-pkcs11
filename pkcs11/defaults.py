@@ -19,10 +19,11 @@ from .mechanisms import Mechanism, KeyType
 
 DEFAULT_GENERATE_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_GEN,
-    KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
     KeyType.DH: Mechanism.DH_PKCS_KEY_PAIR_GEN,
-    KeyType.X9_42_DH: Mechanism.X9_42_DH_KEY_PAIR_GEN,
+    KeyType.DSA: Mechanism.DSA_KEY_PAIR_GEN,
     KeyType.EC: Mechanism.EC_KEY_PAIR_GEN,
+    KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
+    KeyType.X9_42_DH: Mechanism.X9_42_DH_KEY_PAIR_GEN,
 }
 """
 Default mechanisms for generating keys.
@@ -34,9 +35,10 @@ _WRAPPING = MechanismFlag.WRAP | MechanismFlag.UNWRAP
 
 DEFAULT_KEY_CAPABILITIES = {
     KeyType.AES: _ENCRYPTION | _SIGNING | _WRAPPING,
-    KeyType.RSA: _ENCRYPTION | _SIGNING | _WRAPPING,
     KeyType.DH: MechanismFlag.DERIVE,
+    KeyType.DSA: _SIGNING,
     KeyType.EC: _SIGNING | MechanismFlag.DERIVE,
+    KeyType.RSA: _ENCRYPTION | _SIGNING | _WRAPPING,
 }
 """
 Default capabilities for generating keys.
@@ -52,8 +54,9 @@ Default mechanisms for encrypt/decrypt.
 
 DEFAULT_SIGN_MECHANISMS = {
     KeyType.AES: Mechanism.SHA512_HMAC,
-    KeyType.RSA: Mechanism.SHA512_RSA_PKCS,
+    KeyType.DSA: Mechanism.DSA_SHA512,
     KeyType.EC: Mechanism.ECDSA_SHA512,
+    KeyType.RSA: Mechanism.SHA512_RSA_PKCS,
 }
 """
 Default mechanisms for sign/verify.
@@ -69,8 +72,8 @@ Default mechanism for wrap/unwrap.
 
 DEFAULT_DERIVE_MECHANISMS = {
     KeyType.DH: Mechanism.DH_PKCS_DERIVE,
-    KeyType.X9_42_DH: Mechanism.X9_42_DH_DERIVE,
     KeyType.EC: Mechanism.ECDH1_DERIVE,
+    KeyType.X9_42_DH: Mechanism.X9_42_DH_DERIVE,
 }
 """
 Default mechanisms for key derivation
@@ -78,6 +81,7 @@ Default mechanisms for key derivation
 
 DEFAULT_PARAM_GENERATE_MECHANISMS = {
     KeyType.DH: Mechanism.DH_PKCS_PARAMETER_GEN,
+    KeyType.DSA: Mechanism.DSA_PARAMETER_GEN,
     KeyType.X9_42_DH: Mechanism.X9_42_DH_PARAMETER_GEN,
 }
 """
