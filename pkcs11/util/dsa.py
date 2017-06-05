@@ -41,3 +41,30 @@ def encode_dsa_domain_parameters(obj):
     asn1['q'] = int.from_bytes(obj[Attribute.SUBPRIME], byteorder='big')
 
     return encoder.encode(asn1)
+
+
+def encode_dsa_public_key(key):
+    """
+    Encode DSA public key into RFC 3279 DER-encoded format.
+
+    :param PublicKey key: public key
+    :rtype: bytes
+    """
+
+    asn1 = DSAPublicKey(int.from_bytes(key[Attribute.VALUE], byteorder='big'))
+
+    return encoder.encode(asn1)
+
+
+def decode_dsa_public_key(der):
+    """
+    Decode a DSA public key from RFC 3279 DER-encoded format.
+
+    Returns a `biginteger` encoded as bytes.
+
+    :param bytes der: DER-encoded public key
+    :rtype: bytes
+    """
+
+    asn1, _ = decoder.decode(der, asn1Spec=DSAPublicKey())
+    return biginteger(asn1)

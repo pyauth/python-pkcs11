@@ -452,6 +452,65 @@ From Domain Parameters
     parameters. Some domain parameters (e.g. choice of elliptic curve)
     can drastically weaken the cryptosystem.
 
+DSA
+^^^
+
+Diffie-Hellman key pairs require three domain parameters, specified as
+`bigintegers`.
+
+.. glossary::
+
+    BASE
+        The prime base (g) (as `biginteger`).
+
+    PRIME
+        The prime modulus (p) (as `biginteger`).
+
+    SUBPRIME
+        The subprime (q) (as `biginteger`).
+
+::
+
+    from pkcs11 import Attribute
+
+    parameters = session.create_domain_parameters(KeyType.DSA, {
+        Attribute.PRIME: b'prime...',
+        Attribute.BASE: b'base...',
+        Attribute.SUBPRIME: b'subprime...',
+    }, local=True)
+
+    public, private = parameters.generate_keypair()
+
+`RFC 3279 <https://tools.ietf.org/html/rfc3279#section-2.3.3>`_ defines a
+standard ASN.1 encoding for DSA parameters, which can be loaded with
+:func:`pkcs11.util.dsa.decode_dsa_domain_parameters`:
+
+::
+
+    params = session.create_domain_parameters(
+        KeyType.DSA,
+        decode_dsa_domain_parameters(b'DER-encoded parameters'),
+        local=True)
+
+
+If supported, unique domain parameters can also be generated for a given
+`PRIME` length (e.g. 1024 bits) with
+:meth:`pkcs11.Session.generate_domain_parameters`:
+
+::
+
+    params = session.generate_domain_parameters(KeyType.DSA, 1024)
+
+The public key has a single important attribute:
+
+.. glossary::
+
+    VALUE
+        Public key (as biginteger).
+
+This can be encoded in RFC 3279 format with
+:func:`pkcs11.util.dsa.encode_dsa_public_key`.
+
 Diffie-Hellman
 ^^^^^^^^^^^^^^
 
@@ -783,6 +842,31 @@ Other mechanisms are available:
 
     # Given a public key `public`
     assert public.verify(data, signature)
+
+DSA
+~~~
+
+The default signing and verification mechanism for RSA is `DSA_SHA512`.
+
+Other mechanisms are available:
+
++------------+-------------------------------------------+
+| Mechanism  | Notes                                     |
++============+===========================================+
+| DSA        | No hashing. 20, 28, 32, 48 or 64 bits.    |
++------------+-------------------------------------------+
+| DSA_SHA*   | DSA with SHAx message digesting.          |
++------------+-------------------------------------------+
+
+::
+
+    # Given a private key `private`
+    signature = private.sign(data)
+
+    # Given a public key `public`
+    assert public.verify(data, signature)
+
+The parameters `r` and `s` are concatenated together.
 
 ECDSA
 ~~~~~
