@@ -1,8 +1,9 @@
 API Reference
 =============
 
-.. toctree::
-    :maxdepth: 2
+.. contents:: Section Contents
+    :depth: 2
+    :local:
 
 Classes
 -------

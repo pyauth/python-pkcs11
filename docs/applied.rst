@@ -5,8 +5,11 @@ Applied PKCS #11
 standard defining an API for cryptographic hardware. While it was developed by
 RSA, as part of a suite of standards, the standard is not exclusive to RSA
 ciphers and is meant to cover a wide range of cryptographic possibilities.
-
 PKCS #11 is most closely related to Java's JCE and Microsoft's CAPI.
+
+.. contents:: Section Contents
+    :depth: 2
+    :local:
 
 Concepts in PKCS #11
 --------------------
@@ -582,8 +585,141 @@ Encryption/Decryption
 AES
 ~~~
 
+The `AES <https://en.wikipedia.org/wiki/Advanced_Encryption_Standard>`_ cipher
+requires you to specify a block mode as part of the `mechanism`.
+
+The default block mode is `CBC with PKCS padding
+<http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850490>`_,
+which can handle data not padded to the block size and requires you to
+supply an initialisation vector of 128-bits of good random.
+
+A number of other mechanisms are available:
+
++-------------+-----+----------------+---------------------------------+
+| Mechanism   | IV  | Input Size     | Notes                           |
++=============+=====+================+=================================+
+| AES_ECB     | No  | 128-bit blocks | Only suitable for key-wrapping. |
+|             |     |                | Identical blocks encrypt        |
+|             |     |                | identically!                    |
++-------------+-----+----------------+---------------------------------+
+| AES_CBC     | Yes | 128-bit blocks |                                 |
++-------------+-----+----------------+---------------------------------+
+| AES_CBC_PAD | Yes | Any            | Default mechanism               |
++-------------+-----+----------------+---------------------------------+
+| AES_OFB     | Yes | Any            |                                 |
++-------------+-----+----------------+---------------------------------+
+| AES_CFB_*   | Yes | Any            | 3 modes: AES_CFB8, AES_CFB64,   |
+|             |     |                | and AES_CFB128.                 |
++-------------+-----+----------------+---------------------------------+
+| AES_CTS     | Yes | >= 128-bit     |                                 |
++-------------+-----+----------------+---------------------------------+
+| AES_CTR     | Not currently supported [2]_                           |
++-------------+                                                        |
+| AES_GCM     |                                                        |
++-------------+                                                        |
+| AES_CGM     |                                                        |
++-------------+--------------------------------------------------------+
+
+.. [2] AES encryption with multiple mechanism parameters not currently
+       implemented due to lack of hardware supporting these mechanisms.
+
+.. warning:: **Initialisation vectors**
+
+    An initialization vector (IV) or starting variable (SV) is data that is
+    used by several modes to randomize the encryption and hence to produce
+    distinct ciphertexts even if the same plaintext is encrypted multiple
+    times.
+
+    An initialization vector has different security requirements than a key, so
+    the IV usually does not need to be secret. However, in most cases, it is
+    important that an initialization vector is never reused under the same key.
+    For CBC and CFB, reusing an IV leaks some information about the first block
+    of plaintext, and about any common prefix shared by the two messages. For
+    OFB and CTR, reusing an IV completely destroys security.
+
+    In CBC mode, the IV must, in addition, be unpredictable at encryption time;
+    in particular, the (previously) common practice of re-using the last
+    ciphertext block of a message as the IV for the next message is insecure.
+
+    We recommend using :meth:`pkcs11.Session.generate_random` to create a
+    quality IV.
+
+A simple example:
+
+::
+
+    # Given an AES key `key`
+    iv = session.generate_random(128)
+    ciphertext = key.encrypt(plaintext, mechanism_param=iv)
+
+    plaintext = key.decrypt(ciphertext, mechanism_param=iv)
+
+Or using an alternative mechanism:
+
+::
+
+    from pkcs11 import Mechanism
+
+    iv = session.generate_random(128)
+    ciphertext = key.encrypt(plaintext,
+                             mechanism=Mechanism.AES_OFB,
+                             mechanism_param=iv)
+
+Large amounts of data can be passed as a generator:
+
+::
+
+    buffer_size = 8192
+    with \\
+            open(file_in, 'rb') as input_, \\
+            open(file_out, 'wb') as output:
+
+        # A generator yielding chunks of the file
+        chunks = iter(lambda: input_.read(buffer_size), '')
+
+        for chunk in key.encrypt(chunks,
+                                 mechanism_param=iv,
+                                 buffer_size=buffer_size):
+            output.write(chunk)
+
+.. note::
+
+    These mechanisms do not store the IV. You must store the IV yourself,
+    e.g. on the front of the ciphertext. It is safe to store an IV in the
+    clear.
+
 RSA
 ~~~
+
+The default RSA cipher is `PKCS #1 v1.5
+<http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850410>`_
+
+A number of other mechanisms are available:
+
++-----------------------+------------+-------------------------+-----------------------+
+| Mechanism             | Parameters | Input Length            | Notes                 |
++=======================+============+=========================+=======================+
+| RSA_PKCS              | None       | <= key length - 11      | Default mechanism     |
++-----------------------+------------+-------------------------+-----------------------+
+| RSA_PKCS_OAEP         | Not currently supported                                      |
++-----------------------+------------+-------------------------+-----------------------+
+| RSA_X_509             | None       | key length              | Raw mode. No padding. |
++-----------------------+------------+-------------------------+-----------------------+
+| RSA_PKCS_TPM_1_1      | None       | <= key length - 11 - 5  | See TCPA TPM          |
+|                       |            |                         | Specification Version |
+|                       |            |                         | 1.1b                  |
++-----------------------+------------+-------------------------+-----------------------+
+| RSA_PKCS_OAEP_TPM_1_1 | Not currently supported                                      |
++-----------------------+--------------------------------------------------------------+
+
+A simple example:
+
+::
+
+    # Given an RSA key pair `public, private`
+    ciphertext = public.encrypt(plaintext)
+
+    plaintext = private.decrypt(ciphertext)
 
 Signing/Verifying
 -----------------
