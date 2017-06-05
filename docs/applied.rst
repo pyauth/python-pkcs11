@@ -671,11 +671,11 @@ Large amounts of data can be passed as a generator:
 
     buffer_size = 8192
     with \\
-            open(file_in, 'rb') as input_, \\
+            open(file_in, 'rb') as input, \\
             open(file_out, 'wb') as output:
 
         # A generator yielding chunks of the file
-        chunks = iter(lambda: input_.read(buffer_size), '')
+        chunks = iter(lambda: input.read(buffer_size), '')
 
         for chunk in key.encrypt(chunks,
                                  mechanism_param=iv,
@@ -988,9 +988,9 @@ To digest a message (e.g. with SHA-256):
 You can also pass an iterable of data:
 
 ::
-    with open(file_in, 'rb') as input_:
+    with open(file_in, 'rb') as input:
         # A generator yielding chunks of the file
-        chunks = iter(lambda: input_.read(buffer_size), '')
+        chunks = iter(lambda: input.read(buffer_size), '')
         digest = session.digest(chunks, mechanism=Mechanism.SHA512)
 
 
