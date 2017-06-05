@@ -63,3 +63,17 @@ def encode_dh_public_key(key):
     asn1 = DHPublicKey(int.from_bytes(key[Attribute.VALUE], byteorder='big'))
 
     return encoder.encode(asn1)
+
+
+def decode_dh_public_key(der):
+    """
+    Decode a DH public key from RFC 3279 DER-encoded format.
+
+    Returns a `biginteger` encoded as bytes.
+
+    :param bytes der: DER-encoded public key
+    :rtype: bytes
+    """
+
+    asn1, _ = decoder.decode(der, asn1Spec=DomainParameters())
+    return biginteger(asn1)

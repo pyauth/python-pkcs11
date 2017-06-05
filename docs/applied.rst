@@ -749,8 +749,109 @@ Deriving Shared Keys
 Diffie-Hellman
 ~~~~~~~~~~~~~~
 
+DH lets us derive a shared key using shared domain parameters, our private
+key and the other party's public key, which is passed as a mechanism parameter.
+
+The default DH derivation mechanism is `DH_PKCS_DERIVE`, which uses the
+algorithm described in PKCS #3.
+
+.. note::
+
+    Other DH derivation mechanisms including X9.42 derivation are not currently
+    supported.
+
+::
+
+    # Given our DH private key `private` and the other party's public key
+    # `other_public`
+    key = private.derive_key(
+        KeyType.AES, 128,
+        mechanism_param=other_public)
+
+If the other user's public key was encoded using RFC 3279, we can decode this
+with :func:`pkcs11.util.dh.decode_dh_public_key`:
+
+::
+
+    from pkcs11.util.dh import decode_dh_public_key
+
+    key = private.derive_key(
+        KeyType.AES, 128,
+        mechanism_param=decode_dh_public_key(encoded_public_key))
+
+And we can encode our public key for them using
+:func:`pkcs11.util.dh.encode_dh_public_key`:
+
+::
+
+    from pkcs11.util.dh import encode_dh_public_key
+
+    # Given our DH public key `public`
+    encoded_public_key = encode_dh_public_key(public)
+
+The shared derived key can now be used for any appropriate mechanism.
+
+If you want to extract the shared key from the HSM, you can mark the key
+as `EXTRACTABLE`:
+
+::
+
+    key = private.derive_key(
+        KeyType.AES, 128,
+        mechanism_param=other_public,
+        template={
+            Attribute.SENSITIVE: False,
+            Attribute.EXTRACTABLE: True,
+        })
+    # This is our shared secret key
+    print(key[Attribute.VALUE])
+
+
 EC Diffie-Hellman
 ~~~~~~~~~~~~~~~~~
+
+ECDH is supported using the `ECDH1_DERIVE` mechanism,
+similar to plain DH, except that the mechanism parameter
+is a tuple consisting of 3 parameters:
+
+* a key derivation function (KDF);
+* a shared value; and
+* the other user's public key.
+
+The supported KDFs vary from device to device, check your HSM documentation.
+For :attr:`pkcs11.mechanisms.KDF.NULL` (the most widely supported KDF), the
+shared value must be `None`.
+
+.. note::
+
+    Other ECDH derivation mechanisms including co-factor derivation and MQV
+    derivation are not currently supported.
+
+::
+
+    from pkcs11.constants import KeyType
+    from pkcs11.mechanisms import KDF
+
+    # Given our DH private key `private` and the other party's public key
+    # `other_public`
+    key = private.derive_key(
+        KeyType.AES, 128,
+        mechanism_param=(KDF.NULL, None, other_public))
+
+If you want to extract the shared key from the HSM, you can mark the key
+as `EXTRACTABLE`:
+
+::
+
+    key = private.derive_key(
+        KeyType.AES, 128,
+        mechanism_param=(KDF.NULL, None, other_public),
+        template={
+            Attribute.SENSITIVE: False,
+            Attribute.EXTRACTABLE: True,
+        })
+    # This is our shared secret key
+    print(key[Attribute.VALUE])
 
 Importing Certificates
 ----------------------
