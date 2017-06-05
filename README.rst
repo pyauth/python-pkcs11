@@ -180,17 +180,23 @@ Tested Compatibility
 +--------+---------------------+--------------+-----------------+
 | RSA    | Generate key pair   | Works        | Works           |
 |        +---------------------+--------------+-----------------+
-|        | Encrypt/Decrypt     | Works        | Works           |
+|        | Encrypt/Decrypt     | Partial [5]_ | Partial [5]_    |
 |        +---------------------+--------------+-----------------+
 |        | Wrap/Unwrap         | Works        | Works           |
 |        +---------------------+--------------+-----------------+
-|        | Sign/Verify         | Works        | Works           |
+|        | Sign/Verify         | Works        | Partial [5]_    |
++--------+---------------------+--------------+-----------------+
+| DSA    | Generate parameters | Works        | N/A             |
+|        +---------------------+--------------+-----------------+
+|        | Generate key pair   | Works        | Works           |
+|        +---------------------+--------------+-----------------+
+|        | Sign/Verify         | Works        | Works [4]_      |
 +--------+---------------------+--------------+-----------------+
 | DH     | Generate parameters | Works        | N/A             |
 |        +---------------------+--------------+-----------------+
-|        | Generate key pair   | Works        | Caveats [5]_    |
+|        | Generate key pair   | Works        | Caveats [6]_    |
 |        +---------------------+--------------+-----------------+
-|        | Derive Key          | Works        | Caveats [6]_    |
+|        | Derive Key          | Works        | Caveats [7]_    |
 +--------+---------------------+--------------+-----------------+
 | EC     | Generate key pair   | Caveats [5]_ | ? [3]_          |
 |        +---------------------+--------------+-----------------+
@@ -205,8 +211,9 @@ Tested Compatibility
 .. [2] Digesting keys is not supported.
 .. [3] Untested: requires support in device.
 .. [4] Default mechanism not supported, must specify a mechanism.
-.. [5] Local domain parameters only.
-.. [6] Generates security warnings about the derived key.
+.. [5] Partial support: mechanisms missing
+.. [6] Local domain parameters only.
+.. [7] Generates security warnings about the derived key.
 
 Python version:
 
