@@ -11,7 +11,7 @@ from pkcs11.util.dh import (
     encode_dh_public_key,
 )
 
-from . import TestCase
+from . import TestCase, Not
 
 
 class DHTests(TestCase):
@@ -111,6 +111,7 @@ class DHTests(TestCase):
         self.assertEqual(params[Attribute.PRIME][:4],
                          b'\xAD\x10\x7E\x1E')
 
+    @Not.nfast
     def test_generate_params(self):
         params = self.session.generate_domain_parameters(KeyType.DH, 512)
         self.assertIsInstance(params, DomainParameters)
