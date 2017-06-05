@@ -17,8 +17,7 @@ class ThreadingTests(TestCase):
 
     def test_concurrency(self):
         # Multiplexing a session between processes
-        self.session.generate_key(pkcs11.KeyType.AES, 128,
-                                  store=False, label='LOOK ME UP')
+        self.session.generate_key(pkcs11.KeyType.AES, 128, label='LOOK ME UP')
 
         test_passed = [True]
 

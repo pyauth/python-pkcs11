@@ -36,7 +36,7 @@ class DigestTests(TestCase):
     @Not.nfast
     def test_digest_key(self):
         key = self.session.generate_key(KeyType.AES, 128,
-                                        store=False, template={
+                                        template={
                                             Attribute.SENSITIVE: False,
                                             Attribute.EXTRACTABLE: True,
                                         })
@@ -49,7 +49,7 @@ class DigestTests(TestCase):
     @Not.nfast
     def test_digest_key_data(self):
         key = self.session.generate_key(KeyType.AES, 128,
-                                        store=False, template={
+                                        template={
                                             Attribute.SENSITIVE: False,
                                             Attribute.EXTRACTABLE: True,
                                         })

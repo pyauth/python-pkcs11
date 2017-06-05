@@ -13,7 +13,7 @@ class IteratorTests(TestCase):
 
     def test_partial_decrypt(self):
         self.session.generate_key(pkcs11.KeyType.AES, 128,
-                                  store=False, label='LOOK ME UP')
+                                  label='LOOK ME UP')
 
         key = self.session.get_key(label='LOOK ME UP')
         data = (
@@ -36,7 +36,7 @@ class IteratorTests(TestCase):
     @unittest.expectedFailure
     def test_close_iterators(self):
         self.session.generate_key(pkcs11.KeyType.AES, 128,
-                                  store=False, label='LOOK ME UP')
+                                  label='LOOK ME UP')
 
         key = self.session.get_key(label='LOOK ME UP')
         data = (

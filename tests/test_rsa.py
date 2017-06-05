@@ -13,7 +13,7 @@ class RSATests(TestCase):
         super().setUp()
 
         self.public, self.private = \
-            self.session.generate_keypair(KeyType.RSA, 1024, store=False)
+            self.session.generate_keypair(KeyType.RSA, 1024)
 
     def test_sign(self):
         data = b'HELLO WORLD' * 1024
@@ -40,7 +40,6 @@ class RSATests(TestCase):
 
     def test_key_wrap(self):
         key = self.session.generate_key(KeyType.AES, 128,
-                                        store=False,
                                         template={
                                             Attribute.EXTRACTABLE: True,
                                             Attribute.SENSITIVE: False,
@@ -52,7 +51,6 @@ class RSATests(TestCase):
         key2 = self.private.unwrap_key(ObjectClass.SECRET_KEY,
                                        KeyType.AES,
                                        data,
-                                       store=False,
                                        template={
                                                Attribute.EXTRACTABLE: True,
                                                Attribute.SENSITIVE: False,

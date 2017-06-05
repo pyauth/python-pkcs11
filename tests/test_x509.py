@@ -89,8 +89,7 @@ class X509Tests(TestCase):
 
     def test_self_sign_certificate(self):
         # Warning: proof of concept code only!
-        pub, priv = self.session.generate_keypair(
-            KeyType.RSA, 1024, store=False)
+        pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
 
         cert = rfc2459.Certificate()
         cert['tbsCertificate'] = tbs = rfc2459.TBSCertificate()
@@ -135,8 +134,7 @@ class X509Tests(TestCase):
 
     def test_sign_csr(self):
         # Warning: proof of concept code only!
-        pub, priv = self.session.generate_keypair(
-            KeyType.RSA, 1024, store=False)
+        pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
 
         csr = rfc2314.CertificationRequest()
         csr['certificationRequestInfo'] = info = \

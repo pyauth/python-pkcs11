@@ -66,13 +66,13 @@ class DHTests(TestCase):
         iv = self.session.generate_random(128)
 
         alice_session = alice_private.derive_key(
-            KeyType.AES, 128, store=False,
+            KeyType.AES, 128,
             mechanism_param=bob_value, template={
                 Attribute.SENSITIVE: False,
                 Attribute.EXTRACTABLE: True,
             })
         bob_session = bob_private.derive_key(
-            KeyType.AES, 128, store=False,
+            KeyType.AES, 128,
             mechanism_param=alice_value, template={
                 Attribute.SENSITIVE: False,
                 Attribute.EXTRACTABLE: True,

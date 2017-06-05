@@ -11,8 +11,7 @@ class AESTests(TestCase):
 
     def setUp(self):
         super().setUp()
-        self.key = self.session.generate_key(pkcs11.KeyType.AES, 128,
-                                             store=False)
+        self.key = self.session.generate_key(pkcs11.KeyType.AES, 128)
 
     def test_encrypt(self):
         data = b'INPUT DATA'

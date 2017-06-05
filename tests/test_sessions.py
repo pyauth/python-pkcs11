@@ -27,7 +27,7 @@ class SessionTests(TestCase):
 
     def test_generate_key(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, store=False)
+            key = session.generate_key(pkcs11.KeyType.AES, 128)
             self.assertIsInstance(key, pkcs11.Object)
             self.assertIsInstance(key, pkcs11.SecretKey)
             self.assertIsInstance(key, pkcs11.EncryptMixin)
@@ -51,7 +51,7 @@ class SessionTests(TestCase):
             key = session.generate_key(pkcs11.KeyType.AES, 128,
                                        label='MY KEY',
                                        id=b'\1\2\3\4',
-                                       store=False, capabilities=0)
+                                       capabilities=0)
             self.assertIsInstance(key, pkcs11.Object)
             self.assertIsInstance(key, pkcs11.SecretKey)
             self.assertNotIsInstance(key, pkcs11.EncryptMixin)
@@ -61,7 +61,7 @@ class SessionTests(TestCase):
     def test_generate_keypair(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             pub, priv = session.generate_keypair(
-                pkcs11.KeyType.RSA, 1024, store=False)
+                pkcs11.KeyType.RSA, 1024)
             self.assertIsInstance(pub, pkcs11.PublicKey)
             self.assertIsInstance(priv, pkcs11.PrivateKey)
 
@@ -74,7 +74,7 @@ class SessionTests(TestCase):
     def test_get_objects(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128,
-                                       store=False, label='SAMPLE KEY')
+                                       label='SAMPLE KEY')
 
             search = list(session.get_objects({
                 pkcs11.Attribute.LABEL: 'SAMPLE KEY',
@@ -98,7 +98,7 @@ class SessionTests(TestCase):
     def test_destroy_object(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128,
-                                       store=False, label='SAMPLE KEY')
+                                       label='SAMPLE KEY')
             key.destroy()
 
             self.assertEqual(list(session.get_objects()), [])
@@ -107,7 +107,7 @@ class SessionTests(TestCase):
     def test_copy_object(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128,
-                                       store=False, label='SAMPLE KEY')
+                                       label='SAMPLE KEY')
             new = key.copy({
                 pkcs11.Attribute.LABEL: 'SOMETHING ELSE',
             })
@@ -117,7 +117,7 @@ class SessionTests(TestCase):
     def test_get_key(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             session.generate_key(pkcs11.KeyType.AES, 128,
-                                 store=False, label='SAMPLE KEY')
+                                 label='SAMPLE KEY')
 
             key = session.get_key(label='SAMPLE KEY',)
             self.assertIsInstance(key, pkcs11.SecretKey)
@@ -131,9 +131,9 @@ class SessionTests(TestCase):
     def test_get_key_vague(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             session.generate_key(pkcs11.KeyType.AES, 128,
-                                 store=False, label='SAMPLE KEY')
+                                 label='SAMPLE KEY')
             session.generate_key(pkcs11.KeyType.AES, 128,
-                                 store=False, label='SAMPLE KEY 2')
+                                 label='SAMPLE KEY 2')
 
             with self.assertRaises(pkcs11.MultipleObjectsReturned):
                 session.get_key(key_type=pkcs11.KeyType.AES)

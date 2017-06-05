@@ -320,8 +320,50 @@ of the binary DER object. The label indicates the type of object, and thus
 what ASN.1 model to use. `python-pkcs11` does not include PEM parsing,
 you should include another package if required.
 
+Getting a Session
+-----------------
+
+Given a PKCS #11 library (`.so`) that is stored in the environment as
+`PKCS11_MODULE`.
+
+To open a read-only session on a token named `smartcard`:
+
+::
+
+    import pkcs11
+
+    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+    token = lib.get_token(token_label='smartcard')
+
+    with token.open() as session:
+        print(session)
+
+To open a user session with the passphrase/pin `secret`:
+
+::
+
+    with token.open(user_pin='secret') as session:
+        print(session)
+
+To open a read/write session:
+
+::
+
+    with token.open(rw=True, user_pin='secret') as session:
+        print(session)
+
+.. seealso::
+
+    :meth:`pkcs11.Token.open` has more options for opening the session.
+
 Generating Keys
 ---------------
+
+Keys can either live for the lifetime of the `session` or be stored on the
+token. Storing keys requires a read only session.
+
+To store keys pass `store=True`. When storing keys it is recommended to set
+a `label` or `id`, so you can find the key again.
 
 Symmetric Keys
 ~~~~~~~~~~~~~~
@@ -429,7 +471,7 @@ Diffie-Hellman key pairs require several domain parameters, specified as
 
     from pkcs11 import Attribute
 
-    parameters = self.session.create_domain_parameters(KeyType.DH, {
+    parameters = session.create_domain_parameters(KeyType.DH, {
         Attribute.PRIME: b'prime...',
         Attribute.BASE: b'base...',
     }, local=True)
@@ -442,7 +484,7 @@ standard ASN.1 encoding for DH parameters, which can be loaded with
 
 ::
 
-    params = self.session.create_domain_parameters(
+    params = session.create_domain_parameters(
         KeyType.X9_42_DH,
         decode_x9_42_dh_domain_parameters(b'DER-encoded parameters'),
         local=True)
@@ -454,7 +496,7 @@ If supported, unique domain parameters can also be generated for a given
 
 ::
 
-    params = self.session.generate_domain_parameters(KeyType.DH, 512)
+    params = session.generate_domain_parameters(KeyType.DH, 512)
 
 X9.42 format domain parameters can be encoded back to their RFC 3279 format
 with :func:`pkcs11.util.dh.encode_x9_42_dh_domain_parameters`.

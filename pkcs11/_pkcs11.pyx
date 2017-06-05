@@ -234,7 +234,7 @@ class Session(types.Session):
 
     def generate_key(self, key_type, key_length,
                      id=None, label=None,
-                     store=True, capabilities=None,
+                     store=False, capabilities=None,
                      mechanism=None, mechanism_param=None,
                      template=None):
 
@@ -286,7 +286,7 @@ class Session(types.Session):
 
     def generate_keypair(self, key_type, key_length,
                          id=None, label=None,
-                         store=True, capabilities=None,
+                         store=False, capabilities=None,
                          mechanism=None, mechanism_param=None,
                          public_template=None, private_template=None):
 
