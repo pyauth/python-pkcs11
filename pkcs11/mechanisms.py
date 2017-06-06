@@ -1,7 +1,9 @@
 from enum import IntEnum
 
+from ._enum import VendorExtendableEnum
 
-class KeyType(IntEnum):
+
+class KeyType(VendorExtendableEnum):
     """
     Key types known by PKCS#11.
 
@@ -89,13 +91,13 @@ class KeyType(IntEnum):
     GOSTR3411 = 0x00000031
     GOST28147 = 0x00000032
 
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
         return '<KeyType.%s>' % self.name
 
 
-class Mechanism(IntEnum):
+class Mechanism(VendorExtendableEnum):
     """
     Cryptographic mechanisms known by PKCS#11.
 
@@ -627,7 +629,7 @@ class Mechanism(IntEnum):
     AES_CFB8 = 0x00002106
     AES_CFB128 = 0x00002107
 
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
         return '<Mechanism.%s>' % self.name

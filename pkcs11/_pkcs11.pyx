@@ -24,7 +24,6 @@ from .mechanisms import *
 from .types import (
     _CK_UTF8CHAR_to_str,
     _CK_VERSION_to_tuple,
-    _CK_MECHANISM_TYPE_to_enum,
 )
 
 
@@ -83,7 +82,7 @@ class Slot(types.Slot):
 
         assertRV(C_GetMechanismList(self.slot_id, &mechanisms[0], &count))
 
-        return set(map(_CK_MECHANISM_TYPE_to_enum, mechanisms))
+        return set(map(Mechanism, mechanisms))
 
     def get_mechanism_info(self, mechanism):
         cdef CK_MECHANISM_INFO info

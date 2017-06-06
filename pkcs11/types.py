@@ -15,7 +15,6 @@ from .constants import (
     TokenFlag,
     UserType,
 )
-from .mechanisms import Mechanism
 from .exceptions import (
     ArgumentsBad,
     AttributeTypeInvalid,
@@ -36,14 +35,6 @@ def _CK_UTF8CHAR_to_str(data):
 def _CK_VERSION_to_tuple(data):
     """Convert CK_VERSION to tuple."""
     return (data['major'], data['minor'])
-
-
-def _CK_MECHANISM_TYPE_to_enum(mechanism):
-    """Convert CK_MECHANISM_TYPE to enum or be okay."""
-    try:
-        return Mechanism(mechanism)
-    except ValueError:
-        return mechanism
 
 
 class MechanismInfo:

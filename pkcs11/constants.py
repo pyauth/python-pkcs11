@@ -10,6 +10,8 @@ try:
 except ImportError:
     from aenum import IntEnum, IntFlag, unique
 
+from ._enum import VendorExtendableEnum
+
 
 @unique
 class UserType(IntEnum):
@@ -25,7 +27,7 @@ class UserType(IntEnum):
     USER = 1
 
 
-class ObjectClass(IntEnum):
+class ObjectClass(VendorExtendableEnum):
     """
     PKCS#11 :class:`Object` class.
 
@@ -44,7 +46,7 @@ class ObjectClass(IntEnum):
     MECHANISM = 0x00000007
     OTP_KEY = 0x00000008
 
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
         return '<ObjectClass.%s>' % self.name
@@ -54,7 +56,7 @@ _ARRAY_ATTRIBUTE = 0x40000000
 """Attribute consists of an array of values."""
 
 
-class Attribute(IntEnum):
+class Attribute(VendorExtendableEnum):
     """
     PKCS#11 object attributes.
 
@@ -328,20 +330,21 @@ class Attribute(IntEnum):
     SUPPORTED_CMS_ATTRIBUTES = 0x00000503
     ALLOWED_MECHANISMS = (_ARRAY_ATTRIBUTE | 0x00000600)
 
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
         return '<Attribute.%s>' % self.name
 
 
-class CertificateType(IntEnum):
+class CertificateType(VendorExtendableEnum):
     """
     Certificate type of a :class:`pkcs11.Certificate`.
     """
     X_509 = 0x00000000
     X_509_ATTR_CERT = 0x00000001
     WTLS = 0x00000002
-    VENDOR_DEFINED = 0x80000000
+
+    _VENDOR_DEFINED = 0x80000000
 
 
 @unique
