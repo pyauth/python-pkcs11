@@ -89,7 +89,7 @@ class KeyType(IntEnum):
     GOSTR3411 = 0x00000031
     GOST28147 = 0x00000032
 
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
         return '<KeyType.%s>' % self.name
@@ -130,6 +130,16 @@ class Mechanism(IntEnum):
     """
     RSA_PKCS_TPM_1_1 = 0x00004001
     RSA_PKCS_OAEP = 0x00000009
+    """
+    Requires a `mechanism_param` which is a tuple of:
+
+    * message digest algorithm used to calculate the digest of the
+      encoding parameter (:class:`Mechanism`);
+    * mask generation function to use on the encoded block
+      (:class:`MGF`);
+    * data used as the input for the encoding parameter source
+      (:class:`bytes`).
+    """
     RSA_PKCS_OAEP_TPM_1_1 = 0x00004002
     RSA_X_509 = 0x00000003
     """
@@ -627,7 +637,7 @@ class Mechanism(IntEnum):
     AES_CFB8 = 0x00002106
     AES_CFB128 = 0x00002107
 
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
         return '<Mechanism.%s>' % self.name
@@ -650,3 +660,17 @@ class KDF(IntEnum):
 
     def __repr__(self):
         return '<KDF.%s>' % self.name
+
+
+class MGF(IntEnum):
+    """
+    RSA PKCS #1 Mask Generation Functions.
+    """
+    SHA1 = 0x00000001
+    SHA256 = 0x00000002
+    SHA384 = 0x00000003
+    SHA512 = 0x00000004
+    SHA224 = 0x00000005
+
+    def __repr__(self):
+        return '<MGF.%s>' % self.name

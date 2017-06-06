@@ -44,7 +44,7 @@ class ObjectClass(IntEnum):
     MECHANISM = 0x00000007
     OTP_KEY = 0x00000008
 
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
         return '<ObjectClass.%s>' % self.name
@@ -328,7 +328,7 @@ class Attribute(IntEnum):
     SUPPORTED_CMS_ATTRIBUTES = 0x00000503
     ALLOWED_MECHANISMS = (_ARRAY_ATTRIBUTE | 0x00000600)
 
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
         return '<Attribute.%s>' % self.name
@@ -341,7 +341,7 @@ class CertificateType(IntEnum):
     X_509 = 0x00000000
     X_509_ATTR_CERT = 0x00000001
     WTLS = 0x00000002
-    VENDOR_DEFINED = 0x80000000
+    _VENDOR_DEFINED = 0x80000000
 
 
 @unique
