@@ -33,6 +33,7 @@ class ObjectClass(IntEnum):
     """
     DATA = 0x00000000
     CERTIFICATE = 0x00000001
+    """See :class:`pkcs11.Certificate`."""
     PUBLIC_KEY = 0x00000002
     """See :class:`pkcs11.PublicKey`."""
     PRIVATE_KEY = 0x00000003
@@ -41,6 +42,7 @@ class ObjectClass(IntEnum):
     """See :class:`pkcs11.SecretKey`."""
     HW_FEATURE = 0x00000005
     DOMAIN_PARAMETERS = 0x00000006
+    """See :class:`pkcs11.DomainParameters`."""
     MECHANISM = 0x00000007
     OTP_KEY = 0x00000008
 
