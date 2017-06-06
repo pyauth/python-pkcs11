@@ -2,6 +2,7 @@
 PKCS#11 RSA Public Key Cryptography
 """
 
+import pkcs11
 from pkcs11 import Attribute, KeyType, ObjectClass, Mechanism, MGF
 
 from . import TestCase, Not
@@ -90,3 +91,11 @@ class RSATests(TestCase):
 
         self.assertTrue(self.public.verify(
             data, signature, mechanism=Mechanism.SHA1_RSA_PKCS_PSS))
+
+    def test_encrypt_too_much_data(self):
+        data = b'1234' * 128
+
+        # You can't encrypt lots of data with RSA
+        # This should ideally throw DataLen but you can't trust it
+        with self.assertRaises(pkcs11.PKCS11Error):
+            self.public.encrypt(data)
