@@ -19,4 +19,4 @@ export PKCS11_MODULE=/opt/nfast/toolkits/pkcs11/libcknfast.so
 export PKCS11_TOKEN_LABEL='loadshared accelerator'
 export PKCS11_TOKEN_PIN='0000'
 
-python -m unittest
+python -m unittest -v

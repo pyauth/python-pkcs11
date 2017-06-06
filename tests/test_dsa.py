@@ -26,7 +26,6 @@ ouQbj2Vq
 
 class DSATests(TestCase):
 
-    @Not.nfast
     def test_generate_params(self):
         parameters = self.session.generate_domain_parameters(KeyType.DSA, 1024)
         self.assertIsInstance(parameters, pkcs11.DomainParameters)
