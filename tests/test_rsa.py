@@ -83,10 +83,10 @@ class RSATests(TestCase):
 
         # These are the default params
         signature = self.private.sign(data,
-                                      mechanism=Mechanism.RSA_PKCS_PSS,
+                                      mechanism=Mechanism.SHA1_RSA_PKCS_PSS,
                                       mechanism_param=(Mechanism.SHA_1,
                                                        MGF.SHA1,
                                                        20))
 
-        self.assertTrue(self.public.verify(data, signature,
-                                           mechanism=Mechanism.RSA_PKCS_PSS))
+        self.assertTrue(self.public.verify(
+            data, signature, mechanism=Mechanism.SHA1_RSA_PKCS_PSS))
