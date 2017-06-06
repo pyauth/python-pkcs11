@@ -402,6 +402,25 @@ You can do the following:
     VALUE
         Secret key (as `biginteger`).
 
+DES2/3
+^^^^^^
+
+.. warning::
+
+    DES2 and DES3 are considered insecure because their short key lengths
+    are brute forcable with modern hardware.
+
+DES2/3 keys are fixed length.
+
+::
+
+    from pkcs11 import KeyType
+
+    des2 = session.generate_key(KeyType.DES2)
+    des3 = session.generate_key(KeyType.DES3)
+
+These secret key objects have the same parameters as for AES.
+
 Asymmetric Keypairs
 ~~~~~~~~~~~~~~~~~~~
 
@@ -668,6 +687,32 @@ The public key as a single important attribute:
 Encryption/Decryption
 ---------------------
 
+Ciphers can generally be considered in two categories:
+
+* Symmetric ciphers (e.g. AES), which use a single key to encrypt and decrypt,
+  and are good at encrypting large amounts of data; and
+* Asymmetric ciphers (e.g. RSA), which use separate public and private keys,
+  and are good for securing small amounts of data.
+
+Symmetric ciphers operate on blocks of data, and thus are used along with
+a `block mode <https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation>`_.
+`python-pkcs11` can consume block mode ciphers via a generator.
+
+Asymmetric ciphers are used for public-key cryptography. They cannot encrypt
+large amounts of data. Typically these ciphers are used to encrypt a
+symmetric session key, which does the bulk of the work, in a so-called hybrid
+cryptosystem.
+
++----------+-------------+---------------------+------------------+
+| Cipher   | Block modes | Block Size (IV len) | Mechanism Param  |
++==========+=============+=====================+==================+
+| AES      | Yes         | 128 bits            | IV (except EBC)  |
++----------+-------------+---------------------+------------------+
+| DES2/3   | Yes         | 64 bits             | IV (except EBC)  |
++----------+-------------+---------------------+------------------+
+| RSA      | No          | N/A                 | Optional         |
++----------+-------------+---------------------+------------------+
+
 AES
 ~~~
 
@@ -774,6 +819,25 @@ Large amounts of data can be passed as a generator:
     e.g. on the front of the ciphertext. It is safe to store an IV in the
     clear.
 
+DES2/3
+~~~~~~
+
+.. warning::
+
+    DES2 and DES3 are considered insecure because their short key lengths
+    are brute forcable with modern hardware.
+
+DES2/3 have the same block mode options as AES. The block size is 64 bits,
+which is the size of the initialization vector.
+
+::
+
+    # Given an DES3 key `key`
+    iv = session.generate_random(64)
+    ciphertext = key.encrypt(plaintext, mechanism_param=iv)
+
+    plaintext = key.decrypt(ciphertext, mechanism_param=iv)
+
 RSA
 ~~~
 
@@ -848,6 +912,14 @@ your implementation.
     signature = key.sign(data)
 
     assert key.verify(data, signature)
+
+DES2/3
+~~~~~~
+
+A `MAC` is required for signing with DES. The default mechanism is
+`SHA512_HMAC` (aka HMAC-SHA512).
+
+Operation is the same as for `AES`.
 
 RSA
 ~~~
@@ -964,6 +1036,10 @@ Key wrapping mechanisms usually mirror encryption mechanisms.
 AES
 ~~~
 
+Default key wrapping mode is `AES_ECB`. ECB is considered safe for key wrapping
+due to the lack of repeating blocks. Other mechanisms, such as the new
+`AES_KEY_WRAP` (if available), are also possible..
+
 The key we're wrapping can be any sensitive key, either a secret key or
 a private key. In this example we're extracting an AES secret key:
 
@@ -979,6 +1055,14 @@ to import the key.
 ::
 
     key = key1.unwrap_key(ObjectClass.SECRET_KEY, KeyType.AES, crypttext)
+
+DES2/3
+~~~~~~
+
+Default key wrapping mode is `DES3_ECB`. ECB is considered safe for key
+wrapping due to the lack of repeating blocks. Other mechanisms are available.
+
+Operation is the same as for `AES`.
 
 RSA
 ~~~
@@ -1003,6 +1087,15 @@ to import the key.
 
 Deriving Shared Keys
 --------------------
+
+.. warning::
+
+    Key derivation mechanisms do not verify the authenticity of the other
+    party. Your application should include a mechanism to verify the other
+    user's public key is really from that user to avoid man-in-the-middle
+    attacks.
+
+    Where possible use an existing protocol.
 
 Diffie-Hellman
 ~~~~~~~~~~~~~~

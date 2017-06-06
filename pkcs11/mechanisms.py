@@ -48,7 +48,13 @@ class KeyType(IntEnum):
     _RC4 = 0x00000012
     _DES = 0x00000013
     DES2 = 0x00000014
+    """
+    .. warning:: Considered insecure. Use AES where possible.
+    """
     DES3 = 0x00000015
+    """
+    .. warning:: Considered insecure. Use AES where possible.
+    """
     _CAST = 0x00000016
     _CAST3 = 0x00000017
     _CAST5 = 0x00000018
@@ -284,16 +290,34 @@ class Mechanism(IntEnum):
     _DES_CBC_PAD = 0x00000125
 
     DES2_KEY_GEN = 0x00000130
+    """
+    .. note:: Default for generating DES2 keys.
+
+    .. warning:: Considered insecure. Use AES where possible.
+    """
     DES3_KEY_GEN = 0x00000131
+    """
+    .. note:: Default for generating DES3 keys.
+
+    .. warning:: Considered insecure. Use AES where possible.
+    """
     DES3_ECB = 0x00000132
     """
+    .. note:: Default for key wrapping with DES2/3.
+
     .. warning:: Identical blocks will encipher to the same result.
+        Considered insecure. Use AES where possible.
     """
     DES3_CBC = 0x00000133
     DES3_MAC = 0x00000134
 
     DES3_MAC_GENERAL = 0x00000135
     DES3_CBC_PAD = 0x00000136
+    """
+    .. note:: Default for encryption/decryption with DES2/3.
+
+    .. warning:: Considered insecure. Use AES where possible.
+    """
     DES3_CMAC_GENERAL = 0x00000137
     DES3_CMAC = 0x00000138
 
