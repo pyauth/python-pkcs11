@@ -14,6 +14,8 @@ cdef extern from '../extern/pkcs11.h':
     ctypedef CK_ULONG CK_FLAGS
     ctypedef CK_ULONG CK_MECHANISM_TYPE
     ctypedef CK_ULONG CK_OBJECT_HANDLE
+    ctypedef CK_ULONG CK_RSA_PKCS_MGF_TYPE
+    ctypedef CK_ULONG CK_RSA_PKCS_OAEP_SOURCE_TYPE
     ctypedef CK_ULONG CK_SESSION_HANDLE
     ctypedef CK_ULONG CK_SLOT_ID
 
@@ -148,6 +150,9 @@ cdef extern from '../extern/pkcs11.h':
         CKF_RW_SESSION,
         CKF_SERIAL_SESSION,
 
+    cdef enum:  # CKZ
+        CKZ_DATA_SPECIFIED,
+
     ctypedef struct CK_VERSION:
         CK_BYTE major
         CK_BYTE minor
@@ -203,6 +208,13 @@ cdef extern from '../extern/pkcs11.h':
         CK_ATTRIBUTE_TYPE type
         void *pValue
         CK_ULONG ulValueLen
+
+    ctypedef struct CK_RSA_PKCS_OAEP_PARAMS:
+        CK_MECHANISM_TYPE hashAlg
+        CK_RSA_PKCS_MGF_TYPE mgf
+        CK_RSA_PKCS_OAEP_SOURCE_TYPE source
+        void *pSourceData
+        CK_ULONG ulSourceDataLen
 
     ctypedef struct CK_ECDH1_DERIVE_PARAMS:
         CK_EC_KDF_TYPE kdf

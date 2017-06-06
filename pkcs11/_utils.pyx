@@ -18,37 +18,6 @@ cdef CK_ULONG_buffer(length):
     return array(shape=(length,), itemsize=sizeof(CK_ULONG), format='L')
 
 
-cdef CK_MECHANISM _make_CK_MECHANISM(key_type, default_map,
-                                     mechanism=None, param=None) except *:
-    """Build a CK_MECHANISM."""
-
-    if mechanism is None:
-        try:
-            mechanism = default_map[key_type]
-        except KeyError:
-            raise ArgumentsBad("No default mechanism for this key type. "
-                                "Please specify `mechanism`.")
-
-    if not isinstance(mechanism, Mechanism):
-        raise ArgumentsBad("`mechanism` must be a Mechanism.")
-
-    cdef CK_MECHANISM mech
-    mech.mechanism = mechanism.value
-
-    if param is None:
-        mech.pParameter = NULL
-        mech.ulParameterLen = 0
-
-    elif isinstance(param, bytes):
-        mech.pParameter = <CK_CHAR *> param
-        mech.ulParameterLen = len(param)
-
-    else:
-        raise ArgumentsBad("Unexpected argument to mechanism_param")
-
-    return mech
-
-
 cdef bytes _pack_attribute(key, value):
     """Pack a Attribute value into a bytes array."""
 

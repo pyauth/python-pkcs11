@@ -64,6 +64,80 @@ cdef class AttributeList:
         PyMem_Free(self.data)
 
 
+cdef class MechanismWithParam:
+    """
+    Python wrapper for a Mechanism with its parameter
+    """
+
+    cdef CK_MECHANISM *data
+    """The mechanism."""
+    cdef void *param
+    """Reference to a pointer we might need to free."""
+
+    def __cinit__(self, *args):
+        self.data = <CK_MECHANISM *> PyMem_Malloc(sizeof(CK_MECHANISM))
+        self.param = NULL
+
+    def __init__(self, key_type, mapping, mechanism=None, param=None):
+        if mechanism is None:
+            try:
+                mechanism = mapping[key_type]
+            except KeyError:
+                raise ArgumentsBad("No default mechanism for this key type. "
+                                    "Please specify `mechanism`.")
+
+        if not isinstance(mechanism, Mechanism):
+            raise ArgumentsBad("`mechanism` must be a Mechanism.")
+        # Possible types of parameters we might need to allocate
+        # FIXME: is there a better way to do this?
+        cdef CK_RSA_PKCS_OAEP_PARAMS *oaep_params
+        cdef CK_ECDH1_DERIVE_PARAMS *ecdh1_params
+
+        if param is None:
+            self.data.pParameter = NULL
+            paramlen = 0
+
+        elif isinstance(param, bytes):
+            self.data.pParameter = <CK_BYTE *> param
+            paramlen = len(param)
+
+        elif mechanism is Mechanism.RSA_PKCS_OAEP:
+            paramlen = sizeof(CK_RSA_PKCS_OAEP_PARAMS)
+            self.param = oaep_params = \
+                <CK_RSA_PKCS_OAEP_PARAMS *> PyMem_Malloc(paramlen)
+            # FIXME: unpack the arguments
+
+        elif mechanism is Mechanism.ECDH1_DERIVE:
+            paramlen = sizeof(CK_ECDH1_DERIVE_PARAMS)
+            self.param = ecdh1_params = \
+                <CK_ECDH1_DERIVE_PARAMS *> PyMem_Malloc(paramlen)
+
+            (ecdh1_params.kdf, shared_data, public_data) = param
+
+            if shared_data is None:
+                ecdh1_params.pSharedData = NULL
+                ecdh1_params.ulSharedDataLen = 0
+            else:
+                ecdh1_params.pSharedData = shared_data
+                ecdh1_params.ulSharedDataLen = len(shared_data)
+
+            ecdh1_params.pPublicData = public_data
+            ecdh1_params.ulPublicDataLen = len(public_data)
+
+        else:
+            raise ArgumentsBad("Unexpected argument to mechanism_param")
+
+        self.data.mechanism = mechanism
+        self.data.ulParameterLen = paramlen
+
+        if self.param != NULL:
+            self.data.pParameter = self.param
+
+    def __dealloc__(self):
+        PyMem_Free(self.data)
+        PyMem_Free(self.param)
+
+
 class Slot(types.Slot):
     """Extend Slot with implementation."""
 
@@ -211,22 +285,22 @@ class Session(types.Session):
         if not isinstance(param_length, int):
             raise ArgumentsBad("`param_length` is the length in bits.")
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(key_type, DEFAULT_PARAM_GENERATE_MECHANISMS,
-                               mechanism, mechanism_param)
-        cdef CK_OBJECT_HANDLE obj
+        mech = MechanismWithParam(
+            key_type, DEFAULT_PARAM_GENERATE_MECHANISMS,
+            mechanism, mechanism_param)
 
         template_ = {
             Attribute.CLASS: ObjectClass.DOMAIN_PARAMETERS,
             Attribute.TOKEN: store,
             Attribute.PRIME_BITS: param_length,
         }
-
         template_.update(template or {})
         attrs = AttributeList(template_)
 
+        cdef CK_OBJECT_HANDLE obj
+
         assertRV(C_GenerateKey(self._handle,
-                               &mech,
+                               mech.data,
                                attrs.data, attrs.count,
                                &obj))
 
@@ -251,10 +325,9 @@ class Session(types.Session):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(key_type, DEFAULT_GENERATE_MECHANISMS,
-                               mechanism, mechanism_param)
-        cdef CK_OBJECT_HANDLE key
+        mech = MechanismWithParam(
+            key_type, DEFAULT_GENERATE_MECHANISMS,
+            mechanism, mechanism_param)
 
         # Build attributes
         template_ = {
@@ -277,8 +350,10 @@ class Session(types.Session):
         template_.update(template or {})
         attrs = AttributeList(template_)
 
+        cdef CK_OBJECT_HANDLE key
+
         assertRV(C_GenerateKey(self._handle,
-                               &mech,
+                               mech.data,
                                attrs.data, attrs.count,
                                &key))
 
@@ -303,11 +378,9 @@ class Session(types.Session):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(key_type, DEFAULT_GENERATE_MECHANISMS,
-                               mechanism, mechanism_param)
-        cdef CK_OBJECT_HANDLE public_key
-        cdef CK_OBJECT_HANDLE private_key
+        mech = MechanismWithParam(
+            key_type, DEFAULT_GENERATE_MECHANISMS,
+            mechanism, mechanism_param)
 
         # Build attributes
         public_template_ = {
@@ -348,8 +421,11 @@ class Session(types.Session):
         private_template_.update(private_template or {})
         private_attrs = AttributeList(private_template_)
 
+        cdef CK_OBJECT_HANDLE public_key
+        cdef CK_OBJECT_HANDLE private_key
+
         assertRV(C_GenerateKeyPair(self._handle,
-                                   &mech,
+                                   mech.data,
                                    public_attrs.data, public_attrs.count,
                                    private_attrs.data, private_attrs.count,
                                    &public_key, &private_key))
@@ -371,13 +447,13 @@ class Session(types.Session):
 
     def _digest(self, data, mechanism=None, mechanism_param=None):
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(None, {}, mechanism, mechanism_param)
+        mech = MechanismWithParam(None, {}, mechanism, mechanism_param)
+
         cdef CK_BYTE [:] digest
         cdef CK_ULONG length
 
         with self._operation_lock:
-            assertRV(C_DigestInit(self._handle, &mech))
+            assertRV(C_DigestInit(self._handle, mech.data))
 
             # Run once to get the length
             assertRV(C_Digest(self._handle,
@@ -393,13 +469,13 @@ class Session(types.Session):
             return bytes(digest[:length])
 
     def _digest_generator(self, data, mechanism=None, mechanism_param=None):
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(None, {}, mechanism, mechanism_param)
+        mech = MechanismWithParam(None, {}, mechanism, mechanism_param)
+
         cdef CK_BYTE [:] digest
         cdef CK_ULONG length
 
         with self._operation_lock:
-            assertRV(C_DigestInit(self._handle, &mech))
+            assertRV(C_DigestInit(self._handle, mech.data))
 
             for block in data:
                 if isinstance(block, types.Key):
@@ -537,11 +613,9 @@ class DomainParameters(types.DomainParameters):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_GENERATE_MECHANISMS,
-                               mechanism, mechanism_param)
-        cdef CK_OBJECT_HANDLE public_key
-        cdef CK_OBJECT_HANDLE private_key
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_GENERATE_MECHANISMS,
+            mechanism, mechanism_param)
 
         # Build attributes
         public_template_ = {
@@ -588,8 +662,11 @@ class DomainParameters(types.DomainParameters):
         private_template_.update(private_template or {})
         private_attrs = AttributeList(private_template_)
 
+        cdef CK_OBJECT_HANDLE public_key
+        cdef CK_OBJECT_HANDLE private_key
+
         assertRV(C_GenerateKeyPair(self.session._handle,
-                                   &mech,
+                                   mech.data,
                                    public_attrs.data, public_attrs.count,
                                    private_attrs.data, private_attrs.count,
                                    &public_key, &private_key))
@@ -610,14 +687,16 @@ class EncryptMixin(types.EncryptMixin):
         """
         Non chunking encrypt. Needed for some mechanisms.
         """
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
+            mechanism, mechanism_param)
+
         cdef CK_BYTE [:] ciphertext
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
+            assertRV(C_EncryptInit(self.session._handle,
+                                   mech.data, self._handle))
 
             # Call to find out the buffer length
             assertRV(C_Encrypt(self.session._handle,
@@ -646,14 +725,16 @@ class EncryptMixin(types.EncryptMixin):
 
         FIXME: cancel the operation when we exit the generator early.
         """
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
+            mechanism, mechanism_param)
+
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
         with self.session._operation_lock:
-            assertRV(C_EncryptInit(self.session._handle, &mech, self._handle))
+            assertRV(C_EncryptInit(self.session._handle,
+                                   mech.data, self._handle))
 
             for part_in in data:
                 if not part_in:
@@ -681,14 +762,16 @@ class DecryptMixin(types.DecryptMixin):
     def _decrypt(self, data,
                  mechanism=None, mechanism_param=None):
         """Non chunking decrypt."""
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
+            mechanism, mechanism_param)
+
         cdef CK_BYTE [:] plaintext
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(C_DecryptInit(self.session._handle, &mech, self._handle))
+            assertRV(C_DecryptInit(self.session._handle,
+                                   mech.data, self._handle))
 
             # Call to find out the buffer length
             assertRV(C_Decrypt(self.session._handle,
@@ -717,14 +800,16 @@ class DecryptMixin(types.DecryptMixin):
 
         FIXME: cancel the operation when we exit the generator early.
         """
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
+            mechanism, mechanism_param)
+
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
         with self.session._operation_lock:
-            assertRV(C_DecryptInit(self.session._handle, &mech, self._handle))
+            assertRV(C_DecryptInit(self.session._handle,
+                                   mech.data, self._handle))
 
             for part_in in data:
                 if not part_in:
@@ -753,14 +838,15 @@ class SignMixin(types.SignMixin):
     def _sign(self, data,
               mechanism=None, mechanism_param=None):
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_SIGN_MECHANISMS,
+            mechanism, mechanism_param)
+
         cdef CK_BYTE [:] signature
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(C_SignInit(self.session._handle, &mech, self._handle))
+            assertRV(C_SignInit(self.session._handle, mech.data, self._handle))
 
             # Call to find out the buffer length
             assertRV(C_Sign(self.session._handle,
@@ -778,14 +864,15 @@ class SignMixin(types.SignMixin):
     def _sign_generator(self, data,
                         mechanism=None, mechanism_param=None):
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_SIGN_MECHANISMS,
+            mechanism, mechanism_param)
+
         cdef CK_BYTE [:] signature
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(C_SignInit(self.session._handle, &mech, self._handle))
+            assertRV(C_SignInit(self.session._handle, mech.data, self._handle))
 
             for part_in in data:
                 if not part_in:
@@ -813,12 +900,13 @@ class VerifyMixin(types.VerifyMixin):
     def _verify(self, data, signature,
                 mechanism=None, mechanism_param=None):
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_SIGN_MECHANISMS,
+            mechanism, mechanism_param)
 
         with self.session._operation_lock:
-            assertRV(C_VerifyInit(self.session._handle, &mech, self._handle))
+            assertRV(C_VerifyInit(self.session._handle,
+                                  mech.data, self._handle))
 
             # Call to find out the buffer length
             assertRV(C_Verify(self.session._handle,
@@ -828,12 +916,13 @@ class VerifyMixin(types.VerifyMixin):
     def _verify_generator(self, data, signature,
                           mechanism=None, mechanism_param=None):
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_SIGN_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_SIGN_MECHANISMS,
+            mechanism, mechanism_param)
 
         with self.session._operation_lock:
-            assertRV(C_VerifyInit(self.session._handle, &mech, self._handle))
+            assertRV(C_VerifyInit(self.session._handle,
+                                  mech.data, self._handle))
 
             for part_in in data:
                 if not part_in:
@@ -856,15 +945,15 @@ class WrapMixin(types.WrapMixin):
         if not isinstance(key, types.Key):
             raise ArgumentsBad("`key` must be a Key.")
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_WRAP_MECHANISMS,
-                               mechanism, mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_WRAP_MECHANISMS,
+            mechanism, mechanism_param)
 
         cdef CK_ULONG length
 
         # Find out how many bytes we need to allocate
         assertRV(C_WrapKey(self.session._handle,
-                           &mech,
+                           mech.data,
                            self._handle,
                            key._handle,
                            NULL, &length))
@@ -872,7 +961,7 @@ class WrapMixin(types.WrapMixin):
         cdef CK_BYTE [:] data = CK_BYTE_buffer(length)
 
         assertRV(C_WrapKey(self.session._handle,
-                           &mech,
+                           mech.data,
                            self._handle,
                            key._handle,
                            &data[0], &length))
@@ -902,10 +991,9 @@ class UnwrapMixin(types.UnwrapMixin):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        cdef CK_MECHANISM mech = \
-            _make_CK_MECHANISM(self.key_type, DEFAULT_WRAP_MECHANISMS,
-                               mechanism, mechanism_param)
-        cdef CK_OBJECT_HANDLE key
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_WRAP_MECHANISMS,
+            mechanism, mechanism_param)
 
         # Build attributes
         template_ = {
@@ -926,8 +1014,10 @@ class UnwrapMixin(types.UnwrapMixin):
         template_.update(template or {})
         attrs = AttributeList(template_)
 
+        cdef CK_OBJECT_HANDLE key
+
         assertRV(C_UnwrapKey(self.session._handle,
-                             &mech,
+                             mech.data,
                              self._handle,
                              key_data, len(key_data),
                              attrs.data, attrs.count,
@@ -958,36 +1048,9 @@ class DeriveMixin(types.DeriveMixin):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        cdef CK_MECHANISM mech
-        cdef CK_ECDH1_DERIVE_PARAMS ecdh1_params
-        cdef CK_OBJECT_HANDLE key
-
-        # Do the mechanism param ourselves so we can handle complex mechanism
-        # params like ECDH1.
-        # FIXME: this won't scale, we need a better solution than this!
-        mech = _make_CK_MECHANISM(self.key_type,
-                                  DEFAULT_DERIVE_MECHANISMS,
-                                  mechanism, None)
-
-        if mech.mechanism == Mechanism.ECDH1_DERIVE:
-            mech.pParameter = &ecdh1_params
-            mech.ulParameterLen = sizeof(CK_ECDH1_DERIVE_PARAMS)
-
-            (kdf, shared_data, public_data) = mechanism_param
-            ecdh1_params.kdf = kdf
-
-            if shared_data is None:
-                ecdh1_params.pSharedData = NULL
-                ecdh1_params.ulSharedDataLen = 0
-            else:
-                ecdh1_params.pSharedData = shared_data
-                ecdh1_params.ulSharedDataLen = len(shared_data)
-
-            ecdh1_params.pPublicData = public_data
-            ecdh1_params.ulPublicDataLen = len(public_data)
-        else:
-            mech.pParameter = <CK_CHAR *> mechanism_param
-            mech.ulParameterLen = len(mechanism_param)
+        mech = MechanismWithParam(
+            self.key_type, DEFAULT_DERIVE_MECHANISMS,
+            mechanism, mechanism_param)
 
         # Build attributes
         template_ = {
@@ -1011,8 +1074,10 @@ class DeriveMixin(types.DeriveMixin):
         template_.update(template or {})
         attrs = AttributeList(template_)
 
+        cdef CK_OBJECT_HANDLE key
+
         assertRV(C_DeriveKey(self.session._handle,
-                             &mech,
+                             mech.data,
                              self._handle,
                              attrs.data, attrs.count,
                              &key))
