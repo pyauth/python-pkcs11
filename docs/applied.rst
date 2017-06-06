@@ -844,11 +844,15 @@ Other mechanisms are available:
 | SHA*_RSA_PKCS_PSS |                                           |
 +-------------------+-------------------------------------------+
 | RSA_9796          | ISO/IES 9796 RSA signing.                 |
+|                   | Use `PSS` instead.                        |
 +-------------------+-------------------------------------------+
 | RSA_X_509         | X.509 (raw) RSA signing.                  |
+|                   | You must supply your own padding.         |
 +-------------------+-------------------------------------------+
 | RSA_X9_31         | X9.31 RSA signing.                        |
 +-------------------+-------------------------------------------+
+
+Simple example using the default mechanism:
 
 ::
 
@@ -858,7 +862,7 @@ Other mechanisms are available:
     # Given a public key `public`
     assert public.verify(data, signature)
 
-PSS is optionally takes a tuple of `(hash algorithm, mask
+RSA PSS optionally takes a tuple of `(hash algorithm, mask
 generating function and salt length)` as the mechanism parameter:
 
 ::
@@ -867,7 +871,7 @@ generating function and salt length)` as the mechanism parameter:
                                mechanism=Mechanism.RSA_PKCS_PSS,
                                mechanism_param=(Mechanism.SHA_1,
                                                MGF.SHA1,
-                                               0))
+                                               40))
 
 
 DSA
@@ -930,6 +934,8 @@ Key wrapping is similar to encryption and decryption except instead of turning
 plaintext into crypttext it turns key objects into crypttext and vice versa.
 
 Keys must be marked as `EXTRACTABLE` to remove them from the HSM, even wrapped.
+
+Key wrapping mechanisms usually mirror encryption mechanisms.
 
 AES
 ~~~
@@ -1085,8 +1091,8 @@ Digesting and Hashing
 
 PKCS #11 exposes the ability to hash or digest data via a number of mechanisms.
 For performance reasons, this is rarely done in the HSM, and is usually done
-in your process. There are unlikely any advantages to using this functionality
-over :mod:`hashlib`.
+in your process. The only advantage of using this function over :mod:`hashlib`
+is the ability to digest :class:`pkcs11.Key` objects.
 
 To digest a message (e.g. with SHA-256):
 
@@ -1094,7 +1100,7 @@ To digest a message (e.g. with SHA-256):
 
     from pkcs11 import Mechanism
 
-    digest = session.digest(data, mechanism=Mechanism.SHA256)
+    digest = session.digest(data, mechanism=Mechanism.SHA_256)
 
 You can also pass an iterable of data:
 
@@ -1103,8 +1109,19 @@ You can also pass an iterable of data:
     with open(file_in, 'rb') as input:
         # A generator yielding chunks of the file
         chunks = iter(lambda: input.read(buffer_size), '')
-        digest = session.digest(chunks, mechanism=Mechanism.SHA512)
+        digest = session.digest(chunks, mechanism=Mechanism.SHA_512)
 
+Or a key (if supported):
+
+::
+
+    digest = session.digest(public_key, mechanism=Mechanism.SHA_1)
+
+Or even a combination of keys and data:
+
+::
+
+    digest = session.digest((b'HEADER', key), mechanism=Mechanism.SHA_1)
 
 Certificates
 ------------

@@ -127,8 +127,9 @@ cdef class MechanismWithParam:
                 <CK_RSA_PKCS_PSS_PARAMS *> PyMem_Malloc(paramlen)
 
             # Set some default parameters
+            # Default salt is hash length
             if param is None:
-                param = (Mechanism.SHA_1, MGF.SHA1, 0)
+                param = (Mechanism.SHA_1, MGF.SHA1, 40)
 
             (pss_params.hashAlg, pss_params.mgf, pss_params.sLen) = param
 

@@ -141,9 +141,10 @@ class Mechanism(IntEnum):
     Optionally takes a `mechanism_param` which is a tuple of:
 
     * message digest algorithm used to calculate the digest of the
-      encoding parameter (:class:`Mechanism`), default is Mechanism.SHA_1;
+      encoding parameter (:class:`Mechanism`), default is
+      :attr:`Mechanism.SHA_1`;
     * mask generation function to use on the encoded block
-      (:class:`MGF`), default is MGF.SHA1;
+      (:class:`MGF`), default is :attr:`MGF.SHA1`;
     * data used as the input for the encoding parameter source
       (:class:`bytes`), default is None.
     """
@@ -151,10 +152,15 @@ class Mechanism(IntEnum):
     RSA_X_509 = 0x00000003
     """
     X.509 (raw) RSA.
+
+    No padding, supply your own.
     """
     RSA_9796 = 0x00000002
     """
     ISO/IEC 9796 RSA.
+
+    .. warning:: DS1 and DS3 are considered broken. The PKCS #11 spec doesn't
+        specify which scheme is used. Use `PSS` instead.
     """
 
     MD2_RSA_PKCS = 0x00000004
@@ -180,6 +186,15 @@ class Mechanism(IntEnum):
     RSA_PKCS_PSS = 0x0000000D
     """
     RSA PSS without hashing.
+
+    PSS schemes optionally take a tuple of:
+
+    * message digest algorithm used to calculate the digest of the
+      encoding parameter (:class:`Mechanism`), default is
+      :attr:`Mechanism.SHA_1`;
+    * mask generation function to use on the encoded block
+      (:class:`MGF`), default is :attr:`MGF.SHA1`; and
+    * salt length, default is 40
     """
     SHA1_RSA_PKCS_PSS = 0x0000000E
     """

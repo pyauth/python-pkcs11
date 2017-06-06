@@ -78,17 +78,17 @@ class RSATests(TestCase):
         self.assertEqual(data, plaintext)
 
     @Not.softhsm2
-    def test_sign_rss(self):
+    def test_sign_pss(self):
         data = b'SOME DATA'
 
         signature = self.private.sign(data,
                                       mechanism=Mechanism.RSA_PKCS_PSS,
                                       mechanism_param=(Mechanism.SHA_1,
                                                        MGF.SHA1,
-                                                       0))
+                                                       40))
 
         self.assertTrue(self.public.verify(data, signature,
                                            mechanism=Mechanism.RSA_PKCS_PSS,
                                            mechanism_param=(Mechanism.SHA_1,
                                                            MGF.SHA1,
-                                                           0)))
+                                                           40)))
