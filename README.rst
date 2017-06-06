@@ -48,10 +48,33 @@ AES
     # Open a session on our token
     with token.open(user_pin='1234') as session:
         # Generate an AES key in this session
-        key = session.generate_key(pkcs11.KeyType.AES, 256, store=False)
+        key = session.generate_key(pkcs11.KeyType.AES, 256)
 
         # Get an initialisation vector
         iv = session.generate_random(128)  # AES blocks are fixed at 128 bits
+        # Encrypt our data
+        crypttext = key.encrypt(data, mechanism_param=iv)
+
+3DES
+~~~~
+
+::
+
+    import pkcs11
+
+    # Initialise our PKCS#11 library
+    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+    token = lib.get_token(token_label='DEMO')
+
+    data = b'INPUT DATA'
+
+    # Open a session on our token
+    with token.open(user_pin='1234') as session:
+        # Generate a DES key in this session
+        key = session.generate_key(pkcs11.KeyType.DES3)
+
+        # Get an initialisation vector
+        iv = session.generate_random(64)  # DES blocks are fixed at 64 bits
         # Encrypt our data
         crypttext = key.encrypt(data, mechanism_param=iv)
 
@@ -70,11 +93,53 @@ RSA
     # Open a session on our token
     with token.open(user_pin='1234') as session:
         # Generate an RSA keypair in this session
-        pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 2048, store=False)
+        pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 2048)
 
         # Encrypt as one block
         crypttext = pub.encrypt(data)
 
+DSA
+~~~
+
+::
+
+    import pkcs11
+
+    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+    token = lib.get_token(token_label='DEMO')
+
+    data = b'INPUT DATA'
+
+    # Open a session on our token
+    with token.open(user_pin='1234') as session:
+        # Generate an DSA keypair in this session
+        pub, priv = session.generate_keypair(pkcs11.KeyType.DSA, 1024)
+
+        # Sign
+        signature = priv.sign(data)
+
+ECDSA
+~~~~~
+
+::
+
+    import pkcs11
+
+    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+    token = lib.get_token(token_label='DEMO')
+
+    data = b'INPUT DATA'
+
+    # Open a session on our token
+    with token.open(user_pin='1234') as session:
+        # Generate an EC keypair in this session from a named curve
+        pub, priv = session.create_domain_parameters(
+            pkcs11.KeyType.EC, {
+                pkcs11.Attribute: pkcs11.util.ec.encode_named_curve_parameters('prime256v1'),
+            }, local=True)
+
+        # Sign
+        signature = priv.sign(data)
 
 Diffie-Hellman
 ~~~~~~~~~~~~~~
@@ -182,9 +247,9 @@ Tested Compatibility
 | DES3   +---------------------+--------------+-----------------+
 |        | Encrypt/Decrypt     | Works        | Works           |
 |        +---------------------+--------------+-----------------+
-|        | Wrap/Unwrap         | ?            | ?               |
+|        | Wrap/Unwrap         | Not tested   | Not tested      |
 |        +---------------------+--------------+-----------------+
-|        | Sign/Verify         | ?            | ?               |
+|        | Sign/Verify         | Not tested   | Not tested      |
 +--------+---------------------+--------------+-----------------+
 | RSA    | Generate key pair   | Works        | Works           |
 |        +---------------------+--------------+-----------------+
@@ -196,7 +261,7 @@ Tested Compatibility
 +--------+---------------------+--------------+-----------------+
 | DSA    | Generate parameters | Works        | Error           |
 |        +---------------------+--------------+-----------------+
-|        | Generate key pair   | Works        | Works           |
+|        | Generate key pair   | Works        | Caveats [5]_    |
 |        +---------------------+--------------+-----------------+
 |        | Sign/Verify         | Works        | Works [4]_      |
 +--------+---------------------+--------------+-----------------+
@@ -206,7 +271,7 @@ Tested Compatibility
 |        +---------------------+--------------+-----------------+
 |        | Derive Key          | Works        | Caveats [7]_    |
 +--------+---------------------+--------------+-----------------+
-| EC     | Generate key pair   | Caveats [5]_ | ? [3]_          |
+| EC     | Generate key pair   | Caveats [6]_ | ? [3]_          |
 |        +---------------------+--------------+-----------------+
 |        | Sign/Verify (ECDSA) | Works [4]_   | ? [3]_          |
 |        +---------------------+--------------+-----------------+
@@ -219,7 +284,7 @@ Tested Compatibility
 .. [2] Digesting keys is not supported.
 .. [3] Untested: requires support in device.
 .. [4] Default mechanism not supported, must specify a mechanism.
-.. [5] Partial support: mechanisms missing
+.. [5] From existing domain parameters.
 .. [6] Local domain parameters only.
 .. [7] Generates security warnings about the derived key.
 
