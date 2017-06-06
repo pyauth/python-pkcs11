@@ -18,21 +18,19 @@ class DESTests(TestCase):
         key = self.session.generate_key(KeyType.DES3)
         self.assertIsInstance(key, pkcs11.SecretKey)
 
-    @Not.softhsm2
     def test_encrypt_des2(self):
         key = self.session.generate_key(KeyType.DES2)
 
-        iv = self.session.generate_random(56)
+        iv = self.session.generate_random(64)
         crypttext = key.encrypt('PLAIN TEXT_', mechanism_param=iv)
         plaintext = key.decrypt(crypttext, mechanism_param=iv)
 
         self.assertEqual(plaintext, b'PLAIN TEXT_')
 
-    @Not.softhsm2
     def test_encrypt_des3(self):
         key = self.session.generate_key(KeyType.DES3)
 
-        iv = self.session.generate_random(56)
+        iv = self.session.generate_random(64)
         crypttext = key.encrypt('PLAIN TEXT_', mechanism_param=iv)
         plaintext = key.decrypt(crypttext, mechanism_param=iv)
 
