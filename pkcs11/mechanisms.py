@@ -126,19 +126,26 @@ class Mechanism(IntEnum):
     """
     RSA PKCS #1 v1.5 general purpose mechanism.
 
-    .. note:: Default for encrypting/decrypting with :attr:`KeyType.RSA` keys.
+    .. warning:: Consider using the more robust PKCS#1 OAEP.
     """
     RSA_PKCS_TPM_1_1 = 0x00004001
+    """
+    .. warning:: Consider using the more robust PKCS#1 OAEP.
+    """
     RSA_PKCS_OAEP = 0x00000009
     """
-    Requires a `mechanism_param` which is a tuple of:
+    RSA PKCS #1 OAEP (v2.0+)
+
+    .. note:: Default for encrypting/decrypting with :attr:`KeyType.RSA` keys.
+
+    Optionally takes a `mechanism_param` which is a tuple of:
 
     * message digest algorithm used to calculate the digest of the
-      encoding parameter (:class:`Mechanism`);
+      encoding parameter (:class:`Mechanism`), default is Mechanism.SHA_1;
     * mask generation function to use on the encoded block
-      (:class:`MGF`);
+      (:class:`MGF`), default is MGF.SHA1;
     * data used as the input for the encoding parameter source
-      (:class:`bytes`).
+      (:class:`bytes`), default is None.
     """
     RSA_PKCS_OAEP_TPM_1_1 = 0x00004002
     RSA_X_509 = 0x00000003

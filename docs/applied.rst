@@ -753,17 +753,18 @@ Large amounts of data can be passed as a generator:
 RSA
 ~~~
 
-The default RSA cipher is `PKCS #1 v1.5
-<http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850410>`_
+The default RSA cipher is `PKCS #1 OAEP
+<http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850412>`_
 
 A number of other mechanisms are available:
 
 +-----------------------+------------+-------------------------+-----------------------+
 | Mechanism             | Parameters | Input Length            | Notes                 |
 +=======================+============+=========================+=======================+
-| RSA_PKCS              | None       | <= key length - 11      | Default mechanism     |
+| RSA_PKCS              | None       | <= key length - 11      | RSA v1.5. Don't use   |
+|                       |            |                         | for new applications. |
 +-----------------------+------------+-------------------------+-----------------------+
-| RSA_PKCS_OAEP         | Not currently supported                                      |
+| RSA_PKCS_OAEP         | See below  | <= k - 2 - 2hLen        | Default mechanism.    |
 +-----------------------+------------+-------------------------+-----------------------+
 | RSA_X_509             | None       | key length              | Raw mode. No padding. |
 +-----------------------+------------+-------------------------+-----------------------+
@@ -771,10 +772,10 @@ A number of other mechanisms are available:
 |                       |            |                         | Specification Version |
 |                       |            |                         | 1.1b                  |
 +-----------------------+------------+-------------------------+-----------------------+
-| RSA_PKCS_OAEP_TPM_1_1 | Not currently supported                                      |
+| RSA_PKCS_OAEP_TPM_1_1 | See below  | <= k - 2 - 2hLen        |                       |
 +-----------------------+--------------------------------------------------------------+
 
-A simple example:
+A simple example using the default parameters:
 
 ::
 
@@ -782,6 +783,17 @@ A simple example:
     ciphertext = public.encrypt(plaintext)
 
     plaintext = private.decrypt(ciphertext)
+
+RSA OAEP can optionally take a tuple of `(hash algorithm, mask
+generating function and source data)` as the mechanism parameter:
+
+::
+
+    ciphertext = public.encrypt(plaintext,
+                                mechanism=Mechanism.RSA_PKCS_OAEP,
+                                mechanism_param=(Mechanism.SHA_1,
+                                                 MGF.SHA1,
+                                                 None))
 
 Signing/Verifying
 -----------------
@@ -827,7 +839,7 @@ Other mechanisms are available:
 +-------------------+-------------------------------------------+
 | SHA*_RSA_PKCS     | SHAx message digesting.                   |
 +-------------------+-------------------------------------------+
-| RSA_PKCS_PSS      | Not currently implemented.                |
+| RSA_PKCS_PSS      | Optionally takes a tuple of parameters.   |
 +-------------------+                                           |
 | SHA*_RSA_PKCS_PSS |                                           |
 +-------------------+-------------------------------------------+
@@ -845,6 +857,18 @@ Other mechanisms are available:
 
     # Given a public key `public`
     assert public.verify(data, signature)
+
+PSS is optionally takes a tuple of `(hash algorithm, mask
+generating function and salt length)` as the mechanism parameter:
+
+::
+
+    signature = private.sign(data,
+                               mechanism=Mechanism.RSA_PKCS_PSS,
+                               mechanism_param=(Mechanism.SHA_1,
+                                               MGF.SHA1,
+                                               0))
+
 
 DSA
 ~~~

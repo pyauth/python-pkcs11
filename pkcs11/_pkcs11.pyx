@@ -89,24 +89,24 @@ cdef class MechanismWithParam:
         if not isinstance(mechanism, Mechanism):
             raise ArgumentsBad("`mechanism` must be a Mechanism.")
         # Possible types of parameters we might need to allocate
+        # These are used to make assigning to the object we malloc() easier
         # FIXME: is there a better way to do this?
         cdef CK_RSA_PKCS_OAEP_PARAMS *oaep_params
+        cdef CK_RSA_PKCS_PSS_PARAMS *pss_params
         cdef CK_ECDH1_DERIVE_PARAMS *ecdh1_params
 
-        if param is None:
-            self.data.pParameter = NULL
-            paramlen = 0
-
-        elif isinstance(param, bytes):
-            self.data.pParameter = <CK_BYTE *> param
-            paramlen = len(param)
-
-        elif mechanism is Mechanism.RSA_PKCS_OAEP:
+        # Unpack mechanism parameters
+        if mechanism is Mechanism.RSA_PKCS_OAEP:
             paramlen = sizeof(CK_RSA_PKCS_OAEP_PARAMS)
             self.param = oaep_params = \
                 <CK_RSA_PKCS_OAEP_PARAMS *> PyMem_Malloc(paramlen)
 
             oaep_params.source = CKZ_DATA_SPECIFIED
+
+            # Set some default parameters
+            if param is None:
+                param = (Mechanism.SHA_1, MGF.SHA1, None)
+
             (oaep_params.hashAlg, oaep_params.mgf, source_data) = param
 
             if source_data is None:
@@ -115,6 +115,22 @@ cdef class MechanismWithParam:
             else:
                 oaep_params.pSourceData = <CK_BYTE *> source_data
                 oaep_params.ulSourceDataLen = len(source_data)
+
+        elif mechanism in (Mechanism.RSA_PKCS_PSS,
+                           Mechanism.SHA1_RSA_PKCS_PSS,
+                           Mechanism.SHA224_RSA_PKCS_PSS,
+                           Mechanism.SHA256_RSA_PKCS_PSS,
+                           Mechanism.SHA384_RSA_PKCS_PSS,
+                           Mechanism.SHA512_RSA_PKCS_PSS):
+            paramlen = sizeof(CK_RSA_PKCS_PSS_PARAMS)
+            self.param = pss_params = \
+                <CK_RSA_PKCS_PSS_PARAMS *> PyMem_Malloc(paramlen)
+
+            # Set some default parameters
+            if param is None:
+                param = (Mechanism.SHA_1, MGF.SHA1, 0)
+
+            (pss_params.hashAlg, pss_params.mgf, pss_params.sLen) = param
 
         elif mechanism is Mechanism.ECDH1_DERIVE:
             paramlen = sizeof(CK_ECDH1_DERIVE_PARAMS)
@@ -132,6 +148,14 @@ cdef class MechanismWithParam:
 
             ecdh1_params.pPublicData = public_data
             ecdh1_params.ulPublicDataLen = len(public_data)
+
+        elif isinstance(param, bytes):
+            self.data.pParameter = <CK_BYTE *> param
+            paramlen = len(param)
+
+        elif param is None:
+            self.data.pParameter = NULL
+            paramlen = 0
 
         else:
             raise ArgumentsBad("Unexpected argument to mechanism_param")

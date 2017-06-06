@@ -216,6 +216,11 @@ cdef extern from '../extern/pkcs11.h':
         void *pSourceData
         CK_ULONG ulSourceDataLen
 
+    ctypedef struct CK_RSA_PKCS_PSS_PARAMS:
+        CK_MECHANISM_TYPE hashAlg
+        CK_RSA_PKCS_MGF_TYPE mgf
+        CK_ULONG sLen
+
     ctypedef struct CK_ECDH1_DERIVE_PARAMS:
         CK_EC_KDF_TYPE kdf
         CK_ULONG ulSharedDataLen

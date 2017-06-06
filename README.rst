@@ -180,11 +180,11 @@ Tested Compatibility
 +--------+---------------------+--------------+-----------------+
 | RSA    | Generate key pair   | Works        | Works           |
 |        +---------------------+--------------+-----------------+
-|        | Encrypt/Decrypt     | Partial [5]_ | Partial [5]_    |
+|        | Encrypt/Decrypt     | Works        | Works           |
 |        +---------------------+--------------+-----------------+
 |        | Wrap/Unwrap         | Works        | Works           |
 |        +---------------------+--------------+-----------------+
-|        | Sign/Verify         | Works        | Partial [5]_    |
+|        | Sign/Verify         | Works        | Works           |
 +--------+---------------------+--------------+-----------------+
 | DSA    | Generate parameters | Works        | Error           |
 |        +---------------------+--------------+-----------------+
@@ -223,6 +223,7 @@ Python version:
 
 PKCS#11 version:
 
+* 2.2
 * 2.4
 
 Feel free to send pull requests for any functionality that's not exposed. The

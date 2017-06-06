@@ -46,7 +46,7 @@ Default capabilities for generating keys.
 
 DEFAULT_ENCRYPT_MECHANISMS = {
     KeyType.AES: Mechanism.AES_CBC_PAD,
-    KeyType.RSA: Mechanism.RSA_PKCS,
+    KeyType.RSA: Mechanism.RSA_PKCS_OAEP,
 }
 """
 Default mechanisms for encrypt/decrypt.
@@ -64,7 +64,7 @@ Default mechanisms for sign/verify.
 
 DEFAULT_WRAP_MECHANISMS = {
     KeyType.AES: Mechanism.AES_ECB,
-    KeyType.RSA: Mechanism.RSA_PKCS,
+    KeyType.RSA: Mechanism.RSA_PKCS_OAEP,
 }
 """
 Default mechanism for wrap/unwrap.

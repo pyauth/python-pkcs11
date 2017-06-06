@@ -4,7 +4,7 @@ PKCS#11 RSA Public Key Cryptography
 
 from pkcs11 import Attribute, KeyType, ObjectClass, Mechanism, MGF
 
-from . import TestCase
+from . import TestCase, Not
 
 
 class RSATests(TestCase):
@@ -76,3 +76,19 @@ class RSATests(TestCase):
                                                           None))
 
         self.assertEqual(data, plaintext)
+
+    @Not.softhsm2
+    def test_sign_rss(self):
+        data = b'SOME DATA'
+
+        signature = self.private.sign(data,
+                                      mechanism=Mechanism.RSA_PKCS_PSS,
+                                      mechanism_param=(Mechanism.SHA_1,
+                                                       MGF.SHA1,
+                                                       0))
+
+        self.assertTrue(self.public.verify(data, signature,
+                                           mechanism=Mechanism.RSA_PKCS_PSS,
+                                           mechanism_param=(Mechanism.SHA_1,
+                                                           MGF.SHA1,
+                                                           0)))
