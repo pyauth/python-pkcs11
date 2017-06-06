@@ -60,6 +60,7 @@ class Only:
     """
 
     softhsm2 = unittest.skipUnless(Is.softhsm2, "SoftHSMv2 only")
+    nfast = unittest.skipUnless(Is.nfast, "nFast only")
 
 
 class Not:
