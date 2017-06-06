@@ -397,11 +397,11 @@ class Session(types.Session):
 
         return Object._make(self, key)
 
-    def generate_keypair(self, key_type, key_length=None,
-                         id=None, label=None,
-                         store=False, capabilities=None,
-                         mechanism=None, mechanism_param=None,
-                         public_template=None, private_template=None):
+    def _generate_keypair(self, key_type, key_length=None,
+                          id=None, label=None,
+                          store=False, capabilities=None,
+                          mechanism=None, mechanism_param=None,
+                          public_template=None, private_template=None):
 
         if not isinstance(key_type, KeyType):
             raise ArgumentsBad("`key_type` must be KeyType.")

@@ -15,7 +15,7 @@ from .constants import (
     TokenFlag,
     UserType,
 )
-from .mechanisms import Mechanism
+from .mechanisms import KeyType, Mechanism
 from .exceptions import (
     ArgumentsBad,
     AttributeTypeInvalid,
@@ -457,17 +457,13 @@ class Session:
         """
         raise NotImplementedError()
 
-    def generate_keypair(self, key_type, key_length=None,
-                         id=None, label=None,
-                         store=False, capabilities=None,
-                         mechanism=None, mechanism_param=None,
-                         public_template=None, private_template=None):
+    def generate_keypair(self, key_type, key_length=None, **kwargs):
         """
         Generate a asymmetric keypair (e.g. RSA).
 
         See :meth:`generate_key` for more information.
 
-        :param KeyType key_type: Key type (e.g. KeyType.AES)
+        :param KeyType key_type: Key type (e.g. KeyType.DSA)
         :param int key_length: Key length in bits (e.g. 256).
         :param bytes id: Key identifier.
         :param str label: Key label.
@@ -479,7 +475,16 @@ class Session:
 
         :rtype: (PublicKey, PrivateKey)
         """
-        raise NotImplementedError()
+        if key_type is KeyType.DSA:
+            if key_length is None:
+                raise ArgumentsBad("Must specify `key_length`")
+
+            params = self.generate_domain_parameters(key_type, key_length)
+
+            return params.generate_keypair(**kwargs)
+        else:
+            return self._generate_keypair(key_type, key_length=key_length,
+                                          **kwargs)
 
     def seed_random(self, seed):
         """

@@ -27,6 +27,7 @@ ouQbj2Vq
 class DSATests(TestCase):
 
     @Not.nfast
+    # FIXME: why doesn't this work?
     def test_generate_params(self):
         parameters = self.session.generate_domain_parameters(KeyType.DSA, 1024)
         self.assertIsInstance(parameters, pkcs11.DomainParameters)
@@ -43,8 +44,15 @@ class DSATests(TestCase):
         public, private = dhparams.generate_keypair()
         self.assertIsInstance(public, pkcs11.PublicKey)
         self.assertIsInstance(private, pkcs11.PrivateKey)
+        self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)
 
         data = 'Message to sign'
         signature = private.sign(data, mechanism=Mechanism.DSA_SHA1)
         self.assertTrue(public.verify(data, signature,
                                       mechanism=Mechanism.DSA_SHA1))
+
+    @Not.nfast
+    # FIXME: why doesn't this work?
+    def test_generate_keypair_directly(self):
+        public, private = self.session.generate_keypair(KeyType.DSA, 1024)
+        self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)
