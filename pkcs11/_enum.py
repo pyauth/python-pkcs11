@@ -24,19 +24,27 @@ class Extension:
 class VendorExtendableEnum(IntEnum):
     @classmethod
     def _missing_(cls, value):
-        return value
         if value & cls._VENDOR_DEFINED:
+            # try:
+            #     for extension in cls._extensions:
+            #         try:
+            #             return extension(value)
+            #         except ValueError:
+            #             pass
+            # except AttributeError:
+            #     pass
+
             type_ = type('%sVendorExtension' % cls.__name__, (Extension,), {})
         else:
             type_ = type('%sUnknownExtension' % cls.__name__, (Extension,), {})
 
         return type_(value)
 
-    @classmethod
-    def load_extensions(cls, extensions):
-        assert issubclass(extensions, IntEnum), "Extensions must be IntEnum"
+    # @classmethod
+    # def load_extension(cls, extension):
+    #     assert issubclass(extension, IntEnum), "Extensions must be IntEnum"
 
-        for extension in extensions:
-            assert extension.name.startswith('X_'), \
-                "Extensions must start with 'X_'"
-            cls._member_map_[extension.name] = extension
+    #     try:
+    #         cls._extensions.append(extension)
+    #     except AttributeError:
+    #         cls._extensions = [extension]
