@@ -31,3 +31,12 @@ class VendorExtendableEnum(IntEnum):
             type_ = type('%sUnknownExtension' % cls.__name__, (Extension,), {})
 
         return type_(value)
+
+    @classmethod
+    def load_extensions(cls, extensions):
+        assert issubclass(extensions, IntEnum), "Extensions must be IntEnum"
+
+        for extension in extensions:
+            assert extension.name.startswith('X_'), \
+                "Extensions must start with 'X_'"
+            cls._member_map_[extension.name] = extension
