@@ -105,7 +105,16 @@ cdef class MechanismWithParam:
             paramlen = sizeof(CK_RSA_PKCS_OAEP_PARAMS)
             self.param = oaep_params = \
                 <CK_RSA_PKCS_OAEP_PARAMS *> PyMem_Malloc(paramlen)
-            # FIXME: unpack the arguments
+
+            oaep_params.source = CKZ_DATA_SPECIFIED
+            (oaep_params.hashAlg, oaep_params.mgf, source_data) = param
+
+            if source_data is None:
+                oaep_params.pSourceData = NULL
+                oaep_params.ulSourceDataLen = 0
+            else:
+                oaep_params.pSourceData = <CK_BYTE *> source_data
+                oaep_params.ulSourceDataLen = len(source_data)
 
         elif mechanism is Mechanism.ECDH1_DERIVE:
             paramlen = sizeof(CK_ECDH1_DERIVE_PARAMS)

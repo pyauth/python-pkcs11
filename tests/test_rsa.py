@@ -2,7 +2,7 @@
 PKCS#11 RSA Public Key Cryptography
 """
 
-from pkcs11 import Attribute, KeyType, ObjectClass
+from pkcs11 import Attribute, KeyType, ObjectClass, Mechanism, MGF
 
 from . import TestCase
 
@@ -57,3 +57,22 @@ class RSATests(TestCase):
                                        })
 
         self.assertEqual(key[Attribute.VALUE], key2[Attribute.VALUE])
+
+    def test_encrypt_oaep(self):
+        data = b'SOME DATA'
+
+        crypttext = self.public.encrypt(data,
+                                        mechanism=Mechanism.RSA_PKCS_OAEP,
+                                        mechanism_param=(Mechanism.SHA_1,
+                                                         MGF.SHA1,
+                                                         None))
+
+        self.assertNotEqual(data, crypttext)
+
+        plaintext = self.private.decrypt(crypttext,
+                                         mechanism=Mechanism.RSA_PKCS_OAEP,
+                                         mechanism_param=(Mechanism.SHA_1,
+                                                          MGF.SHA1,
+                                                          None))
+
+        self.assertEqual(data, plaintext)
