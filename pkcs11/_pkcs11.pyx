@@ -338,7 +338,7 @@ class Session(types.Session):
 
         return Object._make(self, obj)
 
-    def generate_key(self, key_type, key_length,
+    def generate_key(self, key_type, key_length=None,
                      id=None, label=None,
                      store=False, capabilities=None,
                      mechanism=None, mechanism_param=None,
@@ -347,7 +347,7 @@ class Session(types.Session):
         if not isinstance(key_type, KeyType):
             raise ArgumentsBad("`key_type` must be KeyType.")
 
-        if not isinstance(key_length, int):
+        if key_length is not None and not isinstance(key_length, int):
             raise ArgumentsBad("`key_length` is the length in bits.")
 
         if capabilities is None:
@@ -367,7 +367,6 @@ class Session(types.Session):
             Attribute.ID: id or b'',
             Attribute.LABEL: label or '',
             Attribute.TOKEN: store,
-            Attribute.VALUE_LEN: key_length // 8,  # In bytes
             Attribute.PRIVATE: True,
             Attribute.SENSITIVE: True,
             # Capabilities
@@ -379,6 +378,13 @@ class Session(types.Session):
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
+
+        if key_type is KeyType.AES:
+            if key_length is None:
+                raise ArgumentsBad("Must provide `key_length'")
+
+            template_[Attribute.VALUE_LEN] = key_length // 8  # In bytes
+
         template_.update(template or {})
         attrs = AttributeList(template_)
 
@@ -391,7 +397,7 @@ class Session(types.Session):
 
         return Object._make(self, key)
 
-    def generate_keypair(self, key_type, key_length,
+    def generate_keypair(self, key_type, key_length=None,
                          id=None, label=None,
                          store=False, capabilities=None,
                          mechanism=None, mechanism_param=None,
@@ -400,7 +406,7 @@ class Session(types.Session):
         if not isinstance(key_type, KeyType):
             raise ArgumentsBad("`key_type` must be KeyType.")
 
-        if not isinstance(key_length, int):
+        if key_length is not None and not isinstance(key_length, int):
             raise ArgumentsBad("`key_length` is the length in bits.")
 
         if capabilities is None:
@@ -420,7 +426,6 @@ class Session(types.Session):
             Attribute.ID: id or b'',
             Attribute.LABEL: label or '',
             Attribute.TOKEN: store,
-            Attribute.MODULUS_BITS: key_length,
             # Capabilities
             Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
             Attribute.WRAP: MechanismFlag.WRAP & capabilities,
@@ -428,10 +433,14 @@ class Session(types.Session):
         }
 
         if key_type is KeyType.RSA:
+            if key_length is None:
+                raise ArgumentsBad("Must provide `key_length'")
+
             # Some PKCS#11 implementations don't default this, it makes sense
             # to do it here
             public_template_.update({
                 Attribute.PUBLIC_EXPONENT: b'\1\0\1',
+                Attribute.MODULUS_BITS: key_length,
             })
 
         public_template_.update(public_template or {})

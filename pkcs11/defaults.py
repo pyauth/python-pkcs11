@@ -19,6 +19,8 @@ from .mechanisms import Mechanism, KeyType, MGF
 
 DEFAULT_GENERATE_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_GEN,
+    KeyType.DES2: Mechanism.DES2_KEY_GEN,
+    KeyType.DES3: Mechanism.DES3_KEY_GEN,
     KeyType.DH: Mechanism.DH_PKCS_KEY_PAIR_GEN,
     KeyType.DSA: Mechanism.DSA_KEY_PAIR_GEN,
     KeyType.EC: Mechanism.EC_KEY_PAIR_GEN,
@@ -35,6 +37,8 @@ _WRAPPING = MechanismFlag.WRAP | MechanismFlag.UNWRAP
 
 DEFAULT_KEY_CAPABILITIES = {
     KeyType.AES: _ENCRYPTION | _SIGNING | _WRAPPING,
+    KeyType.DES2: _ENCRYPTION | _SIGNING | _WRAPPING,
+    KeyType.DES3: _ENCRYPTION | _SIGNING | _WRAPPING,
     KeyType.DH: MechanismFlag.DERIVE,
     KeyType.DSA: _SIGNING,
     KeyType.EC: _SIGNING | MechanismFlag.DERIVE,
@@ -46,6 +50,8 @@ Default capabilities for generating keys.
 
 DEFAULT_ENCRYPT_MECHANISMS = {
     KeyType.AES: Mechanism.AES_CBC_PAD,
+    KeyType.DES2: Mechanism.DES3_CBC_PAD,
+    KeyType.DES3: Mechanism.DES3_CBC_PAD,
     KeyType.RSA: Mechanism.RSA_PKCS_OAEP,
 }
 """
@@ -54,6 +60,8 @@ Default mechanisms for encrypt/decrypt.
 
 DEFAULT_SIGN_MECHANISMS = {
     KeyType.AES: Mechanism.SHA512_HMAC,
+    KeyType.DES2: Mechanism.SHA512_HMAC,
+    KeyType.DES3: Mechanism.SHA512_HMAC,
     KeyType.DSA: Mechanism.DSA_SHA512,
     KeyType.EC: Mechanism.ECDSA_SHA512,
     KeyType.RSA: Mechanism.SHA512_RSA_PKCS,
@@ -64,6 +72,8 @@ Default mechanisms for sign/verify.
 
 DEFAULT_WRAP_MECHANISMS = {
     KeyType.AES: Mechanism.AES_ECB,
+    KeyType.DES2: Mechanism.DES3_ECB,
+    KeyType.DES3: Mechanism.DES3_ECB,
     KeyType.RSA: Mechanism.RSA_PKCS_OAEP,
 }
 """

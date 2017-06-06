@@ -419,7 +419,7 @@ class Session:
 
         raise NotImplementedError()
 
-    def generate_key(self, key_type, key_length,
+    def generate_key(self, key_type, key_length=None,
                      id=None, label=None,
                      store=False, capabilities=None,
                      mechanism=None, mechanism_param=None,
@@ -457,7 +457,7 @@ class Session:
         """
         raise NotImplementedError()
 
-    def generate_keypair(self, key_type, key_length,
+    def generate_keypair(self, key_type, key_length=None,
                          id=None, label=None,
                          store=False, capabilities=None,
                          mechanism=None, mechanism_param=None,
