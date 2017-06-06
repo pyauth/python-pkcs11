@@ -103,9 +103,8 @@ cdef class MechanismWithParam:
 
             oaep_params.source = CKZ_DATA_SPECIFIED
 
-            # Set some default parameters
             if param is None:
-                param = (Mechanism.SHA_1, MGF.SHA1, None)
+                param = DEFAULT_MECHANISM_PARAMS[mechanism]
 
             (oaep_params.hashAlg, oaep_params.mgf, source_data) = param
 
@@ -126,10 +125,9 @@ cdef class MechanismWithParam:
             self.param = pss_params = \
                 <CK_RSA_PKCS_PSS_PARAMS *> PyMem_Malloc(paramlen)
 
-            # Set some default parameters
-            # Default salt is hash length
             if param is None:
-                param = (Mechanism.SHA_1, MGF.SHA1, 40)
+                # All PSS mechanisms have the same defaults
+                param = DEFAULT_MECHANISM_PARAMS[Mechanism.RSA_PKCS_PSS]
 
             (pss_params.hashAlg, pss_params.mgf, pss_params.sLen) = param
 

@@ -81,14 +81,12 @@ class RSATests(TestCase):
     def test_sign_pss(self):
         data = b'SOME DATA'
 
+        # These are the default params
         signature = self.private.sign(data,
                                       mechanism=Mechanism.RSA_PKCS_PSS,
                                       mechanism_param=(Mechanism.SHA_1,
                                                        MGF.SHA1,
-                                                       40))
+                                                       20))
 
         self.assertTrue(self.public.verify(data, signature,
-                                           mechanism=Mechanism.RSA_PKCS_PSS,
-                                           mechanism_param=(Mechanism.SHA_1,
-                                                           MGF.SHA1,
-                                                           40)))
+                                           mechanism=Mechanism.RSA_PKCS_PSS))

@@ -871,7 +871,7 @@ generating function and salt length)` as the mechanism parameter:
                                mechanism=Mechanism.RSA_PKCS_PSS,
                                mechanism_param=(Mechanism.SHA_1,
                                                MGF.SHA1,
-                                               40))
+                                               20))
 
 
 DSA

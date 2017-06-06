@@ -194,7 +194,7 @@ class Mechanism(IntEnum):
       :attr:`Mechanism.SHA_1`;
     * mask generation function to use on the encoded block
       (:class:`MGF`), default is :attr:`MGF.SHA1`; and
-    * salt length, default is 40
+    * salt length, default is 20
     """
     SHA1_RSA_PKCS_PSS = 0x0000000E
     """

@@ -14,7 +14,7 @@ from .constants import (
     MechanismFlag,
     ObjectClass,
 )
-from .mechanisms import Mechanism, KeyType
+from .mechanisms import Mechanism, KeyType, MGF
 
 
 DEFAULT_GENERATE_MECHANISMS = {
@@ -86,6 +86,15 @@ DEFAULT_PARAM_GENERATE_MECHANISMS = {
 }
 """
 Default mechanisms for domain parameter generation
+"""
+
+
+DEFAULT_MECHANISM_PARAMS = {
+    Mechanism.RSA_PKCS_OAEP: (Mechanism.SHA_1, MGF.SHA1, None),
+    Mechanism.RSA_PKCS_PSS: (Mechanism.SHA_1, MGF.SHA1, 20),
+}
+"""
+Default mechanism parameters
 """
 
 
