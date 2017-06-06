@@ -591,7 +591,10 @@ be described in two ways:
 * As a complete set of parameters.
 
 Not all devices support both specifications.
-Both specifications are specified using the same `attribute`.
+You can determine what curve parameters your device supports by checking
+:meth:`pkcs11.Slot.get_mechanism_info` :class:`pkcs11.constants.MechanismFlag`.
+
+Both specifications are specified using the same `attribute`:
 
 .. glossary::
 

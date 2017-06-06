@@ -186,7 +186,7 @@ Tested Compatibility
 |        +---------------------+--------------+-----------------+
 |        | Sign/Verify         | Works        | Partial [5]_    |
 +--------+---------------------+--------------+-----------------+
-| DSA    | Generate parameters | Works        | N/A             |
+| DSA    | Generate parameters | Works        | Error           |
 |        +---------------------+--------------+-----------------+
 |        | Generate key pair   | Works        | Works           |
 |        +---------------------+--------------+-----------------+
