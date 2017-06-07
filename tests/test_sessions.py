@@ -11,7 +11,7 @@ class SessionTests(TestCase):
 
     with_session = False
 
-    @Not.nfast
+    @Not.nfast  # Login is required
     @Not.opencryptoki
     def test_open_session(self):
         with self.token.open() as session:
@@ -140,8 +140,8 @@ class SessionTests(TestCase):
             with self.assertRaises(pkcs11.MultipleObjectsReturned):
                 session.get_key(key_type=pkcs11.KeyType.AES)
 
-    @Not.nfast
-    @Not.opencryptoki
+    @Not.nfast  # Not supported
+    @Not.opencryptoki  # Not supported
     def test_seed_random(self):
         with self.token.open() as session:
             session.seed_random(b'12345678')

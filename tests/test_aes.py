@@ -110,7 +110,7 @@ class AESTests(TestCase):
         self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
 
     @Not.softhsm2  # No mechanism available
-    @Not.opencryptoki  # FIXME
+    @Not.opencryptoki  # FIXME: can't set key attributes
     def test_wrap(self):
         key = self.session.generate_key(pkcs11.KeyType.AES, 128, template={
             pkcs11.Attribute.EXTRACTABLE: True,

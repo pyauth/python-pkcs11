@@ -16,8 +16,19 @@ class RSATests(TestCase):
         self.public, self.private = \
             self.session.generate_keypair(KeyType.RSA, 1024)
 
-    @Not.opencryptoki  # Claims to support this mechanism but raises invalid
-    def test_sign(self):
+    def test_sign_pkcs_v15(self):
+        data = b'00000000'
+
+        signature = self.private.sign(data, mechanism=Mechanism.RSA_PKCS)
+        self.assertIsNotNone(signature)
+        self.assertIsInstance(signature, bytes)
+        self.assertTrue(self.public.verify(data, signature,
+                                           mechanism=Mechanism.RSA_PKCS))
+        self.assertFalse(self.public.verify(data, b'1234',
+                                            mechanism=Mechanism.RSA_PKCS))
+
+    @Not.opencryptoki  # No digest mechanisms
+    def test_sign_default(self):
         data = b'HELLO WORLD' * 1024
 
         signature = self.private.sign(data)
@@ -26,7 +37,7 @@ class RSATests(TestCase):
         self.assertTrue(self.public.verify(data, signature))
         self.assertFalse(self.public.verify(data, b'1234'))
 
-    @Not.opencryptoki  # Claims to support this mechanism but raises invalid
+    @Not.opencryptoki  # No digest mechanisms
     def test_sign_stream(self):
         data = (
             b'I' * 16,
@@ -41,7 +52,7 @@ class RSATests(TestCase):
         self.assertIsInstance(signature, bytes)
         self.assertTrue(self.public.verify(data, signature))
 
-    @Not.opencryptoki  # FIXME
+    @Not.opencryptoki  # FIXME: can't set key attributes?
     def test_key_wrap(self):
         key = self.session.generate_key(KeyType.AES, 128,
                                         template={
