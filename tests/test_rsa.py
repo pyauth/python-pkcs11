@@ -16,6 +16,7 @@ class RSATests(TestCase):
         self.public, self.private = \
             self.session.generate_keypair(KeyType.RSA, 1024)
 
+    @Not.opencryptoki  # FIXME
     def test_sign(self):
         data = b'HELLO WORLD' * 1024
 
@@ -39,6 +40,7 @@ class RSATests(TestCase):
         self.assertIsInstance(signature, bytes)
         self.assertTrue(self.public.verify(data, signature))
 
+    @Not.opencryptoki  # FIXME
     def test_key_wrap(self):
         key = self.session.generate_key(KeyType.AES, 128,
                                         template={

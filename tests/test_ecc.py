@@ -13,6 +13,7 @@ from . import TestCase, Not
 
 
 @Not.nfast  # No ECC on our nfast device
+@Not.opencryptoki  # No support
 class ECCTests(TestCase):
     def test_sign(self):
         parameters = self.session.create_domain_parameters(KeyType.EC, {

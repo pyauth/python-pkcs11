@@ -9,7 +9,7 @@ from . import TestCase, Not
 
 
 class DESTests(TestCase):
-
+    @Not.opencryptoki  # No support
     def test_generate_des2_key(self):
         key = self.session.generate_key(KeyType.DES2)
         self.assertIsInstance(key, pkcs11.SecretKey)
@@ -18,6 +18,7 @@ class DESTests(TestCase):
         key = self.session.generate_key(KeyType.DES3)
         self.assertIsInstance(key, pkcs11.SecretKey)
 
+    @Not.opencryptoki  # No support
     def test_encrypt_des2(self):
         key = self.session.generate_key(KeyType.DES2)
 

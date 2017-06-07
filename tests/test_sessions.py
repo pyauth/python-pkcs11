@@ -139,6 +139,7 @@ class SessionTests(TestCase):
                 session.get_key(key_type=pkcs11.KeyType.AES)
 
     @Not.nfast
+    @Not.opencryptoki
     def test_seed_random(self):
         with self.token.open() as session:
             session.seed_random(b'12345678')

@@ -74,6 +74,7 @@ class AESTests(TestCase):
 
         self.assertEqual(text, data)
 
+    @Not.opencryptoki  # No mechanism available
     def test_sign(self):
         if Is.nfast:  # SHA512_HMAC requires a special `HMAC' key on nFast
             mechanism = pkcs11.Mechanism.AES_MAC
@@ -88,6 +89,7 @@ class AESTests(TestCase):
         self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
         self.assertFalse(self.key.verify(data, b'1234', mechanism=mechanism))
 
+    @Not.opencryptoki  # No mechanism available
     def test_sign_stream(self):
         if Is.nfast:  # SHA512_HMAC requires a special `HMAC' key on nFast
             mechanism = pkcs11.Mechanism.AES_MAC
@@ -107,7 +109,8 @@ class AESTests(TestCase):
         self.assertIsInstance(signature, bytes)
         self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
 
-    @Not.softhsm2
+    @Not.softhsm2  # No mechanism available
+    @Not.opencryptoki  # FIXME
     def test_wrap(self):
         key = self.session.generate_key(pkcs11.KeyType.AES, 128, template={
             pkcs11.Attribute.EXTRACTABLE: True,

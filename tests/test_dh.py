@@ -14,6 +14,7 @@ from pkcs11.util.dh import (
 from . import TestCase, Not
 
 
+@Not.opencryptoki  # No support
 class DHTests(TestCase):
 
     def test_derive_key(self):
@@ -111,7 +112,7 @@ class DHTests(TestCase):
         self.assertEqual(params[Attribute.PRIME][:4],
                          b'\xAD\x10\x7E\x1E')
 
-    @Not.nfast
+    @Not.nfast  # No mechanism
     def test_generate_params(self):
         params = self.session.generate_domain_parameters(KeyType.DH, 512)
         self.assertIsInstance(params, DomainParameters)

@@ -37,8 +37,15 @@ class SlotsAndTokensTests(unittest.TestCase):
         mechanisms = slot.get_mechanisms()
         self.assertIn(pkcs11.Mechanism.RSA_PKCS, mechanisms)
 
-    @Not.nfast
     def test_get_mechanism_info(self):
+        lib = pkcs11.lib(LIB)
+        slot, *_ = lib.get_slots()
+        info = slot.get_mechanism_info(pkcs11.Mechanism.RSA_PKCS_OAEP)
+        self.assertIsInstance(info, pkcs11.MechanismInfo)
+
+    @Not.nfast
+    @Not.opencryptoki
+    def test_get_mechanism_info_ec(self):
         lib = pkcs11.lib(LIB)
         slot, *_ = lib.get_slots()
         info = slot.get_mechanism_info(pkcs11.Mechanism.EC_KEY_PAIR_GEN)

@@ -55,6 +55,7 @@ class X509Tests(TestCase):
         self.assertIsInstance(cert, pkcs11.Certificate)
 
     @Not.nfast
+    @Not.opencryptoki
     def test_import_ca_certificate(self):
         cert = self.session.create_object(
             decode_x509_certificate(CERT, extended_set=True))

@@ -52,6 +52,7 @@ class Is:
     """
     softhsm2 = LIB.endswith('libsofthsm2.so')
     nfast = LIB.endswith('libcknfast.so')
+    opencryptoki = LIB.endswith('libopencryptoki.so')
 
 
 class Only:
@@ -69,3 +70,5 @@ class Not:
 
     softhsm2 = unittest.skipIf(Is.softhsm2, "Not supported by SoftHSMv2")
     nfast = unittest.skipIf(Is.nfast, "Not supported by nFast")
+    opencryptoki = unittest.skipIf(Is.opencryptoki,
+                                   "Not supported by OpenCryptoki")
