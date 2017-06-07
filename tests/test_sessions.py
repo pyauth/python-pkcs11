@@ -84,6 +84,7 @@ class SessionTests(TestCase):
             self.assertEqual(len(search), 1)
             self.assertEqual(key, search[0])
 
+    @Not.opencryptoki  # FIXME
     def test_create_object(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.create_object({
