@@ -12,6 +12,7 @@ class SessionTests(TestCase):
     with_session = False
 
     @Not.nfast
+    @Not.opencryptoki
     def test_open_session(self):
         with self.token.open() as session:
             self.assertIsInstance(session, pkcs11.Session)

@@ -16,7 +16,7 @@ class RSATests(TestCase):
         self.public, self.private = \
             self.session.generate_keypair(KeyType.RSA, 1024)
 
-    @Not.opencryptoki  # FIXME
+    @Not.opencryptoki  # Claims to support this mechanism but raises invalid
     def test_sign(self):
         data = b'HELLO WORLD' * 1024
 
@@ -26,6 +26,7 @@ class RSATests(TestCase):
         self.assertTrue(self.public.verify(data, signature))
         self.assertFalse(self.public.verify(data, b'1234'))
 
+    @Not.opencryptoki  # Claims to support this mechanism but raises invalid
     def test_sign_stream(self):
         data = (
             b'I' * 16,
@@ -80,7 +81,7 @@ class RSATests(TestCase):
 
         self.assertEqual(data, plaintext)
 
-    @Not.softhsm2
+    @Not.softhsm2  # No support
     def test_sign_pss(self):
         data = b'SOME DATA'
 
