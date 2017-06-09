@@ -22,7 +22,7 @@ from pkcs11 import (
     Mechanism,
 )
 
-from . import TestCase, Not
+from . import TestCase, Not, requires
 
 
 # X.509 self-signed certificate (generated with OpenSSL)
@@ -69,6 +69,7 @@ class X509Tests(TestCase):
                          b'\xf9\xc1\xb6\xe3\x43\xf3\xcf\x4c\xba\x8a'
                          b'\x0b\x66\x86\x79\x35\xfb\x52\x85\xbf\xa8')
 
+    @requires(Mechanism.SHA1_RSA_PKCS)
     def test_verify_certificate(self):
         # Warning: proof of concept code only!
         x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
@@ -88,6 +89,7 @@ class X509Tests(TestCase):
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.SHA1_RSA_PKCS))
 
+    @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
     def test_self_sign_certificate(self):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
@@ -133,6 +135,7 @@ class X509Tests(TestCase):
 
             self.assertEqual(proc.wait(), 0)
 
+    @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
     def test_sign_csr(self):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)

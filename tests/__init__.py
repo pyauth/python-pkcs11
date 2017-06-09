@@ -77,6 +77,19 @@ def requires(*mechanisms):
     return inner
 
 
+def xfail(condition):
+    """Mark a test that's expected to fail for a given condition."""
+
+    def inner(func):
+        if condition:
+            return unittest.expectedFailure(func)
+
+        else:
+            return func
+
+    return inner
+
+
 class Is:
     """
     Test what device we're using.
@@ -103,3 +116,13 @@ class Not:
     nfast = unittest.skipIf(Is.nfast, "Not supported by nFast")
     opencryptoki = unittest.skipIf(Is.opencryptoki,
                                    "Not supported by OpenCryptoki")
+
+
+class FIXME:
+    """
+    Tests is broken on this platform.
+    """
+
+    softhsm2 = xfail(Is.softhsm2)
+    nfast = xfail(Is.nfast)
+    opencryptoki = xfail(Is.opencryptoki)

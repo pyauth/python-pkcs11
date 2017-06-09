@@ -5,7 +5,7 @@ PKCS#11 AES Secret Keys
 import pkcs11
 from pkcs11 import Mechanism
 
-from . import TestCase, Not, requires
+from . import TestCase, Not, requires, FIXME
 
 
 class AESTests(TestCase):
@@ -94,7 +94,7 @@ class AESTests(TestCase):
     @requires(Mechanism.AES_MAC)
     def test_sign_aes_mac(self):
         mechanism = pkcs11.Mechanism.AES_MAC
-        data = b'HELLO WORLD' * 1024
+        data = b'HELLO WORLD'
 
         signature = self.key.sign(data, mechanism=mechanism)
         self.assertIsNotNone(signature)
@@ -120,7 +120,7 @@ class AESTests(TestCase):
 
     @requires(Mechanism.AES_ECB)
     @Not.softhsm2  # requires AES keywrapping support
-    @Not.opencryptoki  # FIXME: can't set key attributes
+    @FIXME.opencryptoki  # can't set key attributes
     def test_wrap(self):
         key = self.session.generate_key(pkcs11.KeyType.AES, 128, template={
             pkcs11.Attribute.EXTRACTABLE: True,

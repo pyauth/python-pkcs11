@@ -6,11 +6,12 @@ import unittest
 
 import pkcs11
 
-from . import TestCase
+from . import TestCase, requires
 
 
 class IteratorTests(TestCase):
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN, pkcs11.Mechanism.AES_CBC_PAD)
     def test_partial_decrypt(self):
         self.session.generate_key(pkcs11.KeyType.AES, 128,
                                   label='LOOK ME UP')
@@ -31,6 +32,7 @@ class IteratorTests(TestCase):
             iter2 = key.decrypt(encrypted_data, mechanism_param=iv)
             next(iter2)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN, pkcs11.Mechanism.AES_CBC_PAD)
     # Ideally deleting iterator #1 would terminate the operation, but it
     # currently does not.
     @unittest.expectedFailure

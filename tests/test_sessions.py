@@ -4,7 +4,7 @@ PKCS#11 Sessions
 
 import pkcs11
 
-from . import TestCase, TOKEN_PIN, Only, Not, requires
+from . import TestCase, TOKEN_PIN, Only, Not, requires, FIXME
 
 
 class SessionTests(TestCase):
@@ -60,7 +60,8 @@ class SessionTests(TestCase):
 
             self.assertEqual(key.label, 'MY KEY')
 
-    @requires(pkcs11.Mechanism.RSA_PKCS_KEY_PAIR_GEN)
+    @requires(pkcs11.Mechanism.RSA_PKCS_KEY_PAIR_GEN,
+              pkcs11.Mechanism.RSA_PKCS)
     def test_generate_keypair(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             pub, priv = session.generate_keypair(
@@ -69,9 +70,9 @@ class SessionTests(TestCase):
             self.assertIsInstance(priv, pkcs11.PrivateKey)
 
             data = b'HELLO WORLD'
-            crypttext = pub.encrypt(data)
+            crypttext = pub.encrypt(data, mechanism=pkcs11.Mechanism.RSA_PKCS)
             self.assertNotEqual(data, crypttext)
-            text = priv.decrypt(crypttext)
+            text = priv.decrypt(crypttext, mechanism=pkcs11.Mechanism.RSA_PKCS)
             self.assertEqual(data, text)
 
     @requires(pkcs11.Mechanism.AES_KEY_GEN)
@@ -87,6 +88,7 @@ class SessionTests(TestCase):
             self.assertEqual(len(search), 1)
             self.assertEqual(key, search[0])
 
+    @FIXME.opencryptoki
     def test_create_object(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.create_object({
