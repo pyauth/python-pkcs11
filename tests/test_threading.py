@@ -9,12 +9,13 @@ import threading
 
 import pkcs11
 
-from . import TestCase, Not
+from . import TestCase, Not, requires
 
 
 @Not.nfast  # Deadlocks nfast ... something wrong with threading?
 class ThreadingTests(TestCase):
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN, pkcs11.Mechanism.AES_CBC_PAD)
     def test_concurrency(self):
         # Multiplexing a session between processes
         self.session.generate_key(pkcs11.KeyType.AES, 128, label='LOOK ME UP')

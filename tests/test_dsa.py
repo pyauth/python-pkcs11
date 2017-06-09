@@ -11,7 +11,7 @@ from pkcs11.util.dsa import (
     decode_dsa_domain_parameters,
 )
 
-from . import TestCase, Not
+from . import TestCase, requires
 
 
 DHPARAMS = base64.b64decode("""
@@ -24,10 +24,9 @@ ouQbj2Vq
 """)
 
 
-@Not.opencryptoki  # No support
 class DSATests(TestCase):
 
-    @Not.nfast  # FIXME: why doesn't this work?
+    @requires(Mechanism.DSA_PARAMETER_GEN)
     def test_generate_params(self):
         parameters = self.session.generate_domain_parameters(KeyType.DSA, 1024)
         self.assertIsInstance(parameters, pkcs11.DomainParameters)
@@ -35,6 +34,7 @@ class DSATests(TestCase):
 
         encode_dsa_domain_parameters(parameters)
 
+    @requires(Mechanism.DSA_KEY_PAIR_GEN, Mechanism.DSA_SHA1)
     def test_generate_keypair_and_sign(self):
         dhparams = self.session.create_domain_parameters(
             KeyType.DSA,
@@ -51,7 +51,7 @@ class DSATests(TestCase):
         self.assertTrue(public.verify(data, signature,
                                       mechanism=Mechanism.DSA_SHA1))
 
-    @Not.nfast  # FIXME: why doesn't this work?
+    @requires(Mechanism.DSA_PARAMETER_GEN, Mechanism.DSA_KEY_PAIR_GEN)
     def test_generate_keypair_directly(self):
         public, private = self.session.generate_keypair(KeyType.DSA, 1024)
         self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)

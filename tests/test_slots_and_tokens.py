@@ -43,7 +43,7 @@ class SlotsAndTokensTests(unittest.TestCase):
         info = slot.get_mechanism_info(pkcs11.Mechanism.RSA_PKCS_OAEP)
         self.assertIsInstance(info, pkcs11.MechanismInfo)
 
-    @Not.nfast
+    @Not.nfast  # EC not supported
     @Not.opencryptoki
     def test_get_mechanism_info_ec(self):
         lib = pkcs11.lib(LIB)

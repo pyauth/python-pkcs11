@@ -5,17 +5,19 @@ PKCS#11 RSA Public Key Cryptography
 import pkcs11
 from pkcs11 import Attribute, KeyType, ObjectClass, Mechanism, MGF
 
-from . import TestCase, Not
+from . import TestCase, requires
 
 
 class RSATests(TestCase):
 
+    @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN)
     def setUp(self):
         super().setUp()
 
         self.public, self.private = \
             self.session.generate_keypair(KeyType.RSA, 1024)
 
+    @requires(Mechanism.RSA_PKCS)
     def test_sign_pkcs_v15(self):
         data = b'00000000'
 
@@ -27,7 +29,7 @@ class RSATests(TestCase):
         self.assertFalse(self.public.verify(data, b'1234',
                                             mechanism=Mechanism.RSA_PKCS))
 
-    @Not.opencryptoki  # No digest mechanisms
+    @requires(Mechanism.SHA512_RSA_PKCS)
     def test_sign_default(self):
         data = b'HELLO WORLD' * 1024
 
@@ -37,7 +39,7 @@ class RSATests(TestCase):
         self.assertTrue(self.public.verify(data, signature))
         self.assertFalse(self.public.verify(data, b'1234'))
 
-    @Not.opencryptoki  # No digest mechanisms
+    @requires(Mechanism.SHA512_RSA_PKCS)
     def test_sign_stream(self):
         data = (
             b'I' * 16,
@@ -52,7 +54,7 @@ class RSATests(TestCase):
         self.assertIsInstance(signature, bytes)
         self.assertTrue(self.public.verify(data, signature))
 
-    @Not.opencryptoki  # FIXME: can't set key attributes?
+    @requires(Mechanism.RSA_PKCS_OAEP)
     def test_key_wrap(self):
         key = self.session.generate_key(KeyType.AES, 128,
                                         template={
@@ -73,6 +75,7 @@ class RSATests(TestCase):
 
         self.assertEqual(key[Attribute.VALUE], key2[Attribute.VALUE])
 
+    @requires(Mechanism.RSA_PKCS_OAEP)
     def test_encrypt_oaep(self):
         data = b'SOME DATA'
 
@@ -92,7 +95,7 @@ class RSATests(TestCase):
 
         self.assertEqual(data, plaintext)
 
-    @Not.softhsm2  # No support
+    @requires(Mechanism.SHA1_RSA_PKCS_PSS)
     def test_sign_pss(self):
         data = b'SOME DATA'
 
@@ -106,6 +109,7 @@ class RSATests(TestCase):
         self.assertTrue(self.public.verify(
             data, signature, mechanism=Mechanism.SHA1_RSA_PKCS_PSS))
 
+    @requires(Mechanism.RSA_PKCS_OAEP)
     def test_encrypt_too_much_data(self):
         data = b'1234' * 128
 

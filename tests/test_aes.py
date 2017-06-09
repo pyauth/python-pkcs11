@@ -3,16 +3,19 @@ PKCS#11 AES Secret Keys
 """
 
 import pkcs11
+from pkcs11 import Mechanism
 
-from . import TestCase, Is, Not
+from . import TestCase, Not, requires
 
 
 class AESTests(TestCase):
 
+    @requires(Mechanism.AES_KEY_GEN)
     def setUp(self):
         super().setUp()
         self.key = self.session.generate_key(pkcs11.KeyType.AES, 128)
 
+    @requires(Mechanism.AES_CBC_PAD)
     def test_encrypt(self):
         data = b'INPUT DATA'
         iv = b'0' * 16
@@ -28,6 +31,7 @@ class AESTests(TestCase):
         text = self.key.decrypt(crypttext, mechanism_param=iv)
         self.assertEqual(data, text)
 
+    @requires(Mechanism.AES_CBC_PAD)
     def test_encrypt_stream(self):
         data = (
             b'I' * 16,
@@ -53,6 +57,7 @@ class AESTests(TestCase):
         text = b''.join(self.key.decrypt(cryptblocks, mechanism_param=iv))
         self.assertEqual(b''.join(data), text)
 
+    @requires(Mechanism.AES_CBC_PAD)
     def test_encrypt_whacky_sizes(self):
         data = [
             (char * ord(char)).encode('utf-8')
@@ -65,6 +70,7 @@ class AESTests(TestCase):
 
         self.assertEqual(b''.join(data), b''.join(textblocks))
 
+    @requires(Mechanism.AES_CBC_PAD)
     def test_encrypt_big_string(self):
         data = b'HELLO WORLD' * 1024
 
@@ -74,13 +80,20 @@ class AESTests(TestCase):
 
         self.assertEqual(text, data)
 
-    @Not.opencryptoki  # No mechanism available
-    def test_sign(self):
-        if Is.nfast:  # SHA512_HMAC requires a special `HMAC' key on nFast
-            mechanism = pkcs11.Mechanism.AES_MAC
-        else:
-            mechanism = None
+    @requires(Mechanism.SHA512_HMAC)
+    @Not.nfast  # nFast doesn't permit HMACing using AES keys
+    def test_sign_hmac(self):
+        data = b'HELLO WORLD' * 1024
 
+        signature = self.key.sign(data)
+        self.assertIsNotNone(signature)
+        self.assertIsInstance(signature, bytes)
+        self.assertTrue(self.key.verify(data, signature))
+        self.assertFalse(self.key.verify(data, b'1234'))
+
+    @requires(Mechanism.AES_MAC)
+    def test_sign_aes_mac(self):
+        mechanism = pkcs11.Mechanism.AES_MAC
         data = b'HELLO WORLD' * 1024
 
         signature = self.key.sign(data, mechanism=mechanism)
@@ -89,13 +102,9 @@ class AESTests(TestCase):
         self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
         self.assertFalse(self.key.verify(data, b'1234', mechanism=mechanism))
 
-    @Not.opencryptoki  # No mechanism available
+    @requires(Mechanism.SHA512_HMAC)
+    @Not.nfast  # nFast doesn't permit HMACing using AES keys
     def test_sign_stream(self):
-        if Is.nfast:  # SHA512_HMAC requires a special `HMAC' key on nFast
-            mechanism = pkcs11.Mechanism.AES_MAC
-        else:
-            mechanism = None
-
         data = (
             b'I' * 16,
             b'N' * 16,
@@ -104,12 +113,13 @@ class AESTests(TestCase):
             b'T' * 10,  # don't align to the blocksize
         )
 
-        signature = self.key.sign(data, mechanism=mechanism)
+        signature = self.key.sign(data)
         self.assertIsNotNone(signature)
         self.assertIsInstance(signature, bytes)
-        self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
+        self.assertTrue(self.key.verify(data, signature))
 
-    @Not.softhsm2  # No mechanism available
+    @requires(Mechanism.AES_ECB)
+    @Not.softhsm2  # requires AES keywrapping support
     @Not.opencryptoki  # FIXME: can't set key attributes
     def test_wrap(self):
         key = self.session.generate_key(pkcs11.KeyType.AES, 128, template={

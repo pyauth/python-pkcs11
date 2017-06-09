@@ -6,11 +6,12 @@ import hashlib
 
 from pkcs11 import Mechanism, KeyType, Attribute
 
-from . import TestCase, Not
+from . import TestCase, Not, requires
 
 
 class DigestTests(TestCase):
 
+    @requires(Mechanism.SHA256)
     def test_digest(self):
         data = 'THIS IS SOME DATA TO DIGEST'
         digest = self.session.digest(data, mechanism=Mechanism.SHA256)
@@ -18,6 +19,7 @@ class DigestTests(TestCase):
         self.assertEqual(digest,
                          hashlib.sha256(data.encode('utf-8')).digest())
 
+    @requires(Mechanism.SHA256)
     def test_digest_generator(self):
         data = (
             b'This is ',
@@ -33,7 +35,8 @@ class DigestTests(TestCase):
 
         self.assertEqual(digest, m.digest())
 
-    @Not.nfast
+    @requires(Mechanism.AES_KEY_GEN, Mechanism.SHA256)
+    @Not.nfast  # nFast can't digest keys
     def test_digest_key(self):
         key = self.session.generate_key(KeyType.AES, 128,
                                         template={
@@ -46,7 +49,8 @@ class DigestTests(TestCase):
         self.assertEqual(digest,
                          hashlib.sha256(key[Attribute.VALUE]).digest())
 
-    @Not.nfast
+    @requires(Mechanism.AES_KEY_GEN, Mechanism.SHA256)
+    @Not.nfast  # nFast can't digest keys
     def test_digest_key_data(self):
         key = self.session.generate_key(KeyType.AES, 128,
                                         template={

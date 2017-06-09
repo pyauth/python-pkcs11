@@ -4,7 +4,7 @@ PKCS#11 Sessions
 
 import pkcs11
 
-from . import TestCase, TOKEN_PIN, Only, Not
+from . import TestCase, TOKEN_PIN, Only, Not, requires
 
 
 class SessionTests(TestCase):
@@ -26,6 +26,7 @@ class SessionTests(TestCase):
         with self.token.open(rw=True, so_pin='5678') as session:
             self.assertIsInstance(session, pkcs11.Session)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_generate_key(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128)
@@ -59,6 +60,7 @@ class SessionTests(TestCase):
 
             self.assertEqual(key.label, 'MY KEY')
 
+    @requires(pkcs11.Mechanism.RSA_PKCS_KEY_PAIR_GEN)
     def test_generate_keypair(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             pub, priv = session.generate_keypair(
@@ -72,6 +74,7 @@ class SessionTests(TestCase):
             text = priv.decrypt(crypttext)
             self.assertEqual(data, text)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_get_objects(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128,
@@ -84,7 +87,6 @@ class SessionTests(TestCase):
             self.assertEqual(len(search), 1)
             self.assertEqual(key, search[0])
 
-    @Not.opencryptoki  # FIXME
     def test_create_object(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.create_object({
@@ -96,7 +98,7 @@ class SessionTests(TestCase):
             self.assertIsInstance(key, pkcs11.SecretKey)
             self.assertEqual(key.key_length, 128)
 
-    @Not.nfast
+    @Not.nfast  # nFast won't destroy objects
     def test_destroy_object(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128,
@@ -116,6 +118,7 @@ class SessionTests(TestCase):
 
             self.assertEqual(set(session.get_objects()), {key, new})
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_get_key(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             session.generate_key(pkcs11.KeyType.AES, 128,
@@ -130,6 +133,7 @@ class SessionTests(TestCase):
             with self.assertRaises(pkcs11.NoSuchKey):
                 session.get_key(label='SAMPLE KEY')
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_get_key_vague(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             session.generate_key(pkcs11.KeyType.AES, 128,

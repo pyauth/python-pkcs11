@@ -4,6 +4,7 @@ PKCS#11 Tests
 
 import os
 import unittest
+from functools import wraps
 
 import pkcs11
 
@@ -29,21 +30,51 @@ class TestCase(unittest.TestCase):
     with_session = True
     """Creates a session for this test case."""
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.lib = lib = pkcs11.lib(LIB)
+
+        if cls.with_token or cls.with_session:
+            cls.token = lib.get_token(token_label=TOKEN)
+
     def setUp(self):
         super().setUp()
-        self.lib = lib = pkcs11.lib(LIB)
-
-        if self.with_token or self.with_session:
-            self.token = token = lib.get_token(token_label=TOKEN)
 
         if self.with_session:
-            self.session = token.open(user_pin=TOKEN_PIN)
+            self.session = self.token.open(user_pin=TOKEN_PIN)
 
     def tearDown(self):
         if self.with_session:
             self.session.close()
 
         super().tearDown()
+
+
+def requires(*mechanisms):
+    """
+    Decorates a function or class as requiring mechanisms, else they are
+    skipped.
+    """
+
+    def check_requirements(self):
+        """Determine what, if any, required mechanisms are unavailable."""
+        unavailable = set(mechanisms) - self.token.slot.get_mechanisms()
+
+        if unavailable:
+            raise unittest.SkipTest("Requires %s"
+                                    % ', '.join(map(str, unavailable)))
+
+    def inner(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            check_requirements(self)
+
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return inner
 
 
 class Is:

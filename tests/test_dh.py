@@ -4,19 +4,19 @@ PKCS#11 Diffie-Hellman tests
 
 import base64
 
-from pkcs11 import Attribute, KeyType, DomainParameters
+from pkcs11 import Attribute, KeyType, DomainParameters, Mechanism
 from pkcs11.util.dh import (
     decode_x9_42_dh_domain_parameters,
     encode_x9_42_dh_domain_parameters,
     encode_dh_public_key,
 )
 
-from . import TestCase, Not
+from . import TestCase, requires
 
 
-@Not.opencryptoki  # No support
 class DHTests(TestCase):
 
+    @requires(Mechanism.DH_PKCS_KEY_PAIR_GEN, Mechanism.DH_PKCS_DERIVE)
     def test_derive_key(self):
         # Alice and Bob each create a Diffie-Hellman keypair from the
         # publicly available DH parameters
@@ -112,7 +112,7 @@ class DHTests(TestCase):
         self.assertEqual(params[Attribute.PRIME][:4],
                          b'\xAD\x10\x7E\x1E')
 
-    @Not.nfast  # No mechanism
+    @requires(Mechanism.DH_PKCS_PARAMETER_GEN, Mechanism.DH_PKCS_KEY_PAIR_GEN)
     def test_generate_params(self):
         params = self.session.generate_domain_parameters(KeyType.DH, 512)
         self.assertIsInstance(params, DomainParameters)
