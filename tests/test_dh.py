@@ -11,12 +11,13 @@ from pkcs11.util.dh import (
     encode_dh_public_key,
 )
 
-from . import TestCase, requires
+from . import TestCase, requires, FIXME
 
 
 class DHTests(TestCase):
 
     @requires(Mechanism.DH_PKCS_KEY_PAIR_GEN, Mechanism.DH_PKCS_DERIVE)
+    @FIXME.opencryptoki  # AttributeValueInvalid when generating keypair
     def test_derive_key(self):
         # Alice and Bob each create a Diffie-Hellman keypair from the
         # publicly available DH parameters

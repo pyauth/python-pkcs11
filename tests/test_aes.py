@@ -82,6 +82,7 @@ class AESTests(TestCase):
 
     @requires(Mechanism.SHA512_HMAC)
     @Not.nfast  # nFast doesn't permit HMACing using AES keys
+    @Not.opencryptoki  # nor opencryptoki
     def test_sign_hmac(self):
         data = b'HELLO WORLD' * 1024
 
@@ -104,6 +105,7 @@ class AESTests(TestCase):
 
     @requires(Mechanism.SHA512_HMAC)
     @Not.nfast  # nFast doesn't permit HMACing using AES keys
+    @Not.opencryptoki  # nor opencryptoki
     def test_sign_stream(self):
         data = (
             b'I' * 16,
