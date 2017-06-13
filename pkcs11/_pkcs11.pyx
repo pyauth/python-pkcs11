@@ -9,10 +9,13 @@ for Sphinx/Jedi/etc, as this module is not importable without having the
 library loaded.
 """
 
+from __future__ import (absolute_import, unicode_literals,
+                        print_function, division)
+
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
-from _pkcs11_defn cimport *
+from ._pkcs11_defn cimport *
 include '_errors.pyx'
 include '_utils.pyx'
 

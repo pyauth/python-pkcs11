@@ -2,8 +2,6 @@
 Type wrangling utility functions.
 """
 
-from _pkcs11_defn cimport *
-
 from .constants import *
 from .mechanisms import *
 

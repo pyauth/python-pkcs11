@@ -2,7 +2,6 @@
 Map from CKR return codes to Python exceptions.
 """
 
-from _pkcs11_defn cimport *
 from .exceptions import *
 
 cdef ERROR_MAP = {
