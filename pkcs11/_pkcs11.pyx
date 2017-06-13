@@ -1188,6 +1188,9 @@ cdef class lib:
 
         assertRV(C_GetSlotList(token_present, NULL, &count))
 
+        if count == 0:
+            return []
+
         cdef CK_ULONG [:] slotIDs = CK_ULONG_buffer(count)
 
         assertRV(C_GetSlotList(token_present, &slotIDs[0], &count))
