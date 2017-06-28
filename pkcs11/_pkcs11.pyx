@@ -188,6 +188,9 @@ class Slot(types.Slot):
 
         assertRV(C_GetMechanismList(self.slot_id, NULL, &count))
 
+        if count == 0:
+            return set()
+
         cdef CK_MECHANISM_TYPE [:] mechanisms = CK_ULONG_buffer(count)
 
         assertRV(C_GetMechanismList(self.slot_id, &mechanisms[0], &count))
