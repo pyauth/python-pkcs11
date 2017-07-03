@@ -225,7 +225,7 @@ Tested Compatibility
 |             +----------------+--------------+-----------------+--------------+-------------------+
 |             | Certificates   | Caveats [1]_ | Caveats [1]_    | Caveats [1]_ | ?                 |
 |             +----------------+--------------+-----------------+--------------+-------------------+
-|             | Domain Params  | Caveats [1]_ | Caveats [1]_    | ?            | ?                 |
+|             | Domain Params  | Caveats [1]_ | Caveats [1]_    | ?            | N/A               |
 +-------------+----------------+--------------+-----------------+--------------+-------------------+
 | Destroy Object               | Works        | N/A             | Works        | Works             |
 +------------------------------+--------------+-----------------+--------------+-------------------+
@@ -255,7 +255,7 @@ Tested Compatibility
 |        +---------------------+--------------+-----------------+--------------+-------------------+
 |        | Encrypt/Decrypt     | Works        | Works           | Works        | Decrypt only [9]_ |
 |        +---------------------+--------------+-----------------+--------------+-------------------+
-|        | Wrap/Unwrap         | Works        | Works           | Works        | ?                 |
+|        | Wrap/Unwrap         | Works        | Works           | Works        | N/A               |
 |        +---------------------+--------------+-----------------+--------------+-------------------+
 |        | Sign/Verify         | Works        | Works           | Works        | Works             |
 +--------+---------------------+--------------+-----------------+--------------+-------------------+
@@ -271,9 +271,9 @@ Tested Compatibility
 |        +---------------------+--------------+-----------------+              |                   |
 |        | Derive Key          | Works        | Caveats [7]_    |              |                   |
 +--------+---------------------+--------------+-----------------+--------------+-------------------+
-| EC     | Generate key pair   | Caveats [6]_ | ? [3]_          | N/A          | ?                 |
+| EC     | Generate key pair   | Caveats [6]_ | ? [3]_          | N/A          | Works             |
 |        +---------------------+--------------+-----------------+              +-------------------+
-|        | Sign/Verify (ECDSA) | Works [4]_   | ? [3]_          |              | ?                 |
+|        | Sign/Verify (ECDSA) | Works [4]_   | ? [3]_          |              | Sign only [9]_    |
 |        +---------------------+--------------+-----------------+              +-------------------+
 |        | Derive key (ECDH)   | Works        | ? [3]_          |              | ?                 |
 +--------+---------------------+--------------+-----------------+--------------+-------------------+
@@ -288,7 +288,7 @@ Tested Compatibility
 .. [6] Local domain parameters only.
 .. [7] Generates security warnings about the derived key.
 .. [8] `store` parameter is ignored, all keys are stored.
-.. [9] Encryption not supported, extract the public key for encryption.
+.. [9] Encryption/verify not supported, extract the public key
 
 Python version:
 
