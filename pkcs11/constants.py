@@ -355,6 +355,9 @@ class MechanismFlag(IntFlag):
     Some objects and mechanisms are symmetric (i.e. can be used for encryption
     and decryption), some are asymmetric (e.g. public key cryptography).
     """
+    HW = 0x00000001
+    """Mechanism is performed in hardware."""
+
     ENCRYPT = 0x00000100
     """Can be used for encryption."""
     DECRYPT = 0x00000200
