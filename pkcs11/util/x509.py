@@ -47,6 +47,7 @@ def decode_x509_public_key(der):
 
     key_type = {
         rfc3279.rsaEncryption: KeyType.RSA,
+        rfc3279.id_ecPublicKey: KeyType.EC,
     }[algo]
 
     attrs = {
@@ -57,6 +58,15 @@ def decode_x509_public_key(der):
     if key_type is KeyType.RSA:
         from .rsa import decode_rsa_public_key
         attrs.update(decode_rsa_public_key(key))
+    elif key_type is KeyType.EC:
+        params = key_info['algorithm']['parameters']
+
+        attrs.update({
+            Attribute.EC_PARAMS: params,
+            Attribute.EC_POINT: key,
+        })
+    else:
+        raise AssertionError("Should not be reached")
 
     return attrs
 

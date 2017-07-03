@@ -8,7 +8,7 @@ import subprocess
 from pyasn1.codec.der import encoder as derencoder, decoder as derdecoder
 from pyasn1.codec.ber import encoder as berencoder
 from pyasn1.type.univ import BitString, Null
-from pyasn1_modules import rfc2459, rfc2314
+from pyasn1_modules import rfc2459, rfc2314, rfc3279
 
 import pkcs11
 from pkcs11.util.rsa import (
@@ -70,21 +70,56 @@ class X509Tests(TestCase):
                          b'\x0b\x66\x86\x79\x35\xfb\x52\x85\xbf\xa8')
 
     @requires(Mechanism.SHA1_RSA_PKCS)
-    def test_verify_certificate(self):
+    def test_verify_certificate_rsa(self):
         # Warning: proof of concept code only!
         x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
         key = self.session.create_object(decode_x509_public_key(CERT))
         self.assertIsInstance(key, pkcs11.PublicKey)
 
         value = berencoder.encode(x509['tbsCertificate'])
-        signature = bytes(x509['signatureValue'].asNumbers())
+        signature = x509['signatureValue'].asOctets()
         mechanism = x509['signatureAlgorithm']['algorithm']
 
-        # We could handle other mechanisms but why would we?
         assert mechanism == rfc2459.sha1WithRSAEncryption
 
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.SHA1_RSA_PKCS))
+
+    @requires(Mechanism.ECDSA_SHA1)
+    def test_verify_certificate_ecdsa(self):
+        # Warning: proof of concept code only!
+        CERT = base64.b64decode("""
+        MIIDGjCCAsKgAwIBAgIJAL+PbwiJUZB1MAkGByqGSM49BAEwRTELMAkGA1UEBhMC
+        QVUxEzARBgNVBAgTClNvbWUtU3RhdGUxITAfBgNVBAoTGEludGVybmV0IFdpZGdp
+        dHMgUHR5IEx0ZDAeFw0xNzA3MDMxMTUxMTBaFw0xOTA3MDMxMTUxMTBaMEUxCzAJ
+        BgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5l
+        dCBXaWRnaXRzIFB0eSBMdGQwggFLMIIBAwYHKoZIzj0CATCB9wIBATAsBgcqhkjO
+        PQEBAiEA/////wAAAAEAAAAAAAAAAAAAAAD///////////////8wWwQg/////wAA
+        AAEAAAAAAAAAAAAAAAD///////////////wEIFrGNdiqOpPns+u9VXaYhrxlHQaw
+        zFOw9jvOPD4n0mBLAxUAxJ02CIbnBJNqZnjhE50mt4GffpAEQQRrF9Hy4SxCR/i8
+        5uVjpEDydwN9gS3rM6D0oTlF2JjClk/jQuL+Gn+bjufrSnwPnhYrzjNXazFezsu2
+        QGg3v1H1AiEA/////wAAAAD//////////7zm+q2nF56E87nKwvxjJVECAQEDQgAE
+        royPJHkCQMq55egxmQxkFWqiz+yJx0MZP98is99SrkiK5UadFim3r3ZSt5kfh/cc
+        Ccmy94BZCmihhGJ0F4eB2qOBpzCBpDAdBgNVHQ4EFgQURNXKlYGsAMItf4Ad8fkg
+        Rg9ATqEwdQYDVR0jBG4wbIAURNXKlYGsAMItf4Ad8fkgRg9ATqGhSaRHMEUxCzAJ
+        BgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5l
+        dCBXaWRnaXRzIFB0eSBMdGSCCQC/j28IiVGQdTAMBgNVHRMEBTADAQH/MAkGByqG
+        SM49BAEDRwAwRAIgAdJp/S9vSjS6EvRy/9zl5k2DBKGI52A3Ygsp1a96UicCIDul
+        m/eL2OcGdNbzqzsC11alhemJX7Qt9GOcVqQwROIm
+        """)
+
+        x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
+        key = self.session.create_object(decode_x509_public_key(CERT))
+        self.assertIsInstance(key, pkcs11.PublicKey)
+
+        value = berencoder.encode(x509['tbsCertificate'])
+        signature = x509['signatureValue'].asOctets()
+        mechanism = x509['signatureAlgorithm']['algorithm']
+
+        assert mechanism == rfc3279.ecdsa_with_SHA1
+
+        self.assertTrue(key.verify(value, signature,
+                                   mechanism=Mechanism.ECDSA_SHA1))
 
     @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
     def test_self_sign_certificate(self):
