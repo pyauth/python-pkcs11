@@ -15,7 +15,7 @@ from pkcs11.util.rsa import (
     decode_rsa_public_key,
     encode_rsa_public_key,
 )
-from pkcs11.util.x509 import decode_x509_certificate
+from pkcs11.util.x509 import decode_x509_certificate, decode_x509_public_key
 from pkcs11 import (
     Attribute,
     KeyType,
@@ -73,12 +73,9 @@ class X509Tests(TestCase):
     def test_verify_certificate(self):
         # Warning: proof of concept code only!
         x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
-        key = bytes(x509
-                    ['tbsCertificate']
-                    ['subjectPublicKeyInfo']
-                    ['subjectPublicKey']
-                    .asNumbers())
-        key = self.session.create_object(decode_rsa_public_key(key))
+        key = self.session.create_object(decode_x509_public_key(CERT))
+        self.assertIsInstance(key, pkcs11.PublicKey)
+
         value = berencoder.encode(x509['tbsCertificate'])
         signature = bytes(x509['signatureValue'].asNumbers())
         mechanism = x509['signatureAlgorithm']['algorithm']

@@ -14,8 +14,10 @@ from pyasn1_modules.rfc2459 import (
     id_ce_authorityKeyIdentifier,
     id_ce_subjectKeyIdentifier,
 )
+from pyasn1_modules import rfc3279
 
 from ..constants import Attribute, ObjectClass, CertificateType
+from ..mechanisms import KeyType
 
 
 def _decode_x509_extension(extn):
@@ -26,6 +28,39 @@ def _decode_x509_extension(extn):
     return value
 
 
+def decode_x509_public_key(der):
+    """
+    Decode a DER-encoded X.509 certificate's public key into a set of
+    attributes able to be passed to :meth:`pkcs11.Session.create_object`.
+
+    .. warning::
+
+        Does not verify certificate.
+
+    :param bytes der: DER-encoded certificate
+    :rtype: dict(Attribute,*)
+    """
+    x509, _ = der_decoder.decode(der, asn1Spec=Certificate())
+    key_info = x509['tbsCertificate']['subjectPublicKeyInfo']
+    algo = key_info['algorithm']['algorithm']
+    key = key_info['subjectPublicKey'].asOctets()
+
+    key_type = {
+        rfc3279.rsaEncryption: KeyType.RSA,
+    }[algo]
+
+    attrs = {
+        Attribute.CLASS: ObjectClass.PUBLIC_KEY,
+        Attribute.KEY_TYPE: key_type,
+    }
+
+    if key_type is KeyType.RSA:
+        from .rsa import decode_rsa_public_key
+        attrs.update(decode_rsa_public_key(key))
+
+    return attrs
+
+
 def decode_x509_certificate(der, extended_set=False):
     """
     Decode a DER-encoded X.509 certificate into a dictionary of
@@ -33,6 +68,10 @@ def decode_x509_certificate(der, extended_set=False):
 
     Optionally pass `extended_set` to include additional attributes:
     start date, end date and key identifiers.
+
+    .. warning::
+
+        Does not verify certificate.
 
     :param bytes der: DER-encoded certificate
     :param extended_set: decodes more metadata about the certificate
