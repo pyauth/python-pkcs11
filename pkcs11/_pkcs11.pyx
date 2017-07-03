@@ -281,7 +281,7 @@ class Session(types.Session):
     """Extend Session with implementation."""
 
     def close(self):
-        if self.user_type is not UserType.NOBODY:
+        if self.user_type != UserType.NOBODY:
             assertRV(C_Logout(self._handle))
 
         assertRV(C_CloseSession(self._handle))
