@@ -120,10 +120,10 @@ class X509Tests(TestCase):
 
         signature, _ = derdecoder.decode(x509['signatureValue'].asOctets(),
                                          asn1Spec=rfc3279.Dss_Sig_Value())
-        signature = b'%s%s' % (
+        signature = b''.join((
             int(signature['r']).to_bytes(20, byteorder='big'),
             int(signature['s']).to_bytes(20, byteorder='big'),
-        )
+        ))
 
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.DSA_SHA1))
@@ -160,12 +160,13 @@ class X509Tests(TestCase):
 
         assert mechanism == rfc3279.ecdsa_with_SHA1
 
+        print(len(x509['signatureValue'].asOctets()))
         signature, _ = derdecoder.decode(x509['signatureValue'].asOctets(),
                                          asn1Spec=rfc3279.ECDSA_Sig_Value())
-        signature = b'%s%s' % (
-            int(signature['r']).to_bytes(20, byteorder='big'),
-            int(signature['s']).to_bytes(20, byteorder='big'),
-        )
+        signature = b''.join((
+            int(signature['r']).to_bytes(32, byteorder='big'),
+            int(signature['s']).to_bytes(32, byteorder='big'),
+        ))
 
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.ECDSA_SHA1))
