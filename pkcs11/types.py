@@ -352,7 +352,7 @@ class Session:
 
         For generating keys see :meth:`generate_key` or
         :meth:`generate_keypair`.
-        For importing keys see :meth:`import_key`.
+        For importing keys see :ref:`importing-keys`.
 
         Requires a read/write session, unless the object is not to be
         stored.

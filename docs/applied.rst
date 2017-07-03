@@ -684,6 +684,83 @@ The public key as a single important attribute:
     EC_POINT
         Public key (as X9.62 DER-encoded bytes).
 
+.. _importing-keys:
+
+Importing/Exporting Keys
+------------------------
+
+.. warning::
+
+    It is best to only import/export public keys. You should, whenever
+    possible, generate and store secret and private keys within the boundary of
+    your HSM.
+
+The following utility methods will convert keys encoded in their canonical
+DER-encoded into attributes that can be used with
+:meth:`pkcs11.Session.create_object`.
+
+.. note::
+
+    PEM certificates are base64-encoded versions of the canonical DER-encoded
+    forms used in `python-pkcs11`. Converting between PEM and DER is beyond the
+    scope of `python-pkcs11`.
+
+    :mod:`pyasn1` and :mod:`pyasn1_modules` are required to import and export
+    DER-encoded objects.
+
+AES/DES
+~~~~~~~
+
+.. warning::
+
+    Whenever possible, generate and store secret keys within the boundary of
+    your HSM.
+
+AES and DES keys are stored as binary bytes in
+:attr:`pkcs11.constants.Attribute.VALUE`.
+
+Keys must be marked as `EXTRACTABLE` and not `SENSITIVE` to export.
+
+RSA
+~~~
+
+To import a PKCS #1 DER-encoded RSA key, the following utility methods are
+provided:
+
+* :func:`pkcs11.util.rsa.decode_rsa_public_key`, and
+* :func:`pkcs11.util.rsa.decode_rsa_private_key`.
+
+To export an RSA public key in PKCS #1 DER-encoded format, use
+:func:`pkcs11.util.rsa.encode_rsa_public_key`.
+
+DSA
+~~~
+
+To import an RFC 3279 DER-encoded DSA key, the following utility methods are
+provided:
+
+* :func:`pkcs11.util.dsa.decode_dsa_domain_parameters`, and
+* :func:`pkcs11.util.dsa.decode_dsa_public_key`.
+
+To export a DSA public key, use:
+
+* :func:`pkcs11.util.dsa.encode_dsa_domain_parameters`, and
+* :func:`pkcs11.util.dsa.encode_dsa_public_key`.
+
+Elliptic Curve
+~~~~~~~~~~~~~~
+
+The :attr:`pkcs11.constants.Attribute.EC_PARAMS` and
+:attr:`pkcs11.constants.Attribute.EC_POINT` attributes for elliptic curves
+are already in DER-encoded X9.62 format.
+
+X.509
+~~~~~
+
+The function :func:`pkcs11.util.x509.decode_x509_public_key` is provided to
+extract public keys from X.509 DER-encoded certificates, which is capable of
+handling RSA, DSA and ECDSA keys.
+
 Encryption/Decryption
 ---------------------
 
