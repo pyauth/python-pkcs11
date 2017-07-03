@@ -47,6 +47,7 @@ def decode_x509_public_key(der):
 
     key_type = {
         rfc3279.rsaEncryption: KeyType.RSA,
+        rfc3279.id_dsa: KeyType.DSA,
         rfc3279.id_ecPublicKey: KeyType.EC,
     }[algo]
 
@@ -58,6 +59,14 @@ def decode_x509_public_key(der):
     if key_type is KeyType.RSA:
         from .rsa import decode_rsa_public_key
         attrs.update(decode_rsa_public_key(key))
+    elif key_type is KeyType.DSA:
+        from .dsa import decode_dsa_domain_parameters, decode_dsa_public_key
+        params = key_info['algorithm']['parameters']
+
+        attrs.update(decode_dsa_domain_parameters(params))
+        attrs.update({
+            Attribute.VALUE: decode_dsa_public_key(key),
+        })
     elif key_type is KeyType.EC:
         params = key_info['algorithm']['parameters']
 
