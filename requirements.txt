@@ -5,5 +5,4 @@
 #    pip-compile --output-file requirements.txt requirements.in
 #
 aenum==2.0.7 ; python_version < "3.6"
-cython==0.25.2
-setuptools-scm==1.15.5
+cached-property==1.3.0

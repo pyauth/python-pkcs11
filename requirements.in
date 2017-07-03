@@ -1,1 +1,2 @@
 aenum; python_version < "3.6"
+cached-property

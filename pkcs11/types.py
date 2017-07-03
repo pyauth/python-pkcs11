@@ -7,6 +7,8 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 from threading import RLock
 from binascii import hexlify
 
+from cached_property import cached_property
+
 from .constants import (
     Attribute,
     MechanismFlag,
@@ -622,7 +624,7 @@ class DomainParameters(Object):
         else:
             super().__setitem__(key, value)
 
-    @property
+    @cached_property
     def key_type(self):
         """
         Key type (:class:`pkcs11.mechanisms.KeyType`) these parameters
@@ -656,28 +658,35 @@ class DomainParameters(Object):
 class Key(Object):
     """Base class for all key :class:`Object` types."""
 
-    @property
+    @cached_property
     def id(self):
         """Key id (:class:`bytes`)."""
         return self[Attribute.ID]
 
-    @property
+    @cached_property
     def label(self):
         """Key label (:class:`str`)."""
         return self[Attribute.LABEL]
 
-    @property
+    @cached_property
     def key_type(self):
         """Key type (:class:`pkcs11.mechanisms.KeyType`)."""
         return self[Attribute.KEY_TYPE]
 
+    @cached_property
+    def _key_description(self):
+        """A description of the key."""
+        try:
+            return '%s-bit %s' % (self.key_length, self.key_type.name)
+        except AttributeTypeInvalid:
+            return self.key_type.name
+
     def __repr__(self):
-        return "<%s label='%s' id='%s' %s-bit %s>" % (
+        return "<%s label='%s' id='%s' %s>" % (
             type(self).__name__,
             self.label,
             hexlify(self.id).decode('ascii'),
-            self.key_length,
-            self.key_type.name)
+            self._key_description)
 
 
 class SecretKey(Key):
@@ -688,7 +697,7 @@ class SecretKey(Key):
 
     object_class = ObjectClass.SECRET_KEY
 
-    @property
+    @cached_property
     def key_length(self):
         """Key length in bits."""
         return self[Attribute.VALUE_LEN] * 8
@@ -706,7 +715,7 @@ class PublicKey(Key):
 
     object_class = ObjectClass.PUBLIC_KEY
 
-    @property
+    @cached_property
     def key_length(self):
         """Key length in bits."""
         return self[Attribute.MODULUS_BITS]
@@ -728,7 +737,7 @@ class PrivateKey(Key):
 
     object_class = ObjectClass.PRIVATE_KEY
 
-    @property
+    @cached_property
     def key_length(self):
         """Key length in bits."""
         return len(self[Attribute.MODULUS]) * 8
@@ -748,7 +757,7 @@ class Certificate(Object):
     """
     object_class = ObjectClass.CERTIFICATE
 
-    @property
+    @cached_property
     def certificate_type(self):
         """
         The type of certificate.
