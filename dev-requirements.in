@@ -1,8 +1,10 @@
 Cython
 setuptools_scm
 
+# Used for tests
 pyasn1
 pyasn1-modules
+pycrypto
 
 sphinx
 sphinx-rtd-theme

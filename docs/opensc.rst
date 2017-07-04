@@ -73,10 +73,12 @@ EC
 
 ::
 
+    from pyasn1_modules.rfc3279 import prime256v1
+
     with token.open(user_pin='1234', rw=True) as session:
         ecparams = session.create_domain_parameters(
             pkcs11.KeyType.EC, {
-                pkcs11.Attribute: pkcs11.util.ec.encode_named_curve_parameters('prime256v1'),
+                pkcs11.Attribute.EC_PARAMS: pkcs11.util.ec.encode_named_curve_parameters(prime256v1),
             }, local=True)
 
         pub, priv = ecparams.generate_keypair(store=True,
@@ -87,7 +89,8 @@ Exporting Public Keys for External Use
 
 While we don't want our private keys to leave the boundary of our HSM,
 we can extract the public keys for use with a cryptographic library of our
-choosing.
+choosing. :ref:`importing-keys` has more information on functions for
+exporting keys.
 
 RSA
 ~~~
