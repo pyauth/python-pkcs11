@@ -6,26 +6,10 @@ These utilities depend on :mod:`pyasn1` and :mod:`pyasn1_modules`.
 
 from datetime import datetime
 
-from pyasn1.codec.ber import encoder as ber_encoder
-from pyasn1.codec.der import encoder as der_encoder, decoder as der_decoder
-from pyasn1_modules.rfc2459 import (
-    Certificate,
-    certificateExtensionsMap,
-    id_ce_authorityKeyIdentifier,
-    id_ce_subjectKeyIdentifier,
-)
-from pyasn1_modules import rfc3279
+from asn1crypto.x509 import Certificate
 
 from ..constants import Attribute, ObjectClass, CertificateType
 from ..mechanisms import KeyType
-
-
-def _decode_x509_extension(extn):
-    """Decode a X.509 extension, which is encoded as an ANY type."""
-    asn_type = certificateExtensionsMap[extn['extnID']]
-    octet_stream, _ = der_decoder.decode(extn['extnValue'])
-    value, _ = der_decoder.decode(octet_stream, asn1Spec=asn_type)
-    return value
 
 
 def decode_x509_public_key(der):
@@ -40,16 +24,15 @@ def decode_x509_public_key(der):
     :param bytes der: DER-encoded certificate
     :rtype: dict(Attribute,*)
     """
-    x509, _ = der_decoder.decode(der, asn1Spec=Certificate())
-    key_info = x509['tbsCertificate']['subjectPublicKeyInfo']
-    algo = key_info['algorithm']['algorithm']
-    key = key_info['subjectPublicKey'].asOctets()
+    x509 = Certificate.load(der)
+    key_info = x509.public_key
+    key = bytes(key_info['public_key'])
 
     key_type = {
-        rfc3279.rsaEncryption: KeyType.RSA,
-        rfc3279.id_dsa: KeyType.DSA,
-        rfc3279.id_ecPublicKey: KeyType.EC,
-    }[algo]
+        'rsa': KeyType.RSA,
+        'dsa': KeyType.DSA,
+        'ec': KeyType.EC,
+    }[key_info.algorithm]
 
     attrs = {
         Attribute.CLASS: ObjectClass.PUBLIC_KEY,
@@ -61,14 +44,14 @@ def decode_x509_public_key(der):
         attrs.update(decode_rsa_public_key(key))
     elif key_type is KeyType.DSA:
         from .dsa import decode_dsa_domain_parameters, decode_dsa_public_key
-        params = key_info['algorithm']['parameters']
+        params = key_info['algorithm']['parameters'].dump()
 
         attrs.update(decode_dsa_domain_parameters(params))
         attrs.update({
             Attribute.VALUE: decode_dsa_public_key(key),
         })
     elif key_type is KeyType.EC:
-        params = key_info['algorithm']['parameters']
+        params = key_info['algorithm']['parameters'].dump()
 
         attrs.update({
             Attribute.EC_PARAMS: params,
@@ -96,36 +79,25 @@ def decode_x509_certificate(der, extended_set=False):
     :param extended_set: decodes more metadata about the certificate
     :rtype: dict(Attribute,*)
     """
-    x509, _ = der_decoder.decode(der, asn1Spec=Certificate())
-    subject = der_encoder.encode(x509['tbsCertificate']['subject'])
-    issuer = der_encoder.encode(x509['tbsCertificate']['issuer'])
-    serial = der_encoder.encode(x509['tbsCertificate']['serialNumber'])
-
-    # Build a map of the extensions, maybe we can find the key identifiers
-    # We're not using the certificate or checking its validity, so we don't
-    # need to check critical sections
-    extensions = {
-        extension['extnID']: _decode_x509_extension(extension)
-        for extension in x509['tbsCertificate']['extensions']
-    }
+    x509 = Certificate.load(der)
+    subject = x509.subject
+    issuer = x509.issuer
+    serial = x509['tbs_certificate']['serial_number']
 
     template = {
         Attribute.CLASS: ObjectClass.CERTIFICATE,
         Attribute.CERTIFICATE_TYPE: CertificateType.X_509,
-        Attribute.SUBJECT: subject,
-        Attribute.ISSUER: issuer,
-        Attribute.SERIAL_NUMBER: serial,
-        # Yes the standard says BER
-        Attribute.VALUE: ber_encoder.encode(x509),
+        Attribute.SUBJECT: subject.dump(),
+        Attribute.ISSUER: issuer.dump(),
+        Attribute.SERIAL_NUMBER: serial.dump(),
+        Attribute.VALUE: x509.dump(),
     }
 
     if extended_set:
-        start_date = datetime.strptime(
-            str(x509['tbsCertificate']['validity']['notBefore']['utcTime']),
-            '%y%m%d%H%M%SZ').date()
-        end_date = datetime.strptime(
-            str(x509['tbsCertificate']['validity']['notAfter']['utcTime']),
-            '%y%m%d%H%M%SZ').date()
+        start_date = \
+            x509['tbs_certificate']['validity']['not_before'].native.date()
+        end_date = \
+            x509['tbs_certificate']['validity']['not_after'].native.date()
 
         template.update({
             Attribute.START_DATE: start_date,
@@ -135,13 +107,13 @@ def decode_x509_certificate(der, extended_set=False):
         # FIXME: is this correct?
         try:
             template[Attribute.HASH_OF_SUBJECT_PUBLIC_KEY] = \
-                extensions[id_ce_subjectKeyIdentifier]
+                x509.key_identifier
         except KeyError:
             pass
 
         try:
             template[Attribute.HASH_OF_ISSUER_PUBLIC_KEY] = \
-                extensions[id_ce_authorityKeyIdentifier]['keyIdentifier']
+                x509.authority_key_identifier
         except KeyError:
             pass
 
