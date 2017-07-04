@@ -754,6 +754,14 @@ The :attr:`pkcs11.constants.Attribute.EC_PARAMS` and
 :attr:`pkcs11.constants.Attribute.EC_POINT` attributes for elliptic curves
 are already in DER-encoded X9.62 format.
 
+You can import keys from OpenSSL using:
+
+* :func:`pkcs11.util.ec.decode_ec_public_key`, and
+* :func:`pkcs11.util.ec.decode_ec_private_key`.
+
+To export an EC public key in OpenSSL format,
+use :func:`pkcs11.util.ec.encode_ec_public_key`.
+
 X.509
 ~~~~~
 

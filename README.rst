@@ -133,10 +133,11 @@ ECDSA
     # Open a session on our token
     with token.open(user_pin='1234') as session:
         # Generate an EC keypair in this session from a named curve
-        pub, priv = session.create_domain_parameters(
+        ecparams = session.create_domain_parameters(
             pkcs11.KeyType.EC, {
                 pkcs11.Attribute: pkcs11.util.ec.encode_named_curve_parameters('prime256v1'),
             }, local=True)
+        pub, priv = ecparams.generate_keypair()
 
         # Sign
         signature = priv.sign(data)
