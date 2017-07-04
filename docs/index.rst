@@ -9,6 +9,7 @@ Contents
    applied
    api
    concurrency
+   opensc
 
 
 Indices and tables

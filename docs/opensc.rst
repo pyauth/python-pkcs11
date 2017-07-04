@@ -117,9 +117,6 @@ PyCrypto example:
 
     plaintext = priv.decrypt(crypttext, mechanism=Mechanism.RSA_PKCS)
 
-EC
-~~
-
 
 Debugging
 ---------
