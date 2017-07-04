@@ -6,6 +6,7 @@ import base64
 
 from pyasn1_modules.rfc3279 import prime256v1
 
+import pkcs11
 from pkcs11 import Attribute, KeyType, KDF, Mechanism
 from pkcs11.util.ec import (
     encode_named_curve_parameters,
@@ -78,6 +79,7 @@ class ECCTests(TestCase):
         vGbx2380UIhrec1jFjItOOg/Xp9dOecjQZK7Z0wVq1U=
         """)
         key = self.session.create_object(decode_ec_public_key(der))
+        self.assertIsInstance(key, pkcs11.PublicKey)
 
         # We should get back to identity
         self.assertEqual(encode_ec_public_key(key), der)
@@ -89,6 +91,7 @@ class ECCTests(TestCase):
         ejZ5QFoj9fmxFrUyYhFap6XmTdJtEi8myBmW
         """)
         key = self.session.create_object(decode_ec_public_key(der))
+        self.assertIsInstance(key, pkcs11.PublicKey)
 
         # We should get back to identity
         self.assertEqual(encode_ec_public_key(key), der)

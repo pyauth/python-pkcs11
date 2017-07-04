@@ -1,7 +1,7 @@
 """
 Key handling utilities for DSA keys.
 
-These utilities depend on the :mod:`pyasn1` and :mod:`pyasn1_modules`.
+These utilities depend on :mod:`pyasn1` and :mod:`pyasn1_modules`.
 """
 
 from pyasn1.codec.der import encoder, decoder

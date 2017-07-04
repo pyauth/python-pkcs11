@@ -1,7 +1,7 @@
 """
 Key handling utilities for EC keys (ANSI X.62/RFC3279).
 
-These utilities depend on the :mod:`pyasn1` and :mod:`pyasn1_modules`.
+These utilities depend on :mod:`pyasn1` and :mod:`pyasn1_modules`.
 """
 
 from ..constants import Attribute, ObjectClass
@@ -60,12 +60,15 @@ def encode_ec_public_key(key):
     """
 
     asn1 = rfc3280.SubjectPublicKeyInfo()
+    ecparams, _ = decoder.decode(key[Attribute.EC_PARAMS],
+                                 asn1Spec=EcpkParameters())
+
+    ecpoint, _ = decoder.decode(key[Attribute.EC_POINT])
 
     asn1['algorithm'] = algo = rfc3280.AlgorithmIdentifier()
     algo['algorithm'] = id_ecPublicKey
-    algo['parameters'] = key[Attribute.EC_PARAMS]
+    algo['parameters'] = ecparams
 
-    asn1['subjectPublicKey'] = \
-        BitString.fromOctetString(key[Attribute.EC_POINT])
+    asn1['subjectPublicKey'] = BitString.fromOctetString(ecpoint)
 
     return encoder.encode(asn1)

@@ -120,9 +120,45 @@ PyCrypto example:
 
     plaintext = priv.decrypt(crypttext, mechanism=Mechanism.RSA_PKCS)
 
+ECDSA
+~~~~~
+
+oscrypto example:
+
+::
+
+    from pkcs11 import KeyType, ObjectClass, Mechanism
+
+    from oscrypto.asymmetric import load_public_key, ecdsa_verify
+
+    # Sign data in the HSM
+    priv = self.session.get_key(key_type=KeyType.EC,
+                                object_class=ObjectClass.PRIVATE_KEY)
+    signature = priv.sign(b'Data to sign', mechanism=Mechanism.ECDSA_SHA1)
+
+    # Extract the public key
+    pub = self.session.get_key(key_type=KeyType.EC,
+                               object_class=ObjectClass.PUBLIC_KEY)
+
+    # Verify the signature on the local machine
+    key = load_public_key(encode_ec_public_key(pub))
+    ecdsa_verify(key, signature, b'Data to sign', 'sha1')
+
+Encrypting Files
+----------------
+
+The device only supports asymmetric mechanisms. To do file encryption, you
+will need to generate AES keys locally, which you can encrypt with the
+public key (this is how the Nitrokey storage key works).
 
 Debugging
 ---------
 
 The parameter `OPENSC_DEBUG` will enable debugging of the OpenSC driver.
 A higher number indicates more verbosity.
+
+Thanks
+------
+
+Thanks to Nitrokey for their support of open software and
+sending a Nitrokey HSM to test with `python-pkcs11`.
