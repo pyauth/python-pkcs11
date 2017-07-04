@@ -4,13 +4,12 @@ PKCS#11 Elliptic Curve Cryptography.
 
 import base64
 
-from pyasn1_modules.rfc3279 import prime256v1
-
 import pkcs11
 from pkcs11 import Attribute, KeyType, KDF, Mechanism
 from pkcs11.util.ec import (
     encode_named_curve_parameters,
     decode_ec_public_key,
+    decode_ec_private_key,
     encode_ec_public_key,
     decode_ecdsa_signature,
 )
@@ -22,7 +21,7 @@ class ECCTests(TestCase):
     @requires(Mechanism.EC_KEY_PAIR_GEN, Mechanism.ECDSA)
     def test_sign_ecdsa(self):
         parameters = self.session.create_domain_parameters(KeyType.EC, {
-            Attribute.EC_PARAMS: encode_named_curve_parameters(prime256v1)
+            Attribute.EC_PARAMS: encode_named_curve_parameters('secp256r1')
         }, local=True)
 
         pub, priv = parameters.generate_keypair()
@@ -106,3 +105,45 @@ class ECCTests(TestCase):
 
         # We should get back to identity
         self.assertEqual(encode_ec_public_key(key), der)
+
+    @requires(Mechanism.ECDSA)
+    def test_import_key_pair(self):
+        priv = base64.b64decode("""
+        MIICnAIBAQRB9JsyE7khj/d2jm5RkE9T2DKgr/y3gn4Ju+8oWfdIpurNKM4hh3Oo
+        0T+ilc0BEy/SfJ5iqUxU5TocdFRpOUzfUIKgggHGMIIBwgIBATBNBgcqhkjOPQEB
+        AkIB////////////////////////////////////////////////////////////
+        //////////////////////////8wgZ4EQgH/////////////////////////////
+        /////////////////////////////////////////////////////////ARBUZU+
+        uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex+k3sWUsC9O7G/BzVz
+        34g9LDTx70Uf1GtQPwADFQDQnogAKRy4U5bMZxc5MoSqoNpkugSBhQQAxoWOBrcE
+        BOnNnj7LZiOVtEKcZIE5BT+1Ifgor2BrTT26oUted+/nWSj+HcEnov+o3jNIs8GF
+        akKb+X5+McLlvWYBGDkpaniaO8AEXIpftCx9G9mY9URJV5tEaBevvRcnPmYsl+5y
+        mV70JkDFULkBP60HYTU8cIaicsJAiL6Udp/RZlACQgH/////////////////////
+        //////////////////////pRhoeDvy+Wa3/MAUj3CaXQO7XJuImcR667b7cekThk
+        CQIBAaGBiQOBhgAEATC4LYExQRq9H+2K1sGbAj6S8WlEL1Cr89guoIYhZsXNhMwY
+        MQ2PssJ5huE/vhFWYSR0z3iDp1UXB114r5EXvmDEAWx/32cqnwnuNbyJd/W8IapY
+        vN/QAI/1qMV2bopaSmlwabxm8dt/NFCIa3nNYxYyLTjoP16fXTnnI0GSu2dMFatV
+        """)
+        priv = self.session.create_object(decode_ec_private_key(priv))
+
+        pub = base64.b64decode("""
+        MIICXDCCAc8GByqGSM49AgEwggHCAgEBME0GByqGSM49AQECQgH/////////////
+        ////////////////////////////////////////////////////////////////
+        /////////zCBngRCAf//////////////////////////////////////////////
+        ///////////////////////////////////////8BEFRlT65YY4cmh+SmiGgtoVA
+        7qLacluZsxXzuLSJkY7xCeFWGTlR7H6TexZSwL07sb8HNXPfiD0sNPHvRR/Ua1A/
+        AAMVANCeiAApHLhTlsxnFzkyhKqg2mS6BIGFBADGhY4GtwQE6c2ePstmI5W0Qpxk
+        gTkFP7Uh+CivYGtNPbqhS1537+dZKP4dwSei/6jeM0izwYVqQpv5fn4xwuW9ZgEY
+        OSlqeJo7wARcil+0LH0b2Zj1RElXm0RoF6+9Fyc+ZiyX7nKZXvQmQMVQuQE/rQdh
+        NTxwhqJywkCIvpR2n9FmUAJCAf//////////////////////////////////////
+        ////+lGGh4O/L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJAgEBA4GGAAQBMLgt
+        gTFBGr0f7YrWwZsCPpLxaUQvUKvz2C6ghiFmxc2EzBgxDY+ywnmG4T++EVZhJHTP
+        eIOnVRcHXXivkRe+YMQBbH/fZyqfCe41vIl39bwhqli839AAj/WoxXZuilpKaXBp
+        vGbx2380UIhrec1jFjItOOg/Xp9dOecjQZK7Z0wVq1U=
+        """)
+        pub = self.session.create_object(decode_ec_public_key(pub))
+
+        # FIXME: why can't I sign this?
+        # signature = priv.sign(b'Example', mechanism=Mechanism.ECDSA)
+        # self.assertTrue(pub.verify(b'Example', signature,
+        #                            mechanism=Mechanism.ECDSA))

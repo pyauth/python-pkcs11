@@ -1,2 +1,3 @@
 aenum; python_version < "3.6"
+asn1crypto
 cached-property
