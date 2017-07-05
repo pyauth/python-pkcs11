@@ -11,10 +11,9 @@ from pyasn1.type.univ import BitString, Null
 from pyasn1_modules import rfc2459, rfc2314, rfc3279
 
 import pkcs11
-from pkcs11.util.rsa import (
-    decode_rsa_public_key,
-    encode_rsa_public_key,
-)
+from pkcs11.util.rsa import encode_rsa_public_key
+from pkcs11.util.dsa import decode_dsa_signature
+from pkcs11.util.ec import decode_ecdsa_signature
 from pkcs11.util.x509 import decode_x509_certificate, decode_x509_public_key
 from pkcs11 import (
     Attribute,
@@ -118,12 +117,7 @@ class X509Tests(TestCase):
         mechanism = x509['signatureAlgorithm']['algorithm']
         assert mechanism == rfc3279.id_dsa_with_sha1
 
-        signature, _ = derdecoder.decode(x509['signatureValue'].asOctets(),
-                                         asn1Spec=rfc3279.Dss_Sig_Value())
-        signature = b''.join((
-            int(signature['r']).to_bytes(20, byteorder='big'),
-            int(signature['s']).to_bytes(20, byteorder='big'),
-        ))
+        signature = decode_dsa_signature(x509['signatureValue'].asOctets())
 
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.DSA_SHA1))
@@ -160,13 +154,7 @@ class X509Tests(TestCase):
 
         assert mechanism == rfc3279.ecdsa_with_SHA1
 
-        print(len(x509['signatureValue'].asOctets()))
-        signature, _ = derdecoder.decode(x509['signatureValue'].asOctets(),
-                                         asn1Spec=rfc3279.ECDSA_Sig_Value())
-        signature = b''.join((
-            int(signature['r']).to_bytes(32, byteorder='big'),
-            int(signature['s']).to_bytes(32, byteorder='big'),
-        ))
+        signature = decode_ecdsa_signature(x509['signatureValue'].asOctets())
 
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.ECDSA_SHA1))
