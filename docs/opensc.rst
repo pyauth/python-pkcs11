@@ -128,6 +128,7 @@ oscrypto example:
 ::
 
     from pkcs11 import KeyType, ObjectClass, Mechanism
+    from pkcs11.util.ec import encode_ec_public_key, encode_ecdsa_signature
 
     from oscrypto.asymmetric import load_public_key, ecdsa_verify
 
@@ -135,6 +136,8 @@ oscrypto example:
     priv = self.session.get_key(key_type=KeyType.EC,
                                 object_class=ObjectClass.PRIVATE_KEY)
     signature = priv.sign(b'Data to sign', mechanism=Mechanism.ECDSA_SHA1)
+    # Encode as ASN.1 for interchange
+    signature = encode_ecdsa_signature(signature)
 
     # Extract the public key
     pub = self.session.get_key(key_type=KeyType.EC,

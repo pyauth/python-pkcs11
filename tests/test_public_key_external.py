@@ -1,6 +1,10 @@
 from pkcs11 import KeyType, ObjectClass, Mechanism, Attribute
 from pkcs11.util.rsa import encode_rsa_public_key
-from pkcs11.util.ec import encode_ec_public_key, encode_named_curve_parameters
+from pkcs11.util.ec import (
+    encode_ec_public_key,
+    encode_ecdsa_signature,
+    encode_named_curve_parameters,
+)
 
 from . import TestCase, requires
 
@@ -43,14 +47,16 @@ class ExternalPublicKeyTests(TestCase):
                                     object_class=ObjectClass.PRIVATE_KEY)
 
         signature = priv.sign(b'Data to sign', mechanism=Mechanism.ECDSA_SHA1)
-
-        pub = self.session.get_key(key_type=KeyType.EC,
-                                   object_class=ObjectClass.PUBLIC_KEY)
+        # Encode as ASN.1 for OpenSSL
+        signature = encode_ecdsa_signature(signature)
 
         from oscrypto.asymmetric import load_public_key, ecdsa_verify
 
-        key = load_public_key(encode_ec_public_key(pub))
-        ecdsa_verify(key, signature, b'Data to sign', 'sha1')
+        pub = self.session.get_key(key_type=KeyType.EC,
+                                   object_class=ObjectClass.PUBLIC_KEY)
+        pub = load_public_key(encode_ec_public_key(pub))
+
+        ecdsa_verify(pub, signature, b'Data to sign', 'sha1')
 
     @requires(Mechanism.RSA_PKCS)
     def test_terrible_hybrid_file_encryption_app(self):
