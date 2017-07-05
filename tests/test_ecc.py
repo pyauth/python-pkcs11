@@ -12,6 +12,7 @@ from pkcs11.util.ec import (
     encode_named_curve_parameters,
     decode_ec_public_key,
     encode_ec_public_key,
+    decode_ecdsa_signature,
 )
 
 from . import TestCase, requires
@@ -84,14 +85,24 @@ class ECCTests(TestCase):
         # We should get back to identity
         self.assertEqual(encode_ec_public_key(key), der)
 
-    @requires(Mechanism.ECDSA)
+    @requires(Mechanism.ECDSA_SHA1)
     def test_import_key_named_curve(self):
         der = base64.b64decode("""
-        MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQMDMgAE+Y+qPqI3geo2hQH8eK7Rn+YWG09T
-        ejZ5QFoj9fmxFrUyYhFap6XmTdJtEi8myBmW
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEa6Q5Hs+j71J1lc+VziafH+uL6603
+        R8gTAphQD0iLG9Q9RgAvDQdFFpzkvXI+mEGVNRMmT/BA1OtficHcAXTdXA==
         """)
         key = self.session.create_object(decode_ec_public_key(der))
         self.assertIsInstance(key, pkcs11.PublicKey)
+
+        # Something signed with OpenSSL
+        signature = base64.b64decode("""
+        MEYCIQD1nDlli+uLuGX3eobKJe7PsRYkYJ4F15bjqbbB+MHewwIhAPGFRwyuFOvH
+        zuj+sxXwk1CsDWN7AXbmHufOlOarXpiq
+        """)
+        signature = decode_ecdsa_signature(signature)
+
+        self.assertTrue(key.verify(b'Data to sign', signature,
+                                   mechanism=Mechanism.ECDSA_SHA1))
 
         # We should get back to identity
         self.assertEqual(encode_ec_public_key(key), der)
