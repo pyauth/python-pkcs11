@@ -30,9 +30,7 @@ from .exceptions import (
 
 def _CK_UTF8CHAR_to_str(data):
     """Convert CK_UTF8CHAR to string."""
-    # FIXME: the last couple of bytes are sometimes bogus, is this me
-    # or SoftHSM?
-    return data[:31].decode('utf-8').rstrip()
+    return data.decode('utf-8').rstrip()
 
 
 def _CK_VERSION_to_tuple(data):
@@ -167,15 +165,29 @@ class Token:
     """
 
     def __init__(self, slot,
-                 label=None, serial=None, flags=None,
+                 label=None,
+                 serialNumber=None,
+                 model=None,
+                 manufacturerID=None,
+                 hardwareVersion=None,
+                 firmwareVersion=None,
+                 flags=None,
                  **kwargs):
 
         self.slot = slot
         """The :class:`Slot` this token is installed in."""
         self.label = _CK_UTF8CHAR_to_str(label)
         """Label of this token (:class:`str`)."""
-        self.serial = serial
+        self.serial = serialNumber.rstrip()
         """Serial number of this token (:class:`bytes`)."""
+        self.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturerID)
+        """Manufacturer ID."""
+        self.model = _CK_UTF8CHAR_to_str(model)
+        """Model name."""
+        self.hardware_version = _CK_VERSION_to_tuple(hardwareVersion)
+        """Hardware version (:class:`tuple`)."""
+        self.firmware_version = _CK_VERSION_to_tuple(firmwareVersion)
+        """Firmware version (:class:`tuple`)."""
         self.flags = TokenFlag(flags)
         """Capabilities of this token (:class:`pkcs11.flags.TokenFlag`)."""
 

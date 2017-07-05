@@ -181,6 +181,11 @@ class Slot(types.Slot):
 
         assertRV(C_GetTokenInfo(self.slot_id, &info))
 
+        _fix_string_length(info.label, sizeof(info.label))
+        _fix_string_length(info.serialNumber, sizeof(info.serialNumber))
+        _fix_string_length(info.manufacturerID, sizeof(info.manufacturerID))
+        _fix_string_length(info.model, sizeof(info.model))
+
         return Token(self, **info)
 
     def get_mechanisms(self):
@@ -1150,11 +1155,11 @@ cdef class lib:
     pkcs11.types.
     """
 
-    cdef str so
-    cdef str manufacturer_id
-    cdef str library_description
-    cdef tuple cryptoki_version
-    cdef tuple library_version
+    cdef public str so
+    cdef public str manufacturer_id
+    cdef public str library_description
+    cdef public tuple cryptoki_version
+    cdef public tuple library_version
 
     def __cinit__(self):
         assertRV(C_Initialize(NULL))
@@ -1165,6 +1170,11 @@ cdef class lib:
         cdef CK_INFO info
 
         assertRV(C_GetInfo(&info))
+
+        _fix_string_length(info.manufacturerID,
+                           sizeof(info.manufacturerID))
+        _fix_string_length(info.libraryDescription,
+                           sizeof(info.libraryDescription))
 
         self.manufacturer_id = _CK_UTF8CHAR_to_str(info.manufacturerID)
         self.library_description = _CK_UTF8CHAR_to_str(info.libraryDescription)
@@ -1203,6 +1213,12 @@ cdef class lib:
 
         for slotID in slotIDs:
             assertRV(C_GetSlotInfo(slotID, &info))
+
+            _fix_string_length(info.slotDescription,
+                               sizeof(info.slotDescription))
+            _fix_string_length(info.manufacturerID,
+                               sizeof(info.manufacturerID))
+
             slots.append(Slot(self, slotID, **info))
 
         return slots
