@@ -79,6 +79,12 @@ class MechanismInfo:
             "Flags: %s" % self.flags,
         ))
 
+    def __repr__(self):
+        return '<{klass} (mechanism={mechanism}, flags={flags})>'.format(
+            klass=type(self).__name__,
+            mechanism=str(self.mechanism),
+            flags=str(self.flags))
+
 
 class Slot:
     """
