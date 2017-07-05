@@ -914,6 +914,12 @@ class SignMixin(Object):
 
         See :meth:`EncryptMixin.encrypt` for more information.
 
+        For DSA and ECDSA keys, PKCS #11 outputs the two parameters (r & s)
+        as two concatenated `biginteger` of the same length. To convert these
+        into other formats, such as the format used by OpenSSL, use
+        :func:`pkcs11.util.dsa.encode_dsa_signature` or
+        :func:`pkcs11.util.ec.encode_ecdsa_signature`.
+
         :param data: data to sign
         :type data: str, bytes or iter(bytes)
         :param Mechanism mechanism: optional signing mechanism
@@ -945,6 +951,12 @@ class VerifyMixin(Object):
         See :meth:`EncryptMixin.encrypt` for more information.
 
         Returns True if `signature` is valid for `data`.
+
+        For DSA and ECDSA keys, PKCS #11 expects the two parameters (r & s)
+        as two concatenated `biginteger` of the same length. To convert these
+        from other formats, such as the format used by OpenSSL, use
+        :func:`pkcs11.util.dsa.decode_dsa_signature` or
+        :func:`pkcs11.util.ec.decode_ecdsa_signature`.
 
         :param data: data to sign
         :type data: str, bytes or iter(bytes)
