@@ -310,6 +310,12 @@ class Mechanism(IntEnum):
     """
     DES3_CBC = 0x00000133
     DES3_MAC = 0x00000134
+    """
+    .. note:: This is the default for signing/verification with
+        :class:`KeyType.DES2` and :class:`KeyType.DES3`.
+
+    .. warning:: Considered insecure. Use AES where possible.
+    """
 
     DES3_MAC_GENERAL = 0x00000135
     DES3_CBC_PAD = 0x00000136
@@ -375,10 +381,6 @@ class Mechanism(IntEnum):
 
     SHA512 = 0x00000270
     SHA512_HMAC = 0x00000271
-    """
-    .. note:: This is the default for signing/verification with
-        :class:`KeyType.AES`.
-    """
     SHA512_HMAC_GENERAL = 0x00000272
 
     SECURID_KEY_GEN = 0x00000280
@@ -619,6 +621,10 @@ class Mechanism(IntEnum):
     AES_CTR = 0x00001086
     AES_CTS = 0x00001089
     AES_MAC = 0x00001083
+    """
+    .. note:: This is the default for signing/verification with
+        :class:`KeyType.AES`.
+    """
     AES_MAC_GENERAL = 0x00001084
     AES_CMAC = 0x0000108A
     AES_CMAC_GENERAL = 0x0000108B

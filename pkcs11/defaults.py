@@ -59,9 +59,9 @@ Default mechanisms for encrypt/decrypt.
 """
 
 DEFAULT_SIGN_MECHANISMS = {
-    KeyType.AES: Mechanism.SHA512_HMAC,
-    KeyType.DES2: Mechanism.SHA512_HMAC,
-    KeyType.DES3: Mechanism.SHA512_HMAC,
+    KeyType.AES: Mechanism.AES_MAC,
+    KeyType.DES2: Mechanism.DES3_MAC,
+    KeyType.DES3: Mechanism.DES3_MAC,
     KeyType.DSA: Mechanism.DSA_SHA512,
     KeyType.EC: Mechanism.ECDSA_SHA512,
     KeyType.RSA: Mechanism.SHA512_RSA_PKCS,

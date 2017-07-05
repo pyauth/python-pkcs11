@@ -80,32 +80,17 @@ class AESTests(TestCase):
 
         self.assertEqual(text, data)
 
-    @requires(Mechanism.SHA512_HMAC)
-    @Not.nfast  # nFast doesn't permit HMACing using AES keys
-    @Not.opencryptoki  # nor opencryptoki
-    def test_sign_hmac(self):
-        data = b'HELLO WORLD' * 1024
-
-        signature = self.key.sign(data)
-        self.assertIsNotNone(signature)
-        self.assertIsInstance(signature, bytes)
-        self.assertTrue(self.key.verify(data, signature))
-        self.assertFalse(self.key.verify(data, b'1234'))
-
     @requires(Mechanism.AES_MAC)
-    def test_sign_aes_mac(self):
-        mechanism = pkcs11.Mechanism.AES_MAC
+    def test_sign(self):
         data = b'HELLO WORLD'
 
-        signature = self.key.sign(data, mechanism=mechanism)
+        signature = self.key.sign(data)
         self.assertIsNotNone(signature)
         self.assertIsInstance(signature, bytes)
         self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
         self.assertFalse(self.key.verify(data, b'1234', mechanism=mechanism))
 
-    @requires(Mechanism.SHA512_HMAC)
-    @Not.nfast  # nFast doesn't permit HMACing using AES keys
-    @Not.opencryptoki  # nor opencryptoki
+    @requires(Mechanism.AES_MAC)
     def test_sign_stream(self):
         data = (
             b'I' * 16,
