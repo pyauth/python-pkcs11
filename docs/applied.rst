@@ -986,10 +986,7 @@ AES
 ~~~
 
 A `MAC` is required for signing with AES. The default mechanism is
-`SHA512_HMAC` (aka HMAC-SHA512).
-
-A number of other hashing functions and MACs are available depending on
-your implementation.
+`AES_MAC`.
 
 ::
 
@@ -1054,7 +1051,6 @@ generating function and salt length)` as the mechanism parameter:
                                                MGF.SHA1,
                                                20))
 
-
 DSA
 ~~~
 
@@ -1078,7 +1074,9 @@ Other mechanisms are available:
     # Given a public key `public`
     assert public.verify(data, signature)
 
-The parameters `r` and `s` are concatenated together.
+The parameters `r` and `s` are concatenated together as a single byte string.
+To convert to the ASN.1 encoding (e.g. as used by OpenSSL) use
+:func:`pkcs11.util.dsa.encode_dsa_signature`.
 
 ECDSA
 ~~~~~
@@ -1102,6 +1100,10 @@ Other mechanisms are available:
 
     # Given a public key `public`
     assert public.verify(data, signature)
+
+The parameters `r` and `s` are concatenated together as a single byte string.
+To convert to the ASN.1 encoding (e.g. as used by OpenSSL) use
+:func:`pkcs11.util.ec.encode_ecdsa_signature`.
 
 Wrapping/Unwrapping
 -------------------

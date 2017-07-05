@@ -87,8 +87,8 @@ class AESTests(TestCase):
         signature = self.key.sign(data)
         self.assertIsNotNone(signature)
         self.assertIsInstance(signature, bytes)
-        self.assertTrue(self.key.verify(data, signature, mechanism=mechanism))
-        self.assertFalse(self.key.verify(data, b'1234', mechanism=mechanism))
+        self.assertTrue(self.key.verify(data, signature))
+        self.assertFalse(self.key.verify(data, b'1234'))
 
     @requires(Mechanism.AES_MAC)
     def test_sign_stream(self):
