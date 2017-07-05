@@ -1075,7 +1075,7 @@ Other mechanisms are available:
     assert public.verify(data, signature)
 
 The parameters `r` and `s` are concatenated together as a single byte string.
-To convert to the ASN.1 encoding (e.g. as used by OpenSSL) use
+To convert to the ASN.1 encoding (e.g. as used by X.509) use
 :func:`pkcs11.util.dsa.encode_dsa_signature`.
 
 ECDSA
@@ -1102,7 +1102,7 @@ Other mechanisms are available:
     assert public.verify(data, signature)
 
 The parameters `r` and `s` are concatenated together as a single byte string.
-To convert to the ASN.1 encoding (e.g. as used by OpenSSL) use
+To convert to the ASN.1 encoding (e.g. as used by X.509) use
 :func:`pkcs11.util.ec.encode_ecdsa_signature`.
 
 Wrapping/Unwrapping

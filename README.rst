@@ -7,7 +7,16 @@ to support HSM and Smartcard devices in Python.
 The interface is designed to follow the logical structure of a HSM, with
 useful defaults for obscurely documented parameters. Many APIs will optionally
 accept iterables and act as generators, allowing you to stream large data
-blocks in a straightforward way.
+blocks for symmetric encryption.
+
+python-pkcs11 also includes numerous utility functions to convert between PKCS
+#11 data structures and common interchange formats including PKCS #1 and X.509.
+
+python-pkcs11 is fully documented and has a full integration test suite for all
+features, with continuous integration against multiple HSM platforms including:
+
+ * Thales nCipher
+ * Opencryptoki TPM
 
 Source: https://github.com/danni/python-pkcs11
 
@@ -303,19 +312,19 @@ PKCS#11 version:
 * 2.4
 
 Feel free to send pull requests for any functionality that's not exposed. The
-code is designed to be readable and expose the PKCS#11 spec in a
+code is designed to be readable and expose the PKCS #11 spec in a
 straight-forward way.
 
 If you want your device supported, get in touch!
 
-More info on PKCS#11
---------------------
+More info on PKCS #11
+---------------------
 
-The latest version of the PKCS#11 spec is available from OASIS:
+The latest version of the PKCS #11 spec is available from OASIS:
 
 http://docs.oasis-open.org/pkcs11/pkcs11-base/v2.40/pkcs11-base-v2.40.html
 
-You should also consult the documentation for your PKCS#11 implementation.
+You should also consult the documentation for your PKCS #11 implementation.
 Many implementations expose additional vendor options configurable in your
 environment, including alternative features, modes and debugging
 information.
