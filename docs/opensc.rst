@@ -95,7 +95,7 @@ exporting keys.
 RSA
 ~~~
 
-PyCrypto example:
+`PyCrypto` example:
 
 ::
 
@@ -123,7 +123,7 @@ PyCrypto example:
 ECDSA
 ~~~~~
 
-oscrypto example:
+`oscrypto` example:
 
 ::
 
@@ -147,12 +147,73 @@ oscrypto example:
     key = load_public_key(encode_ec_public_key(pub))
     ecdsa_verify(key, signature, b'Data to sign', 'sha1')
 
+ECDH
+~~~~
+
+Smartcard-HSM can generate a shared key via ECDH key exchange.
+
+.. warning::
+
+    Where possible, e.g. over networks, you should use ephemeral keys,
+    to allow for perfect forward secrecy. Smartcard HSM's ECDH is only useful
+    when need to repeatedly retrieve the same shared secret, e.g. encrypting
+    files in a hybrid cryptosystem.
+
+`cryptography` example:
+
+::
+
+    from cryptography.hazmat.backends import default_backend
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.serialization import \
+        Encoding, PublicFormat, load_der_public_key
+
+    # Retrieve our keypair, with our public key encoded for interchange
+    alice_priv = self.session.get_key(key_type=KeyType.EC,
+                                        object_class=ObjectClass.PRIVATE_KEY)
+    alice_pub = self.session.get_key(key_type=KeyType.EC,
+                                        object_class=ObjectClass.PUBLIC_KEY)
+    alice_pub = encode_ec_public_key(alice_pub)
+
+    # Bob generates a keypair, with their public key encoded for
+    # interchange
+    bob_priv = ec.generate_private_key(ec.SECP256R1,
+                                        default_backend())
+    bob_pub = bob_priv.public_key().public_bytes(
+        Encoding.DER,
+        PublicFormat.SubjectPublicKeyInfo,
+    )
+
+    # Bob converts Alice's key to internal format and generates their
+    # shared key
+    bob_shared_key = bob_priv.exchange(
+        ec.ECDH(),
+        load_der_public_key(alice_pub, default_backend()),
+    )
+
+    key = alice_priv.derive_key(
+        KeyType.GENERIC_SECRET, 256,
+        mechanism_param=(
+            KDF.NULL, None,
+            # SmartcardHSM doesn't accept DER-encoded EC_POINTs for derivation
+            decode_ec_public_key(bob_pub, encode_ec_point=False)
+            [Attribute.EC_POINT],
+        ),
+    )
+    alice_shared_key = key[Attribute.VALUE]
+
+When decoding the other user's `EC_POINT` for passing into the key derivation
+the standard says to pass a raw octet string (set `encode_ec_point` to False),
+however some PKCS #11 implementations require a DER-encoded octet string
+(i.e. the format of the :attr:`pkcs11.constants.Attribute.EC_POINT` attribute).
+
 Encrypting Files
 ----------------
 
 The device only supports asymmetric mechanisms. To do file encryption, you
-will need to generate AES keys locally, which you can encrypt with the
-public key (this is how the Nitrokey storage key works).
+will need to generate AES keys locally, which you can encrypt with your RSA
+public key (this is how the Nitrokey storage key works); or by using ECDH
+to generate a shared secret from a locally generated public key.
 
 Debugging
 ---------

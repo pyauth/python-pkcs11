@@ -35,12 +35,21 @@ def encode_named_curve_parameters(oid):
     return encoder.encode(ecParams)
 
 
-def decode_ec_public_key(der):
+def decode_ec_public_key(der, encode_ec_point=True):
     """
     Decode a DER-encoded EC public key as stored by OpenSSL into a dictionary
     of attributes able to be passed to :meth:`pkcs11.Session.create_object`.
 
+    .. note:: encode_ec_point
+
+        For use as an attribute `EC_POINT` should be DER-encoded (True).
+
+        For key derivation implementations can vary.  Since v2.30 the
+        specification says implementations MUST accept a raw `EC_POINT` for
+        ECDH (False), however not all implementations follow this yet.
+
     :param bytes der: DER-encoded key
+    :param encode_ec_point: See text.
     :rtype: dict(Attribute,*)
     """
     asn1, _ = decoder.decode(der, asn1Spec=rfc3280.SubjectPublicKeyInfo())
@@ -48,8 +57,10 @@ def decode_ec_public_key(der):
     assert asn1['algorithm']['algorithm'] == id_ecPublicKey, \
         "Wrong algorithm, not an EC key!"
 
-    ecpoint = \
-        encoder.encode(OctetString(value=asn1['subjectPublicKey'].asOctets()))
+    ecpoint = asn1['subjectPublicKey'].asOctets()
+
+    if encode_ec_point:
+        ecpoint = encoder.encode(OctetString(value=ecpoint))
 
     return {
         Attribute.KEY_TYPE: KeyType.EC,
@@ -62,6 +73,7 @@ def decode_ec_public_key(der):
 def encode_ec_public_key(key):
     """
     Encode a DER-encoded EC public key as stored by OpenSSL.
+
 
     :param PublicKey key: RSA public key
     :rtype: bytes

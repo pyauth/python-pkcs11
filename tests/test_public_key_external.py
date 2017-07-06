@@ -7,7 +7,7 @@ from pkcs11.util.ec import (
     encode_named_curve_parameters,
 )
 
-from . import TestCase, requires
+from . import TestCase, requires, Is
 
 
 class ExternalPublicKeyTests(TestCase):
@@ -101,7 +101,10 @@ class ExternalPublicKeyTests(TestCase):
             KeyType.GENERIC_SECRET, 256,
             mechanism_param=(
                 KDF.NULL, None,
-                decode_ec_public_key(bob_pub)[Attribute.EC_POINT],
+                # N.B. it seems like SoftHSMv2 requires an EC_POINT to be
+                # DER-encoded, which is not what the spec says
+                decode_ec_public_key(bob_pub, encode_ec_point=Is.softhsm2)
+                [Attribute.EC_POINT],
             ),
             template={
                 Attribute.SENSITIVE: False,

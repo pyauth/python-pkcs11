@@ -306,10 +306,11 @@ Python version:
 * 3.5 (with `aenum`)
 * 3.6
 
-PKCS#11 version:
+PKCS#11 versions:
 
-* 2.2
-* 2.4
+* 2.11
+* 2.20
+* 2.40
 
 Feel free to send pull requests for any functionality that's not exposed. The
 code is designed to be readable and expose the PKCS #11 spec in a
