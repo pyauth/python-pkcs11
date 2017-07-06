@@ -5,11 +5,14 @@
 #    pip-compile --output-file dev-requirements.txt dev-requirements.in
 #
 alabaster==0.7.10         # via sphinx
-asn1crypto==0.22.0        # via oscrypto
+asn1crypto==0.22.0        # via cryptography, oscrypto
 babel==2.4.0              # via sphinx
+cffi==1.10.0              # via cryptography
+cryptography==1.9
 cython==0.25.2
 docutils==0.13.1          # via sphinx
 flake8==3.3.0
+idna==2.5                 # via cryptography
 imagesize==0.7.1          # via sphinx
 jinja2==2.9.6             # via sphinx
 markupsafe==1.0           # via jinja2
@@ -18,12 +21,13 @@ oscrypto==0.18.0
 pyasn1-modules==0.0.9
 pyasn1==0.2.3
 pycodestyle==2.3.1        # via flake8
+pycparser==2.18           # via cffi
 pyflakes==1.5.0           # via flake8
 pygments==2.2.0           # via sphinx
 pytz==2017.2              # via babel
 requests==2.14.2          # via sphinx
 setuptools-scm==1.15.5
-six==1.10.0               # via sphinx
+six==1.10.0               # via cryptography, sphinx
 snowballstemmer==1.2.1    # via sphinx
 sphinx-rtd-theme==0.2.4
 sphinx==1.6.1

@@ -43,6 +43,7 @@ DEFAULT_KEY_CAPABILITIES = {
     KeyType.DSA: _SIGNING,
     KeyType.EC: _SIGNING | MechanismFlag.DERIVE,
     KeyType.RSA: _ENCRYPTION | _SIGNING | _WRAPPING,
+    KeyType.GENERIC_SECRET: 0,
 }
 """
 Default capabilities for generating keys.

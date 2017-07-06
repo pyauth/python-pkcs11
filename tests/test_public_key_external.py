@@ -1,6 +1,7 @@
-from pkcs11 import KeyType, ObjectClass, Mechanism, Attribute
+from pkcs11 import KeyType, ObjectClass, Mechanism, Attribute, KDF
 from pkcs11.util.rsa import encode_rsa_public_key
 from pkcs11.util.ec import (
+    decode_ec_public_key,
     encode_ec_public_key,
     encode_ecdsa_signature,
     encode_named_curve_parameters,
@@ -57,6 +58,60 @@ class ExternalPublicKeyTests(TestCase):
         pub = load_public_key(encode_ec_public_key(pub))
 
         ecdsa_verify(pub, signature, b'Data to sign', 'sha1')
+
+    @requires(Mechanism.ECDH1_DERIVE)
+    def test_ecdh(self):
+        from pyasn1_modules.rfc3279 import prime256v1
+
+        # A key we generated earlier
+        self.session.create_domain_parameters(KeyType.EC, {
+            Attribute.EC_PARAMS: encode_named_curve_parameters(prime256v1),
+        }, local=True)\
+            .generate_keypair()
+
+        # Retrieve our keypair, with our public key encoded for interchange
+        alice_priv = self.session.get_key(key_type=KeyType.EC,
+                                          object_class=ObjectClass.PRIVATE_KEY)
+        alice_pub = self.session.get_key(key_type=KeyType.EC,
+                                         object_class=ObjectClass.PUBLIC_KEY)
+        alice_pub = encode_ec_public_key(alice_pub)
+
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives.serialization import \
+            Encoding, PublicFormat, load_der_public_key
+
+        # Bob generates a keypair, with their public key encoded for
+        # interchange
+        bob_priv = ec.generate_private_key(ec.SECP256R1,
+                                           default_backend())
+        bob_pub = bob_priv.public_key().public_bytes(
+            Encoding.DER,
+            PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        # Bob converts Alice's key to internal format and generates their
+        # shared key
+        bob_shared_key = bob_priv.exchange(
+            ec.ECDH(),
+            load_der_public_key(alice_pub, default_backend()),
+        )
+
+        key = alice_priv.derive_key(
+            KeyType.GENERIC_SECRET, 256,
+            mechanism_param=(
+                KDF.NULL, None,
+                decode_ec_public_key(bob_pub)[Attribute.EC_POINT],
+            ),
+            template={
+                Attribute.SENSITIVE: False,
+                Attribute.EXTRACTABLE: True,
+            },
+        )
+        alice_shared_key = key[Attribute.VALUE]
+
+        # We should have the same shared key
+        self.assertEqual(bob_shared_key, alice_shared_key)
 
     @requires(Mechanism.RSA_PKCS)
     def test_terrible_hybrid_file_encryption_app(self):

@@ -5,6 +5,7 @@ setuptools_scm
 pyasn1
 pyasn1-modules
 oscrypto
+cryptography
 
 sphinx
 sphinx-rtd-theme
