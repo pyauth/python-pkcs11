@@ -15,8 +15,9 @@ python-pkcs11 also includes numerous utility functions to convert between PKCS
 python-pkcs11 is fully documented and has a full integration test suite for all
 features, with continuous integration against multiple HSM platforms including:
 
- * Thales nCipher
- * Opencryptoki TPM
+* Thales nCipher
+* Opencryptoki TPM
+* OpenSC/Smartcard-HSM/Nitrokey HSM
 
 Source: https://github.com/danni/python-pkcs11
 

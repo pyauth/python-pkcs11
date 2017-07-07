@@ -268,7 +268,7 @@ Binary Formats and Padding
 
 PKCS #11 is `protocol agnostic` and does not define or implement any codecs for
 the storing of enciphered data, keys, initialisation vectors, etc. outside the
-HSM. [1]_ For example, CBC mechanisms will not include the initialization
+HSM. [#]_ For example, CBC mechanisms will not include the initialization
 vector. You must choose a storage/transmission format that suits your
 requirements.
 
@@ -289,7 +289,7 @@ algorithms, and you must choose one that suits your requirements.
     * `RFC 5652 (Cryptographic Message Standard) (supercedes PKCS #7)
       <https://tools.ietf.org/html/rfc5652>`_
 
-.. [1] It does define types for data `inside` the HSM, e.g. attribute
+.. [#] It does define types for data `inside` the HSM, e.g. attribute
        data types and binary formats (e.g. EC parameters, X.509 certificates).
 
 PKCS #15
@@ -829,14 +829,14 @@ A number of other mechanisms are available:
 +-------------+-----+----------------+---------------------------------+
 | AES_CTS     | Yes | >= 128-bit     |                                 |
 +-------------+-----+----------------+---------------------------------+
-| AES_CTR     | Not currently supported [2]_                           |
+| AES_CTR     | Not currently supported [#]_                           |
 +-------------+                                                        |
 | AES_GCM     |                                                        |
 +-------------+                                                        |
 | AES_CGM     |                                                        |
 +-------------+--------------------------------------------------------+
 
-.. [2] AES encryption with multiple mechanism parameters not currently
+.. [#] AES encryption with multiple mechanism parameters not currently
        implemented due to lack of hardware supporting these mechanisms.
 
 .. warning:: **Initialisation vectors**
@@ -1074,9 +1074,12 @@ Other mechanisms are available:
     # Given a public key `public`
     assert public.verify(data, signature)
 
-The parameters `r` and `s` are concatenated together as a single byte string.
+The parameters `r` and `s` are concatenated together as a single byte string
+(each value is 20 bytes long for a total of 40 bytes).
 To convert to the ASN.1 encoding (e.g. as used by X.509) use
 :func:`pkcs11.util.dsa.encode_dsa_signature`.
+To convert from the ASN.1 encoding into PKCS #11 encoding use
+:func:`pkcs11.util.ec.decode_dsa_signature`.
 
 ECDSA
 ~~~~~
@@ -1101,9 +1104,12 @@ Other mechanisms are available:
     # Given a public key `public`
     assert public.verify(data, signature)
 
-The parameters `r` and `s` are concatenated together as a single byte string.
+The parameters `r` and `s` are concatenated together as a single byte string
+(both values are the same length).
 To convert to the ASN.1 encoding (e.g. as used by X.509) use
 :func:`pkcs11.util.ec.encode_ecdsa_signature`.
+To convert from the ASN.1 encoding into PKCS #11 encoding use
+:func:`pkcs11.util.ec.decode_ecdsa_signature`.
 
 Wrapping/Unwrapping
 -------------------
@@ -1275,6 +1281,21 @@ shared value must be `None`.
         KeyType.AES, 128,
         mechanism_param=(KDF.NULL, None, other_public))
 
+The value of the other user's public key should usually be a raw byte string
+however some implementations require a DER-encoded byte string (i.e. the same
+format as `EC_POINT`) [#]_. Use the `encode_ec_point` parameter to
+:func:`pkcs11.util.ec.decode_ec_public_key`.
+
++-----------------+----------------------------------+
+| Implementation  | Other user's `EC_POINT` encoding |
++=================+==================================+
+| SoftHSM v2      | DER-encoded                      |
++-----------------+----------------------------------+
+| Nitrokey HSM    | Raw                              |
++-----------------+----------------------------------+
+| Thales nCipher  | ?                                |
++-----------------+----------------------------------+
+
 If you want to extract the shared key from the HSM, you can mark the key
 as `EXTRACTABLE`:
 
@@ -1289,6 +1310,10 @@ as `EXTRACTABLE`:
         })
     # This is our shared secret key
     print(key[Attribute.VALUE])
+
+.. [#] The incompatibility comes from this being unspecified in earlier
+    versions of PKCS #11, although why they made it a different format to
+    `EC_POINT` is unclear.
 
 Digesting and Hashing
 ---------------------

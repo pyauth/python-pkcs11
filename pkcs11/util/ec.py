@@ -40,7 +40,7 @@ def decode_ec_public_key(der, encode_ec_point=True):
     Decode a DER-encoded EC public key as stored by OpenSSL into a dictionary
     of attributes able to be passed to :meth:`pkcs11.Session.create_object`.
 
-    .. note:: encode_ec_point
+    .. note:: **encode_ec_point**
 
         For use as an attribute `EC_POINT` should be DER-encoded (True).
 
