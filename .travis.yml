@@ -37,7 +37,7 @@ deploy:
     user: danni
     password:
         secure: "A/W51+GTE9CBAm4m+1AVg11EAF63BUBrCXIonmYCdTT2htEGStk9AJnZGOinHPhwgJoWujBqgqyjqm8wJSvsmhyPSWxGk20lkCJOptcHdExu4FoSnLNNzAgPtZH5lLarkpvxB20J9hUUb4CQbgz5BWeNqFPvKigKFworCksRr9EM4J/Ys8tmkI2zwSTRDH2YAmhI/h8BWGpHMP+pNUsjlp9ZbDaxgNY85r7RloP07N5R0A7TPePH8wJzuGMDOv8dLazdr0epCbvFk+2CyJ7KiEJoX+SlS/2Hi7OKnmuf7QG2z2YyukLlJcP+IhRfzZDVgUeXwJbu24XAUdMoBS8OxId8dOKFla+GJScpWGpA9rO5vgItTAYLG7sd9HuveCtvUZxqbJd5teST4PdcxjjeO5LxYkgXKrLEo1dvDtPOm/veA0axFrXzlberJCKyN2T6grfM5QVUCORQnUYPnOqkYXMHFKSIUfa2mpfJ8NZaHR7jEbddU/PpQTHwlcehMtTx9IKQyfzillmhiXVc+UMOInFbEsU4oD9f0eP2fcs2dDB3ppR+Rdkh8bb80zH2r55Giu4Fv/WGcllwaYvMGkm6TBdod/Hva4sypJaLkLFDH6LQ0jOBHfPdFYKzEn16kZ1F4X+QWl6lKiz4XWAJI8Cf73y9Acj1Q+4MAHobkE/908M="
-    server: https://pypi.python.org/pypi
+    skip_upload_docs: true
     on:
         tags: true
         python: 3.6
