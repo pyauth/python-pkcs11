@@ -1405,3 +1405,45 @@ it:
 
     HASH_OF_ISSUER_PUBLIC_KEY
         The identifier of the issuer's public key (bytes)
+
+Extracting X.509 certificates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note:: For this example you needs pyOpenSSL, dateutils and python 3 installed
+
+
+It's also possible extract the certificates information using external libraries like pyOpenSSL, this example show you how to extract the certificate's common fields and also how to extract full certificate in pem format.
+
+In this method you don't need your pin, because certificate information is public. 
+
+
+.. code:: python
+
+    import OpenSSL
+    from pkcs11.constants import Attribute
+    from pkcs11.constants import ObjectClass
+    from dateutil.parser import parse
+
+
+    token = slot.get_token()
+    with token.open() as session:
+        for cert in session.get_objects({
+                Attribute.CLASS: ObjectClass.CERTIFICATE}):
+            x509 = OpenSSL.crypto.load_certificate(
+                OpenSSL.crypto.FILETYPE_ASN1, cert[Attribute.VALUE])
+            subject = x509.get_subject()
+            name = "%s %s" % (subject.GN, subject.SN)
+            person = {
+                'name': name.title(),
+                'O': subject.O,
+                'organization': subject.OU,
+                'country': subject.C,
+                'commonName': subject.commonName,
+                'serialNumber': subject.serialNumber, # identification
+                'cert_serialnumber': x509.get_serial_number(),
+                'cert_start': parse(x509.get_notBefore()),
+                'cert_expire': parse(x509.get_notAfter()),
+                'pem': OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, x509),
+            }
+ 
+
