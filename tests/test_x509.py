@@ -5,10 +5,7 @@ X.509 Certificate Tests
 import base64
 import subprocess
 
-from pyasn1.codec.der import encoder as derencoder, decoder as derdecoder
-from pyasn1.codec.ber import encoder as berencoder
-from pyasn1.type.univ import BitString, Null
-from pyasn1_modules import rfc2459, rfc2314, rfc3279
+from asn1crypto.x509 import Certificate
 
 import pkcs11
 from pkcs11.util.rsa import encode_rsa_public_key
@@ -71,15 +68,15 @@ class X509Tests(TestCase):
     @requires(Mechanism.SHA1_RSA_PKCS)
     def test_verify_certificate_rsa(self):
         # Warning: proof of concept code only!
-        x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
+        x509 = Certificate.load(CERT)
         key = self.session.create_object(decode_x509_public_key(CERT))
         self.assertIsInstance(key, pkcs11.PublicKey)
 
-        value = berencoder.encode(x509['tbsCertificate'])
-        signature = x509['signatureValue'].asOctets()
-        mechanism = x509['signatureAlgorithm']['algorithm']
+        value = x509['tbs_certificate'].dump()
+        signature = x509.signature
 
-        assert mechanism == rfc2459.sha1WithRSAEncryption
+        assert x509.signature_algo == 'rsassa_pkcs1v15'
+        assert x509.hash_algo == 'sha1'
 
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.SHA1_RSA_PKCS))
@@ -109,15 +106,16 @@ class X509Tests(TestCase):
         YAwtpblAgUEdGuoAtnoEQ2tc
         """)
 
-        x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
+        x509 = Certificate.load(CERT)
         key = self.session.create_object(decode_x509_public_key(CERT))
         self.assertIsInstance(key, pkcs11.PublicKey)
 
-        value = berencoder.encode(x509['tbsCertificate'])
-        mechanism = x509['signatureAlgorithm']['algorithm']
-        assert mechanism == rfc3279.id_dsa_with_sha1
+        value = x509['tbs_certificate'].dump()
 
-        signature = decode_dsa_signature(x509['signatureValue'].asOctets())
+        assert x509.signature_algo == 'dsa'
+        assert x509.hash_algo == 'sha1'
+
+        signature = decode_dsa_signature(x509.signature)
 
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.DSA_SHA1))
@@ -145,16 +143,16 @@ class X509Tests(TestCase):
         m/eL2OcGdNbzqzsC11alhemJX7Qt9GOcVqQwROIm
         """)
 
-        x509, *_ = derdecoder.decode(CERT, asn1Spec=rfc2459.Certificate())
+        x509 = Certificate.load(CERT)
         key = self.session.create_object(decode_x509_public_key(CERT))
         self.assertIsInstance(key, pkcs11.PublicKey)
 
-        value = berencoder.encode(x509['tbsCertificate'])
-        mechanism = x509['signatureAlgorithm']['algorithm']
+        value = x509['tbs_certificate'].dump()
 
-        assert mechanism == rfc3279.ecdsa_with_SHA1
+        assert x509.signature_algo == 'ecdsa'
+        assert x509.hash_algo == 'sha1'
 
-        signature = decode_ecdsa_signature(x509['signatureValue'].asOctets())
+        signature = decode_ecdsa_signature(x509.signature)
 
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.ECDSA_SHA1))
@@ -164,12 +162,22 @@ class X509Tests(TestCase):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
 
-        cert = rfc2459.Certificate()
-        cert['tbsCertificate'] = tbs = rfc2459.TBSCertificate()
-        tbs['version'] = 'v1'
+        from asn1crypto.x509 import TbsCertificate
+
+        cert = TbsCertificate({
+            'version': 'v1',
+            'serial_number': 1,
+            'signature': {
+            },
+            'issuer': {
+            },
+            'validity': {
+            },
+            'subject': {
+            },
+        })
         tbs['subject'] = tbs['issuer'] = rfc2459.RDNSequence()
 
-        tbs['serialNumber'] = 0x1
         cert['signatureAlgorithm'] = tbs['signature'] = algorithm = \
             rfc2459.AlgorithmIdentifier()
         algorithm['algorithm'] = rfc2459.sha1WithRSAEncryption
