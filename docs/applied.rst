@@ -1357,28 +1357,19 @@ Certificates
 
 Certificates can be stored in the HSM as objects.  PKCS#11 is limited in its
 handling of certificates, and does not provide features like parsing of X.509
-etc. These should be handled in an external library. PKCS#11 will not set
-attributes on the certificate based on the `VALUE` and these must be specified
-when creating the object.
+etc. These should be handled in an external library (e.g. `asn1crypto`. PKCS#11
+will not set attributes on the certificate based on the `VALUE` and these must
+be specified when creating the object.
 
 X.509
 ~~~~~
-
-:func:`pkcs11.util.x509.decode_x509_certificate` can be used to decode
-X.509 certificates for storage in the HSM:
-
-::
-
-    from pkcs11.util.x509 import decode_x509_certificate
-
-    cert = self.session.create_object(decode_x509_certificate(b'DER encoded X.509 cert...'))
 
 The following attributes are defined:
 
 .. glossary::
 
     VALUE
-        The certificate (BER-encoded binary in X.509 format)
+        The complete X.509 certificate (BER-encoded)
 
     SUBJECT
         The certificate subject (DER-encoded X.509 distinguished name)
@@ -1389,7 +1380,7 @@ The following attributes are defined:
     SERIAL
         The certificate serial (DER-encoded integer)
 
-Additionally an extended set of attributes may be imported if your HSM supports
+Additionally an extended set of attributes can be stored if your HSM supports
 it:
 
 .. glossary::
@@ -1405,3 +1396,61 @@ it:
 
     HASH_OF_ISSUER_PUBLIC_KEY
         The identifier of the issuer's public key (bytes)
+
+
+Importing Certificates
+^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`pkcs11.util.x509.decode_x509_certificate` can be used to decode
+X.509 certificates for storage in the HSM:
+
+::
+
+    from pkcs11.util.x509 import decode_x509_certificate
+
+    cert = self.session.create_object(decode_x509_certificate(b'DER encoded X.509 cert...'))
+
+Exporting Certificates
+^^^^^^^^^^^^^^^^^^^^^^
+
+The full certificate is stored as `VALUE`. Any X.509 capable library can use
+this data, e.g. `asn1crypto` or `PyOpenSSL`.
+
+OpenSSL:
+
+::
+
+    import OpenSSL
+    from pkcs11 import Attribute, ObjectClass
+
+    for cert in session.get_objects({
+        Attribute.CLASS: ObjectClass.CERTIFICATE,
+    }):
+        # Convert from DER-encoded value to OpenSSL object
+        cert = OpenSSL.crypto.load_certificate(
+            OpenSSL.crypto.FILETYPE_ASN1,
+            cert[Attribute.VALUE],
+        )
+
+        # Retrieve values from the certificate
+        subject = cert.get_subject()
+
+        # Convert to PEM format
+        cert = OpenSSL.crypto.dump_certificate(
+            OpenSSL.crypto.FILETYPE_PEM,
+            cert
+        )
+
+asn1crypto:
+
+::
+
+    from asn1crypto import pem, x509
+
+    der_bytes = cert[Attribute.VALUE]
+
+    # Load a certificate object from the DER-encoded value
+    cert = x509.Certificate.load(der_bytes)
+
+    # Write out a PEM encoded value
+    pem_bytes = pem.armor('CERTIFICATE', der_bytes)
