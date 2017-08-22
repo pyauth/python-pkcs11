@@ -9,6 +9,7 @@ from asn1crypto.keys import (
     NamedCurve,
     PublicKeyInfo,
 )
+from asn1crypto.algos import DSASignature
 from asn1crypto.core import OctetString
 
 from ..constants import Attribute, ObjectClass
@@ -114,14 +115,7 @@ def encode_ecdsa_signature(signature):
     :rtype: bytes
     """
 
-    part = len(signature) // 2
-    r, s = signature[:part], signature[part:]
-
-    asn1 = ECDSA_Sig_Value()
-    asn1['r'] = int.from_bytes(r, byteorder='big')
-    asn1['s'] = int.from_bytes(s, byteorder='big')
-
-    return encoder.encode(asn1)
+    return DSASignature.from_p1363(signature).dump()
 
 
 def decode_ecdsa_signature(der):
@@ -133,14 +127,5 @@ def decode_ecdsa_signature(der):
     :rtype bytes:
     """
 
-    asn1, _ = decoder.decode(der, asn1Spec=ECDSA_Sig_Value())
-
-    r = int(asn1['r'])
-    s = int(asn1['s'])
-
-    # r and s must be the same length
-    length = (max(r.bit_length(), s.bit_length()) + 7) // 8
-    return b''.join((
-        r.to_bytes(length, byteorder='big'),
-        s.to_bytes(length, byteorder='big'),
-    ))
+    asn1 = DSASignature.load(der)
+    return asn1.to_p1363()
