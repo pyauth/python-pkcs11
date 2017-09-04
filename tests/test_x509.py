@@ -4,6 +4,7 @@ X.509 Certificate Tests
 
 import base64
 import subprocess
+import datetime
 
 from asn1crypto.x509 import Certificate
 
@@ -162,44 +163,51 @@ class X509Tests(TestCase):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
 
-        from asn1crypto.x509 import TbsCertificate
+        from asn1crypto.x509 import TbsCertificate, Time, Name
+        from asn1crypto.keys import RSAPublicKey
 
-        cert = TbsCertificate({
+        tbs = TbsCertificate({
             'version': 'v1',
             'serial_number': 1,
+            'issuer': Name.build({
+                'common_name': 'Test Certificate',
+            }),
+            'subject': Name.build({
+                'common_name': 'Test Certificate',
+            }),
             'signature': {
-            },
-            'issuer': {
+                'algorithm': 'sha1_rsa',
+                'parameters': None,
             },
             'validity': {
+                'not_before': Time({
+                    'utc_time': datetime.datetime(2017, 1, 1, 0, 0),
+                }),
+                'not_after':  Time({
+                    'utc_time': datetime.datetime(2038, 12, 31, 23, 59),
+                }),
             },
-            'subject': {
-            },
+            'subject_public_key_info': {
+                'algorithm': {
+                    'algorithm': 'rsa',
+                    'parameters': None,
+                },
+                'public_key': RSAPublicKey.load(encode_rsa_public_key(pub)),
+            }
         })
-        tbs['subject'] = tbs['issuer'] = rfc2459.RDNSequence()
 
-        cert['signatureAlgorithm'] = tbs['signature'] = algorithm = \
-            rfc2459.AlgorithmIdentifier()
-        algorithm['algorithm'] = rfc2459.sha1WithRSAEncryption
-        algorithm['parameters'] = Null()
+        # Sign the TBS Certificate
+        value = priv.sign(tbs.dump(),
+                          mechanism=Mechanism.SHA1_RSA_PKCS)
 
-        tbs['validity'] = validity = rfc2459.Validity()
-        validity['notBefore'] = time = rfc2459.Time()
-        time['generalTime'] = '20170101000000Z'
-        validity['notAfter'] = time = rfc2459.Time()
-        time['generalTime'] = '20381231000000Z'
-
-        tbs['subjectPublicKeyInfo'] = keyinfo = rfc2459.SubjectPublicKeyInfo()
-        keyinfo['algorithm'] = algorithm = rfc2459.AlgorithmIdentifier()
-        algorithm['algorithm'] = rfc2459.rsaEncryption
-        algorithm['parameters'] = Null()
-        key = encode_rsa_public_key(pub)
-        keyinfo['subjectPublicKey'] = BitString.fromOctetString(key)
-
-        value = berencoder.encode(tbs)
-        cert['signatureValue'] = BitString.fromOctetString(
-            priv.sign(value,
-                      mechanism=Mechanism.SHA1_RSA_PKCS))
+        cert = Certificate({
+            'tbs_certificate': tbs,
+            'signature_algorithm': {
+                'algorithm': 'sha1_rsa',
+                'parameters': None,
+            },
+            'signature_value': value,
+        })
 
         # Pipe our certificate to OpenSSL to verify it
         with subprocess.Popen(('openssl', 'verify'),
@@ -207,7 +215,7 @@ class X509Tests(TestCase):
                               stdout=subprocess.DEVNULL) as proc:
 
             proc.stdin.write(b'-----BEGIN CERTIFICATE-----\n')
-            proc.stdin.write(base64.encodebytes(derencoder.encode(cert)))
+            proc.stdin.write(base64.encodebytes(cert.dump()))
             proc.stdin.write(b'-----END CERTIFICATE-----\n')
             proc.stdin.close()
 
@@ -218,30 +226,37 @@ class X509Tests(TestCase):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
 
-        csr = rfc2314.CertificationRequest()
-        csr['certificationRequestInfo'] = info = \
-            rfc2314.CertificationRequestInfo()
-        info['version'] = 0
-        info['subject'] = rfc2459.RDNSequence()
+        from asn1crypto.csr import (CertificationRequest,
+                                    CertificationRequestInfo)
+        from asn1crypto.x509 import Name
+        from asn1crypto.keys import RSAPublicKey
 
-        attrpos = info.componentType.getPositionByName('attributes')
-        attrtype = info.componentType.getTypeByPosition(attrpos)
-        info['attributes'] = attrtype.clone()
+        info = CertificationRequestInfo({
+            'version': 0,
+            'subject': Name.build({
+                'common_name': 'Test Certificate',
+            }),
+            'subject_pk_info': {
+                'algorithm': {
+                    'algorithm': 'rsa',
+                    'parameters': None,
+                },
+                'public_key': RSAPublicKey.load(encode_rsa_public_key(pub)),
+            },
+        })
 
-        info['subjectPublicKeyInfo'] = keyinfo = rfc2459.SubjectPublicKeyInfo()
-        keyinfo['algorithm'] = algorithm = rfc2459.AlgorithmIdentifier()
-        algorithm['algorithm'] = rfc2459.rsaEncryption
-        algorithm['parameters'] = Null()
-        key = encode_rsa_public_key(pub)
-        keyinfo['subjectPublicKey'] = BitString.fromOctetString(key)
+        # Sign the CSR Info
+        value = priv.sign(info.dump(),
+                          mechanism=Mechanism.SHA1_RSA_PKCS)
 
-        value = berencoder.encode(info)
-        csr['signature'] = BitString.fromOctetString(
-            priv.sign(value,
-                      mechanism=Mechanism.SHA1_RSA_PKCS))
-        csr['signatureAlgorithm'] = algorithm = rfc2459.AlgorithmIdentifier()
-        algorithm['algorithm'] = rfc2459.sha1WithRSAEncryption
-        algorithm['parameters'] = Null()
+        csr = CertificationRequest({
+            'certification_request_info': info,
+            'signature_algorithm': {
+                'algorithm': 'sha1_rsa',
+                'parameters': None,
+            },
+            'signature': value,
+        })
 
         # Pipe our CSR to OpenSSL to verify it
         with subprocess.Popen(('openssl', 'req',
@@ -251,7 +266,7 @@ class X509Tests(TestCase):
                               stdin=subprocess.PIPE,
                               stdout=subprocess.DEVNULL) as proc:
 
-            proc.stdin.write(derencoder.encode(csr))
+            proc.stdin.write(csr.dump())
             proc.stdin.close()
 
             self.assertEqual(proc.wait(), 0)

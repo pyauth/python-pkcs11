@@ -1,11 +1,10 @@
 """
 Key handling utilities for DSA keys, domain parameters and signatures..
-
-These utilities depend on :mod:`pyasn1` and :mod:`pyasn1_modules`.
 """
 
-from pyasn1.codec.der import encoder, decoder
-from pyasn1_modules.rfc3279 import Dss_Parms, Dss_Sig_Value, DSAPublicKey
+from asn1crypto.core import Integer
+from asn1crypto.keys import DSAParams
+from asn1crypto.algos import DSASignature
 
 from . import biginteger
 from ..constants import Attribute
@@ -19,7 +18,7 @@ def decode_dsa_domain_parameters(der):
     :rtype: dict(Attribute,*)
     """
 
-    params, _ = decoder.decode(der, asn1Spec=Dss_Parms())
+    params = DSAParams.load(der)
 
     return {
         Attribute.BASE: biginteger(params['g']),
@@ -35,12 +34,13 @@ def encode_dsa_domain_parameters(obj):
     :param DomainParameters obj: domain parameters
     :rtype: bytes
     """
-    asn1 = Dss_Parms()
-    asn1['g'] = int.from_bytes(obj[Attribute.BASE], byteorder='big')
-    asn1['p'] = int.from_bytes(obj[Attribute.PRIME], byteorder='big')
-    asn1['q'] = int.from_bytes(obj[Attribute.SUBPRIME], byteorder='big')
+    asn1 = DSAParams({
+        'g': int.from_bytes(obj[Attribute.BASE], byteorder='big'),
+        'p': int.from_bytes(obj[Attribute.PRIME], byteorder='big'),
+        'q': int.from_bytes(obj[Attribute.SUBPRIME], byteorder='big'),
+    })
 
-    return encoder.encode(asn1)
+    return asn1.dump()
 
 
 def encode_dsa_public_key(key):
@@ -51,9 +51,9 @@ def encode_dsa_public_key(key):
     :rtype: bytes
     """
 
-    asn1 = DSAPublicKey(int.from_bytes(key[Attribute.VALUE], byteorder='big'))
+    asn1 = Integer(int.from_bytes(key[Attribute.VALUE], byteorder='big'))
 
-    return encoder.encode(asn1)
+    return asn1.dump()
 
 
 def decode_dsa_public_key(der):
@@ -66,7 +66,8 @@ def decode_dsa_public_key(der):
     :rtype: bytes
     """
 
-    asn1, _ = decoder.decode(der, asn1Spec=DSAPublicKey())
+    asn1 = Integer.load(der)
+
     return biginteger(asn1)
 
 
@@ -79,14 +80,9 @@ def encode_dsa_signature(signature):
     :rtype: bytes
     """
 
-    part = len(signature) // 2
-    r, s = signature[:part], signature[part:]
+    asn1 = DSASignature.from_p1363(signature)
 
-    asn1 = Dss_Sig_Value()
-    asn1['r'] = int.from_bytes(r, byteorder='big')
-    asn1['s'] = int.from_bytes(s, byteorder='big')
-
-    return encoder.encode(asn1)
+    return asn1.dump()
 
 
 def decode_dsa_signature(der):
@@ -98,13 +94,6 @@ def decode_dsa_signature(der):
     :rtype bytes:
     """
 
-    asn1, _ = decoder.decode(der, asn1Spec=Dss_Sig_Value())
+    asn1 = DSASignature.load(der)
 
-    r = int(asn1['r'])
-    s = int(asn1['s'])
-
-    # r and s are both 20 bytes
-    return b''.join((
-        r.to_bytes(20, byteorder='big'),
-        s.to_bytes(20, byteorder='big'),
-    ))
+    return asn1.to_p1363()

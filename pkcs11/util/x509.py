@@ -1,7 +1,5 @@
 """
 Certificate handling utilities for X.509 (SSL) certificates.
-
-These utilities depend on :mod:`pyasn1` and :mod:`pyasn1_modules`.
 """
 
 from datetime import datetime

@@ -36,11 +36,9 @@ class ExternalPublicKeyTests(TestCase):
 
     @requires(Mechanism.ECDSA_SHA1)
     def test_ecdsa(self):
-        from pyasn1_modules.rfc3279 import prime256v1
-
         # A key we generated earlier
         self.session.create_domain_parameters(KeyType.EC, {
-            Attribute.EC_PARAMS: encode_named_curve_parameters(prime256v1),
+            Attribute.EC_PARAMS: encode_named_curve_parameters('secp256r1'),
         }, local=True)\
             .generate_keypair()
 
@@ -61,11 +59,9 @@ class ExternalPublicKeyTests(TestCase):
 
     @requires(Mechanism.ECDH1_DERIVE)
     def test_ecdh(self):
-        from pyasn1_modules.rfc3279 import prime256v1
-
         # A key we generated earlier
         self.session.create_domain_parameters(KeyType.EC, {
-            Attribute.EC_PARAMS: encode_named_curve_parameters(prime256v1),
+            Attribute.EC_PARAMS: encode_named_curve_parameters('secp256r1'),
         }, local=True)\
             .generate_keypair()
 

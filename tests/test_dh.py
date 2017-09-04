@@ -6,8 +6,8 @@ import base64
 
 from pkcs11 import Attribute, KeyType, DomainParameters, Mechanism
 from pkcs11.util.dh import (
-    decode_x9_42_dh_domain_parameters,
-    encode_x9_42_dh_domain_parameters,
+    decode_dh_domain_parameters,
+    encode_dh_domain_parameters,
     encode_dh_public_key,
 )
 
@@ -105,11 +105,10 @@ class DHTests(TestCase):
         """)
 
         params = self.session.create_domain_parameters(
-            KeyType.X9_42_DH,
-            decode_x9_42_dh_domain_parameters(PARAMS),
+            KeyType.DH,
+            decode_dh_domain_parameters(PARAMS),
             local=True)
         self.assertIsInstance(params, DomainParameters)
-        self.assertEqual(len(params[Attribute.SUBPRIME]) * 8, 224)
         self.assertEqual(params[Attribute.PRIME][:4],
                          b'\xAD\x10\x7E\x1E')
 
@@ -119,7 +118,7 @@ class DHTests(TestCase):
         self.assertIsInstance(params, DomainParameters)
         self.assertEqual(params[Attribute.PRIME_BITS], 512)
         self.assertEqual(len(params[Attribute.PRIME]) * 8, 512)
-        encode_x9_42_dh_domain_parameters(params)
+        encode_dh_domain_parameters(params)
 
         # Test encoding the public key
         public, _ = params.generate_keypair()

@@ -4,6 +4,7 @@ Key handling utilities for RSA keys (PKCS#1).
 
 from asn1crypto.keys import RSAPrivateKey, RSAPublicKey
 
+from . import biginteger
 from ..constants import Attribute, ObjectClass, MechanismFlag
 from ..mechanisms import KeyType
 from ..defaults import DEFAULT_KEY_CAPABILITIES
@@ -26,14 +27,14 @@ def decode_rsa_private_key(der, capabilities=None):
     return {
         Attribute.CLASS: ObjectClass.PRIVATE_KEY,
         Attribute.KEY_TYPE: KeyType.RSA,
-        Attribute.MODULUS: key['modulus'],
-        Attribute.PUBLIC_EXPONENT: key['public_exponent'],
-        Attribute.PRIVATE_EXPONENT: key['private_exponent'],
-        Attribute.PRIME_1: key['prime1'],
-        Attribute.PRIME_2: key['prime2'],
-        Attribute.EXPONENT_1: key['exponent1'],
-        Attribute.EXPONENT_2: key['exponent2'],
-        Attribute.COEFFICIENT: key['coefficient'],
+        Attribute.MODULUS: biginteger(key['modulus']),
+        Attribute.PUBLIC_EXPONENT: biginteger(key['public_exponent']),
+        Attribute.PRIVATE_EXPONENT: biginteger(key['private_exponent']),
+        Attribute.PRIME_1: biginteger(key['prime1']),
+        Attribute.PRIME_2: biginteger(key['prime2']),
+        Attribute.EXPONENT_1: biginteger(key['exponent1']),
+        Attribute.EXPONENT_2: biginteger(key['exponent2']),
+        Attribute.COEFFICIENT: biginteger(key['coefficient']),
         Attribute.DECRYPT: MechanismFlag.DECRYPT in capabilities,
         Attribute.SIGN: MechanismFlag.SIGN in capabilities,
         Attribute.UNWRAP: MechanismFlag.UNWRAP in capabilities,
@@ -57,8 +58,8 @@ def decode_rsa_public_key(der, capabilities=None):
     return {
         Attribute.CLASS: ObjectClass.PUBLIC_KEY,
         Attribute.KEY_TYPE: KeyType.RSA,
-        Attribute.MODULUS: key['modulus'],
-        Attribute.PUBLIC_EXPONENT: key['public_exponent'],
+        Attribute.MODULUS: biginteger(key['modulus']),
+        Attribute.PUBLIC_EXPONENT: biginteger(key['public_exponent']),
         Attribute.ENCRYPT: MechanismFlag.ENCRYPT in capabilities,
         Attribute.VERIFY: MechanismFlag.VERIFY in capabilities,
         Attribute.WRAP: MechanismFlag.WRAP in capabilities,
