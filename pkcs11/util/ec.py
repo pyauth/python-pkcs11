@@ -20,10 +20,11 @@ def encode_named_curve_parameters(oid):
     """
     Return DER-encoded ANSI X.62 EC parameters for a named curve.
 
-    Curve names are given by object identifier and can be found in
-    :mod:`pyasn1_modules.rfc3279`.
+    Curve names are given by object identifier or common name. Names come
+    from `asn1crypto
+    <https://github.com/wbond/asn1crypto/blob/master/asn1crypto/keys.py#L338>`_.
 
-    :param str curve: named curve
+    :param str oid: OID or named curve
     :rtype: bytes
     """
     return ECDomainParameters(

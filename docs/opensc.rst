@@ -73,12 +73,10 @@ EC
 
 ::
 
-    from pyasn1_modules.rfc3279 import prime256v1
-
     with token.open(user_pin='1234', rw=True) as session:
         ecparams = session.create_domain_parameters(
             pkcs11.KeyType.EC, {
-                pkcs11.Attribute.EC_PARAMS: pkcs11.util.ec.encode_named_curve_parameters(prime256v1),
+                pkcs11.Attribute.EC_PARAMS: pkcs11.util.ec.encode_named_curve_parameters('secp256r1'),
             }, local=True)
 
         pub, priv = ecparams.generate_keypair(store=True,

@@ -321,7 +321,8 @@ PEM
 a standard for handling cryptographic objects. It is a base64 encoded version
 of the binary DER object. The label indicates the type of object, and thus
 what ASN.1 model to use. `python-pkcs11` does not include PEM parsing,
-you should include another package if required.
+you should include another package if required. :mod:`asn1crypto.pem` is a
+dependency of `python-pkcs11`.
 
 Getting a Session
 -----------------
@@ -656,17 +657,16 @@ Both specifications are specified using the same `attribute`:
     public, private = parameters.generate_keypair()
 
 
-Named curves (e.g. `prime256v1`) can be specified like this:
+Named curves (e.g. `secp256r1`) can be specified like this:
 
 ::
 
     from pkcs11 import Attribute
     from pkcs11.util.ec import encode_named_curve_parameters
-    from pyasn1_modules.rfc3279 import prime256v1
 
 
     parameters = session.create_domain_parameters(KeyType.EC, {
-        Attribute.EC_PARAMS: encode_named_curve_parameters(prime256v1)
+        Attribute.EC_PARAMS: encode_named_curve_parameters('secp256r1')
     }, local=True)
 
 Key pairs can be generated from the domain parameters:
@@ -702,11 +702,10 @@ DER-encoded into attributes that can be used with
 .. note::
 
     PEM certificates are base64-encoded versions of the canonical DER-encoded
-    forms used in `python-pkcs11`. Converting between PEM and DER is beyond the
-    scope of `python-pkcs11`.
+    forms used in `python-pkcs11`. Conversion between PEM and DER can be
+    achieved using `asn1crypto.pem
+    <https://github.com/wbond/asn1crypto/blob/master/docs/pem.md>`_.
 
-    :mod:`pyasn1` and :mod:`pyasn1_modules` are required to import and export
-    DER-encoded objects.
 
 AES/DES
 ~~~~~~~

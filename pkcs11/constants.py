@@ -256,20 +256,20 @@ class Attribute(IntEnum):
     """
     DER-encoded ANSI X9.62 Elliptic-Curve domain parameters (:class:`bytes`).
 
-    These can be output by OpenSSL (for named curves):
+    These can packed using :mod:`pkcs11.util.ec.encode_named_curve_parameters`:
+
+    ::
+
+        from pkcs11.util.ec import encode_named_curve_parameters
+
+        ecParams = encode_named_curve_parameters('secp256r1')
+
+    Or output by OpenSSL:
 
     ::
 
         openssl ecparam -outform der -name <curve name> | base64
 
-    Or packed using :mod:`pyasn1`:
-
-    ::
-
-        from pyasn1_modules.rfc3279 import prime256v1
-        from pkcs11.ecutils import encode_named_curve_parameters
-
-        ecParams = encode_named_curve_parameters(prime256v1)
     """
 
     EC_POINT = 0x00000181
