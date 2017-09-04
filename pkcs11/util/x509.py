@@ -2,8 +2,6 @@
 Certificate handling utilities for X.509 (SSL) certificates.
 """
 
-from datetime import datetime
-
 from asn1crypto.x509 import Certificate
 
 from ..constants import Attribute, ObjectClass, CertificateType
@@ -14,6 +12,8 @@ def decode_x509_public_key(der):
     """
     Decode a DER-encoded X.509 certificate's public key into a set of
     attributes able to be passed to :meth:`pkcs11.Session.create_object`.
+
+    For PEM-encoded certificates, use :func:`asn1crypto.pem.unarmor`.
 
     .. warning::
 
@@ -68,6 +68,8 @@ def decode_x509_certificate(der, extended_set=False):
 
     Optionally pass `extended_set` to include additional attributes:
     start date, end date and key identifiers.
+
+    For PEM-encoded certificates, use :func:`asn1crypto.pem.unarmor`.
 
     .. warning::
 

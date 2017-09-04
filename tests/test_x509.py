@@ -6,7 +6,10 @@ import base64
 import subprocess
 import datetime
 
-from asn1crypto.x509 import Certificate
+from asn1crypto import pem
+from asn1crypto.x509 import Certificate, TbsCertificate, Time, Name
+from asn1crypto.keys import RSAPublicKey
+from asn1crypto.csr import CertificationRequest, CertificationRequestInfo
 
 import pkcs11
 from pkcs11.util.rsa import encode_rsa_public_key
@@ -29,7 +32,8 @@ from . import TestCase, Not, requires
 #   -out cert.pem \
 #   -days 365 \
 #   -nodes
-CERT = base64.b64decode("""
+_, _, CERT = pem.unarmor(b"""
+-----BEGIN CERTIFICATE-----
 MIICKzCCAdWgAwIBAgIJAK3BO9rnLZd9MA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
 BAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
 aWRnaXRzIFB0eSBMdGQwHhcNMTcwNjAyMDI0ODMyWhcNMTgwNjAyMDI0ODMyWjBF
@@ -42,6 +46,7 @@ CzAJBgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRl
 cm5ldCBXaWRnaXRzIFB0eSBMdGSCCQCtwTva5y2XfTAMBgNVHRMEBTADAQH/MA0G
 CSqGSIb3DQEBBQUAA0EAOdvMKLrIFOYF3aVLGharY196heO0fndm39sZAXJ4PItx
 n28DytHEdAoltksfJ2Ds3XAjQqcpI5eBbhIoN9Ckxg==
+-----END CERTIFICATE-----
 """)
 
 
@@ -163,9 +168,6 @@ class X509Tests(TestCase):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
 
-        from asn1crypto.x509 import TbsCertificate, Time, Name
-        from asn1crypto.keys import RSAPublicKey
-
         tbs = TbsCertificate({
             'version': 'v1',
             'serial_number': 1,
@@ -214,9 +216,7 @@ class X509Tests(TestCase):
                               stdin=subprocess.PIPE,
                               stdout=subprocess.DEVNULL) as proc:
 
-            proc.stdin.write(b'-----BEGIN CERTIFICATE-----\n')
-            proc.stdin.write(base64.encodebytes(cert.dump()))
-            proc.stdin.write(b'-----END CERTIFICATE-----\n')
+            proc.stdin.write(pem.armor('CERTIFICATE', cert.dump()))
             proc.stdin.close()
 
             self.assertEqual(proc.wait(), 0)
@@ -225,11 +225,6 @@ class X509Tests(TestCase):
     def test_sign_csr(self):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
-
-        from asn1crypto.csr import (CertificationRequest,
-                                    CertificationRequestInfo)
-        from asn1crypto.x509 import Name
-        from asn1crypto.keys import RSAPublicKey
 
         info = CertificationRequestInfo({
             'version': 0,
