@@ -39,7 +39,7 @@ Or build from source:
 
     python setup.py build
 
-Assuming your PKCS#11 library is set as `PKCS_MODULE` and contains a
+Assuming your PKCS#11 library is set as `PKCS11_MODULE` and contains a
 token named `DEMO`:
 
 AES

@@ -105,8 +105,7 @@ class AESTests(TestCase):
         self.assertIsInstance(signature, bytes)
         self.assertTrue(self.key.verify(data, signature))
 
-    @requires(Mechanism.AES_ECB)
-    @Not.softhsm2  # requires AES keywrapping support
+    @requires(Mechanism.AES_KEY_WRAP)
     @FIXME.opencryptoki  # can't set key attributes
     def test_wrap(self):
         key = self.session.generate_key(pkcs11.KeyType.AES, 128, template={
