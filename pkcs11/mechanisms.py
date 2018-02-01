@@ -639,8 +639,23 @@ class Mechanism(IntEnum):
 
     AES_GCM = 0x00001087
     AES_CCM = 0x00001088
-    AES_KEY_WRAP = 0x00001090
-    AES_KEY_WRAP_PAD = 0x00001091
+    _AES_KEY_WRAP = 0x00001090
+    """This is the old value for AES_KEY_WRAP. Changed in the 2016 spec."""
+    _AES_KEY_WRAP_PAD = 0x00001091
+    """This is the old value for AES_KEY_WRAP_PAD. Changed in the 2016 spec."""
+
+    AES_XCBC_MAC = 0x0000108C
+    AES_XCBC_MAC_96 = 0x0000108D
+    AES_GMAC = 0x0000108E
+
+    AES_OFB = 0x00002104
+    AES_CFB64 = 0x00002105
+    AES_CFB8 = 0x00002106
+    AES_CFB128 = 0x00002107
+
+    AES_CFB1 = 0x00002108
+    AES_KEY_WRAP = 0x00002109
+    AES_KEY_WRAP_PAD = 0x0000210A
 
     DES_ECB_ENCRYPT_DATA = 0x00001100
     DES_CBC_ENCRYPT_DATA = 0x00001101
@@ -683,11 +698,6 @@ class Mechanism(IntEnum):
     .. note:: Default mechanism for generating :attr:`KeyType.X9_42_DH` domain
         parameters (X9.42 DH).
     """
-
-    AES_OFB = 0x00002104
-    AES_CFB64 = 0x00002105
-    AES_CFB8 = 0x00002106
-    AES_CFB128 = 0x00002107
 
     _VENDOR_DEFINED = 0x80000000
 

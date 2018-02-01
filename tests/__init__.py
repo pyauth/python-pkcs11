@@ -97,6 +97,7 @@ class Is:
     softhsm2 = LIB.endswith('libsofthsm2.so')
     nfast = LIB.endswith('libcknfast.so')
     opencryptoki = LIB.endswith('libopencryptoki.so')
+    travis = os.environ.get('TRAVIS') == 'true'
 
 
 class Only:
@@ -126,3 +127,4 @@ class FIXME:
     softhsm2 = xfail(Is.softhsm2)
     nfast = xfail(Is.nfast)
     opencryptoki = xfail(Is.opencryptoki)
+    travis = xfail(Is.travis)

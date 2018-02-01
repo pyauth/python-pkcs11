@@ -72,7 +72,7 @@ Default mechanisms for sign/verify.
 """
 
 DEFAULT_WRAP_MECHANISMS = {
-    KeyType.AES: Mechanism.AES_ECB,
+    KeyType.AES: Mechanism.AES_KEY_WRAP,
     KeyType.DES2: Mechanism.DES3_ECB,
     KeyType.DES3: Mechanism.DES3_ECB,
     KeyType.RSA: Mechanism.RSA_PKCS_OAEP,
