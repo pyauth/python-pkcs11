@@ -1,8 +1,7 @@
+#!python
+#cython: language_level=3
 """
 High-level Python PKCS#11 Wrapper.
-
-Ensure your library is loaded before import this module.
-See pkcs11._loader.load() or pkcs11.lib().
 
 Most class here inherit from pkcs11.types, which provides easier introspection
 for Sphinx/Jedi/etc, as this module is not importable without having the
@@ -11,6 +10,8 @@ library loaded.
 
 from __future__ import (absolute_import, unicode_literals,
                         print_function, division)
+
+from posix cimport dlfcn
 
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
@@ -1151,6 +1152,8 @@ _CLASS_MAP = {
     ObjectClass.CERTIFICATE: Certificate,
 }
 
+ctypedef CK_RV (*C_GetFunctionList_p) (CK_FUNCTION_LIST **)
+
 cdef class lib:
     """
     Main entry point.
@@ -1165,10 +1168,42 @@ cdef class lib:
     cdef public tuple cryptoki_version
     cdef public tuple library_version
 
-    def __cinit__(self):
+    def _load_pkcs11_lib(self, so):
+        """Load a PKCS#11 library, and extract function calls.
+
+        This method will dynamically load a PKCS11 library, and attempt to
+        resolve the symbol 'C_GetFunctionList()'. Once found, the entry point
+        is called to populate an internal table of function pointers.
+
+        This is a private method, and must never be called directly.
+        Called when a new lib class is instantiated.
+
+        :param so: the path to a valid PKCS#11 library
+        :type so: str
+        :raises: RuntimeError or PKCS11Error
+        :rtype: None
+        """
+
+        # to keep a pointer to the C_GetFunctionList address returned by dlsym()
+        cdef C_GetFunctionList_p C_GetFunctionList
+
+        handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_GLOBAL)
+
+        if handle == NULL:
+            raise RuntimeError(dlfcn.dlerror())
+
+        C_GetFunctionList = <C_GetFunctionList_p>dlfcn.dlsym(handle, 'C_GetFunctionList')
+
+        if C_GetFunctionList==NULL:
+            raise RuntimeError("{} is not a PKCS#11 library: {}".format(so,dlfcn.dlerror()))
+
         assertRV(C_GetFunctionList(&_funclist))
+
+
+    def __cinit__(self, so):
+        self._load_pkcs11_lib(so)
+        # at this point, _funclist contains all function pointers to the library
         assertRV(_funclist.C_Initialize(NULL))
-        #print("funclist C_GetSlotList(): {:x}".format(<unsigned long>self.funclist.C_GetSlotList))
 
     def __init__(self, so):
         self.so = so

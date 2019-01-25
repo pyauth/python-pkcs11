@@ -245,7 +245,7 @@ cdef extern from '../extern/pkcs11.h':
     # The only external API call that must be defined in a PKCS#11 library
     # All other APIs are taken from the CK_FUNCTION_LIST table
     #
-    CK_RV C_GetFunctionList(CK_FUNCTION_LIST **)
+    #CK_RV C_GetFunctionList(CK_FUNCTION_LIST **)
 
     cdef struct CK_FUNCTION_LIST:
         CK_VERSION version

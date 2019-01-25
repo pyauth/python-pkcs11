@@ -27,10 +27,6 @@ def lib(so):
         else:
             return _lib
 
-    # Initialise ourselves now
-    from ._loader import load
-    load(so)
-
     from . import _pkcs11
 
     _lib = _pkcs11.lib(so)
