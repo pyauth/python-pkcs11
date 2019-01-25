@@ -35,7 +35,7 @@ from .types import (
 # This is a global, as this object cannot be shared between Python and Cython classes
 # Due to this limitation, the current implementation limits the loading of the library
 # to one instance only, or to several instances of the same kind.
-cdef CK_FUNCTION_LIST *_funclist
+cdef CK_FUNCTION_LIST *_funclist=NULL
 
 
 cdef class AttributeList:
@@ -1187,18 +1187,15 @@ cdef class lib:
         # to keep a pointer to the C_GetFunctionList address returned by dlsym()
         cdef C_GetFunctionList_p C_GetFunctionList
 
-        handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_GLOBAL)
-
+        handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
         if handle == NULL:
             raise RuntimeError(dlfcn.dlerror())
 
         C_GetFunctionList = <C_GetFunctionList_p>dlfcn.dlsym(handle, 'C_GetFunctionList')
-
         if C_GetFunctionList==NULL:
             raise RuntimeError("{} is not a PKCS#11 library: {}".format(so,dlfcn.dlerror()))
 
         assertRV(C_GetFunctionList(&_funclist))
-
 
     def __cinit__(self, so):
         self._load_pkcs11_lib(so)
@@ -1318,4 +1315,5 @@ cdef class lib:
             return token
 
     def __dealloc__(self):
-        assertRV(_funclist.C_Finalize(NULL))
+        if _funclist != NULL:
+            assertRV(_funclist.C_Finalize(NULL))
