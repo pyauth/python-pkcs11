@@ -31,11 +31,12 @@ from .types import (
     _CK_MECHANISM_TYPE_to_enum,
 )
 
+
 # _funclist is used to keep the pointer to the list of functions, when lib() is invoked.
 # This is a global, as this object cannot be shared between Python and Cython classes
 # Due to this limitation, the current implementation limits the loading of the library
 # to one instance only, or to several instances of the same kind.
-cdef CK_FUNCTION_LIST *_funclist=NULL
+cdef CK_FUNCTION_LIST *_funclist = NULL
 
 
 cdef class AttributeList:
@@ -1152,7 +1153,6 @@ _CLASS_MAP = {
     ObjectClass.CERTIFICATE: Certificate,
 }
 
-ctypedef CK_RV (*C_GetFunctionList_p) (CK_FUNCTION_LIST **)
 
 cdef class lib:
     """
@@ -1185,15 +1185,15 @@ cdef class lib:
         """
 
         # to keep a pointer to the C_GetFunctionList address returned by dlsym()
-        cdef C_GetFunctionList_p C_GetFunctionList
+        cdef C_GetFunctionList_ptr C_GetFunctionList
 
         handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
         if handle == NULL:
             raise RuntimeError(dlfcn.dlerror())
 
-        C_GetFunctionList = <C_GetFunctionList_p>dlfcn.dlsym(handle, 'C_GetFunctionList')
-        if C_GetFunctionList==NULL:
-            raise RuntimeError("{} is not a PKCS#11 library: {}".format(so,dlfcn.dlerror()))
+        C_GetFunctionList = <C_GetFunctionList_ptr> dlfcn.dlsym(handle, 'C_GetFunctionList')
+        if C_GetFunctionList == NULL:
+            raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, dlfcn.dlerror()))
 
         assertRV(C_GetFunctionList(&_funclist))
 
