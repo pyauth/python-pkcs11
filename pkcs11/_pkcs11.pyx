@@ -1,8 +1,7 @@
+#!python
+#cython: language_level=3
 """
 High-level Python PKCS#11 Wrapper.
-
-Ensure your library is loaded before import this module.
-See pkcs11._loader.load() or pkcs11.lib().
 
 Most class here inherit from pkcs11.types, which provides easier introspection
 for Sphinx/Jedi/etc, as this module is not importable without having the
@@ -11,6 +10,8 @@ library loaded.
 
 from __future__ import (absolute_import, unicode_literals,
                         print_function, division)
+
+from posix cimport dlfcn
 
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
@@ -29,6 +30,13 @@ from .types import (
     _CK_VERSION_to_tuple,
     _CK_MECHANISM_TYPE_to_enum,
 )
+
+
+# _funclist is used to keep the pointer to the list of functions, when lib() is invoked.
+# This is a global, as this object cannot be shared between Python and Cython classes
+# Due to this limitation, the current implementation limits the loading of the library
+# to one instance only, or to several instances of the same kind.
+cdef CK_FUNCTION_LIST *_funclist = NULL
 
 
 cdef class AttributeList:
@@ -179,7 +187,7 @@ class Slot(types.Slot):
     def get_token(self):
         cdef CK_TOKEN_INFO info
 
-        assertRV(C_GetTokenInfo(self.slot_id, &info))
+        assertRV(_funclist.C_GetTokenInfo(self.slot_id, &info))
 
         _fix_string_length(info.label, sizeof(info.label))
         _fix_string_length(info.serialNumber, sizeof(info.serialNumber))
@@ -191,21 +199,21 @@ class Slot(types.Slot):
     def get_mechanisms(self):
         cdef CK_ULONG count
 
-        assertRV(C_GetMechanismList(self.slot_id, NULL, &count))
+        assertRV(_funclist.C_GetMechanismList(self.slot_id, NULL, &count))
 
         if count == 0:
             return set()
 
         cdef CK_MECHANISM_TYPE [:] mechanisms = CK_ULONG_buffer(count)
 
-        assertRV(C_GetMechanismList(self.slot_id, &mechanisms[0], &count))
+        assertRV(_funclist.C_GetMechanismList(self.slot_id, &mechanisms[0], &count))
 
         return set(map(_CK_MECHANISM_TYPE_to_enum, mechanisms))
 
     def get_mechanism_info(self, mechanism):
         cdef CK_MECHANISM_INFO info
 
-        assertRV(C_GetMechanismInfo(self.slot_id, mechanism, &info))
+        assertRV(_funclist.C_GetMechanismInfo(self.slot_id, mechanism, &info))
 
         return types.MechanismInfo(self, mechanism, **info)
 
@@ -233,10 +241,10 @@ class Token(types.Token):
             pin = None
             user_type = UserType.NOBODY
 
-        assertRV(C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
+        assertRV(_funclist.C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
 
         if pin is not None:
-            assertRV(C_Login(handle, user_type, pin, len(pin)))
+            assertRV(_funclist.C_Login(handle, user_type, pin, len(pin)))
 
         return Session(self, handle, rw=rw, user_type=user_type)
 
@@ -250,7 +258,7 @@ class SearchIter:
         template = AttributeList(attrs)
         self.session._operation_lock.acquire()
         self._active = True
-        assertRV(C_FindObjectsInit(self.session._handle,
+        assertRV(_funclist.C_FindObjectsInit(self.session._handle,
                                    template.data, template.count))
 
     def __iter__(self):
@@ -261,7 +269,7 @@ class SearchIter:
         cdef CK_OBJECT_HANDLE handle
         cdef CK_ULONG count
 
-        assertRV(C_FindObjects(self.session._handle,
+        assertRV(_funclist.C_FindObjects(self.session._handle,
                                &handle, 1, &count))
 
         if count == 0:
@@ -278,7 +286,7 @@ class SearchIter:
         """Finish the operation."""
         if self._active:
             self._active = False
-            assertRV(C_FindObjectsFinal(self.session._handle))
+            assertRV(_funclist.C_FindObjectsFinal(self.session._handle))
             self.session._operation_lock.release()
 
 
@@ -287,9 +295,9 @@ class Session(types.Session):
 
     def close(self):
         if self.user_type != UserType.NOBODY:
-            assertRV(C_Logout(self._handle))
+            assertRV(_funclist.C_Logout(self._handle))
 
-        assertRV(C_CloseSession(self._handle))
+        assertRV(_funclist.C_CloseSession(self._handle))
 
     def get_objects(self, attrs=None):
         return SearchIter(self, attrs or {})
@@ -298,7 +306,7 @@ class Session(types.Session):
         cdef CK_OBJECT_HANDLE new
 
         template = AttributeList(attrs)
-        assertRV(C_CreateObject(self._handle,
+        assertRV(_funclist.C_CreateObject(self._handle,
                                 template.data, template.count,
                                 &new))
 
@@ -342,7 +350,7 @@ class Session(types.Session):
 
         cdef CK_OBJECT_HANDLE obj
 
-        assertRV(C_GenerateKey(self._handle,
+        assertRV(_funclist.C_GenerateKey(self._handle,
                                mech.data,
                                attrs.data, attrs.count,
                                &obj))
@@ -401,7 +409,7 @@ class Session(types.Session):
 
         cdef CK_OBJECT_HANDLE key
 
-        assertRV(C_GenerateKey(self._handle,
+        assertRV(_funclist.C_GenerateKey(self._handle,
                                mech.data,
                                attrs.data, attrs.count,
                                &key))
@@ -476,7 +484,7 @@ class Session(types.Session):
         cdef CK_OBJECT_HANDLE public_key
         cdef CK_OBJECT_HANDLE private_key
 
-        assertRV(C_GenerateKeyPair(self._handle,
+        assertRV(_funclist.C_GenerateKeyPair(self._handle,
                                    mech.data,
                                    public_attrs.data, public_attrs.count,
                                    private_attrs.data, private_attrs.count,
@@ -486,14 +494,14 @@ class Session(types.Session):
                 Object._make(self, private_key))
 
     def seed_random(self, seed):
-        assertRV(C_SeedRandom(self._handle, seed, len(seed)))
+        assertRV(_funclist.C_SeedRandom(self._handle, seed, len(seed)))
 
     def generate_random(self, nbits):
         length = nbits // 8
 
         cdef CK_CHAR [:] random = CK_BYTE_buffer(length)
 
-        assertRV(C_GenerateRandom(self._handle, &random[0], length))
+        assertRV(_funclist.C_GenerateRandom(self._handle, &random[0], length))
 
         return bytes(random)
 
@@ -505,16 +513,16 @@ class Session(types.Session):
         cdef CK_ULONG length
 
         with self._operation_lock:
-            assertRV(C_DigestInit(self._handle, mech.data))
+            assertRV(_funclist.C_DigestInit(self._handle, mech.data))
 
             # Run once to get the length
-            assertRV(C_Digest(self._handle,
+            assertRV(_funclist.C_Digest(self._handle,
                               data, len(data),
                               NULL, &length))
 
             digest = CK_BYTE_buffer(length)
 
-            assertRV(C_Digest(self._handle,
+            assertRV(_funclist.C_Digest(self._handle,
                               data, len(data),
                               &digest[0], &length))
 
@@ -527,20 +535,20 @@ class Session(types.Session):
         cdef CK_ULONG length
 
         with self._operation_lock:
-            assertRV(C_DigestInit(self._handle, mech.data))
+            assertRV(_funclist.C_DigestInit(self._handle, mech.data))
 
             for block in data:
                 if isinstance(block, types.Key):
-                    assertRV(C_DigestKey(self._handle, block._handle))
+                    assertRV(_funclist.C_DigestKey(self._handle, block._handle))
                 else:
-                    assertRV(C_DigestUpdate(self._handle, block, len(block)))
+                    assertRV(_funclist.C_DigestUpdate(self._handle, block, len(block)))
 
             # Run once to get the length
-            assertRV(C_DigestFinal(self._handle, NULL, &length))
+            assertRV(_funclist.C_DigestFinal(self._handle, NULL, &length))
 
             digest = CK_BYTE_buffer(length)
 
-            assertRV(C_DigestFinal(self._handle, &digest[0], &length))
+            assertRV(_funclist.C_DigestFinal(self._handle, &digest[0], &length))
 
             return bytes(digest[:length])
 
@@ -598,7 +606,7 @@ class Object(types.Object):
         template.pValue = NULL
 
         # Find out the attribute size
-        assertRV(C_GetAttributeValue(self.session._handle, self._handle,
+        assertRV(_funclist.C_GetAttributeValue(self.session._handle, self._handle,
                                      &template, 1))
 
         if template.ulValueLen == 0:
@@ -609,7 +617,7 @@ class Object(types.Object):
         template.pValue = <CK_CHAR *> &value[0]
 
         # Request the value
-        assertRV(C_GetAttributeValue(self.session._handle, self._handle,
+        assertRV(_funclist.C_GetAttributeValue(self.session._handle, self._handle,
                                      &template, 1))
 
         return _unpack_attributes(key, value)
@@ -622,21 +630,21 @@ class Object(types.Object):
         template.pValue = <CK_CHAR *> value
         template.ulValueLen = len(value)
 
-        assertRV(C_SetAttributeValue(self.session._handle, self._handle,
+        assertRV(_funclist.C_SetAttributeValue(self.session._handle, self._handle,
                                      &template, 1))
 
     def copy(self, attrs):
         cdef CK_OBJECT_HANDLE new
 
         template = AttributeList(attrs)
-        assertRV(C_CopyObject(self.session._handle, self._handle,
+        assertRV(_funclist.C_CopyObject(self.session._handle, self._handle,
                               template.data, template.count,
                               &new))
 
         return Object._make(self.session, new)
 
     def destroy(self):
-        assertRV(C_DestroyObject(self.session._handle, self._handle))
+        assertRV(_funclist.C_DestroyObject(self.session._handle, self._handle))
 
 
 class SecretKey(types.SecretKey):
@@ -717,7 +725,7 @@ class DomainParameters(types.DomainParameters):
         cdef CK_OBJECT_HANDLE public_key
         cdef CK_OBJECT_HANDLE private_key
 
-        assertRV(C_GenerateKeyPair(self.session._handle,
+        assertRV(_funclist.C_GenerateKeyPair(self.session._handle,
                                    mech.data,
                                    public_attrs.data, public_attrs.count,
                                    private_attrs.data, private_attrs.count,
@@ -747,17 +755,17 @@ class EncryptMixin(types.EncryptMixin):
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(C_EncryptInit(self.session._handle,
+            assertRV(_funclist.C_EncryptInit(self.session._handle,
                                    mech.data, self._handle))
 
             # Call to find out the buffer length
-            assertRV(C_Encrypt(self.session._handle,
+            assertRV(_funclist.C_Encrypt(self.session._handle,
                                data, len(data),
                                NULL, &length))
 
             ciphertext = CK_BYTE_buffer(length)
 
-            assertRV(C_Encrypt(self.session._handle,
+            assertRV(_funclist.C_Encrypt(self.session._handle,
                                data, len(data),
                                &ciphertext[0], &length))
 
@@ -785,7 +793,7 @@ class EncryptMixin(types.EncryptMixin):
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
         with self.session._operation_lock:
-            assertRV(C_EncryptInit(self.session._handle,
+            assertRV(_funclist.C_EncryptInit(self.session._handle,
                                    mech.data, self._handle))
 
             for part_in in data:
@@ -793,7 +801,7 @@ class EncryptMixin(types.EncryptMixin):
                     continue
 
                 length = buffer_size
-                assertRV(C_EncryptUpdate(self.session._handle,
+                assertRV(_funclist.C_EncryptUpdate(self.session._handle,
                                         part_in, len(part_in),
                                         &part_out[0], &length))
 
@@ -802,7 +810,7 @@ class EncryptMixin(types.EncryptMixin):
             # Finalize
             # We assume the buffer is much bigger than the block size
             length = buffer_size
-            assertRV(C_EncryptFinal(self.session._handle,
+            assertRV(_funclist.C_EncryptFinal(self.session._handle,
                                     &part_out[0], &length))
 
             yield bytes(part_out[:length])
@@ -822,17 +830,17 @@ class DecryptMixin(types.DecryptMixin):
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(C_DecryptInit(self.session._handle,
+            assertRV(_funclist.C_DecryptInit(self.session._handle,
                                    mech.data, self._handle))
 
             # Call to find out the buffer length
-            assertRV(C_Decrypt(self.session._handle,
+            assertRV(_funclist.C_Decrypt(self.session._handle,
                                data, len(data),
                                NULL, &length))
 
             plaintext = CK_BYTE_buffer(length)
 
-            assertRV(C_Decrypt(self.session._handle,
+            assertRV(_funclist.C_Decrypt(self.session._handle,
                                data, len(data),
                                &plaintext[0], &length))
 
@@ -860,7 +868,7 @@ class DecryptMixin(types.DecryptMixin):
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
         with self.session._operation_lock:
-            assertRV(C_DecryptInit(self.session._handle,
+            assertRV(_funclist.C_DecryptInit(self.session._handle,
                                    mech.data, self._handle))
 
             for part_in in data:
@@ -869,7 +877,7 @@ class DecryptMixin(types.DecryptMixin):
 
                 length = buffer_size
 
-                assertRV(C_DecryptUpdate(self.session._handle,
+                assertRV(_funclist.C_DecryptUpdate(self.session._handle,
                                         part_in, len(part_in),
                                         &part_out[0], &length))
 
@@ -878,7 +886,7 @@ class DecryptMixin(types.DecryptMixin):
             # Finalize
             # We assume the buffer is much bigger than the block size
             length = buffer_size
-            assertRV(C_DecryptFinal(self.session._handle,
+            assertRV(_funclist.C_DecryptFinal(self.session._handle,
                                     &part_out[0], &length))
 
             yield bytes(part_out[:length])
@@ -898,16 +906,16 @@ class SignMixin(types.SignMixin):
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(C_SignInit(self.session._handle, mech.data, self._handle))
+            assertRV(_funclist.C_SignInit(self.session._handle, mech.data, self._handle))
 
             # Call to find out the buffer length
-            assertRV(C_Sign(self.session._handle,
+            assertRV(_funclist.C_Sign(self.session._handle,
                             data, len(data),
                             NULL, &length))
 
             signature = CK_BYTE_buffer(length)
 
-            assertRV(C_Sign(self.session._handle,
+            assertRV(_funclist.C_Sign(self.session._handle,
                             data, len(data),
                             &signature[0], &length))
 
@@ -924,23 +932,23 @@ class SignMixin(types.SignMixin):
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(C_SignInit(self.session._handle, mech.data, self._handle))
+            assertRV(_funclist.C_SignInit(self.session._handle, mech.data, self._handle))
 
             for part_in in data:
                 if not part_in:
                     continue
 
-                assertRV(C_SignUpdate(self.session._handle,
+                assertRV(_funclist.C_SignUpdate(self.session._handle,
                                       part_in, len(part_in)))
 
             # Finalize
             # Call to find out the buffer length
-            assertRV(C_SignFinal(self.session._handle,
+            assertRV(_funclist.C_SignFinal(self.session._handle,
                                  NULL, &length))
 
             signature = CK_BYTE_buffer(length)
 
-            assertRV(C_SignFinal(self.session._handle,
+            assertRV(_funclist.C_SignFinal(self.session._handle,
                                  &signature[0], &length))
 
             return bytes(signature[:length])
@@ -957,11 +965,11 @@ class VerifyMixin(types.VerifyMixin):
             mechanism, mechanism_param)
 
         with self.session._operation_lock:
-            assertRV(C_VerifyInit(self.session._handle,
+            assertRV(_funclist.C_VerifyInit(self.session._handle,
                                   mech.data, self._handle))
 
             # Call to find out the buffer length
-            assertRV(C_Verify(self.session._handle,
+            assertRV(_funclist.C_Verify(self.session._handle,
                               data, len(data),
                               signature, len(signature)))
 
@@ -973,18 +981,18 @@ class VerifyMixin(types.VerifyMixin):
             mechanism, mechanism_param)
 
         with self.session._operation_lock:
-            assertRV(C_VerifyInit(self.session._handle,
+            assertRV(_funclist.C_VerifyInit(self.session._handle,
                                   mech.data, self._handle))
 
             for part_in in data:
                 if not part_in:
                     continue
 
-                assertRV(C_VerifyUpdate(self.session._handle,
+                assertRV(_funclist.C_VerifyUpdate(self.session._handle,
                                         part_in, len(part_in)))
 
 
-            assertRV(C_VerifyFinal(self.session._handle,
+            assertRV(_funclist.C_VerifyFinal(self.session._handle,
                                    signature, len(signature)))
 
 
@@ -1004,7 +1012,7 @@ class WrapMixin(types.WrapMixin):
         cdef CK_ULONG length
 
         # Find out how many bytes we need to allocate
-        assertRV(C_WrapKey(self.session._handle,
+        assertRV(_funclist.C_WrapKey(self.session._handle,
                            mech.data,
                            self._handle,
                            key._handle,
@@ -1012,7 +1020,7 @@ class WrapMixin(types.WrapMixin):
 
         cdef CK_BYTE [:] data = CK_BYTE_buffer(length)
 
-        assertRV(C_WrapKey(self.session._handle,
+        assertRV(_funclist.C_WrapKey(self.session._handle,
                            mech.data,
                            self._handle,
                            key._handle,
@@ -1068,7 +1076,7 @@ class UnwrapMixin(types.UnwrapMixin):
 
         cdef CK_OBJECT_HANDLE key
 
-        assertRV(C_UnwrapKey(self.session._handle,
+        assertRV(_funclist.C_UnwrapKey(self.session._handle,
                              mech.data,
                              self._handle,
                              key_data, len(key_data),
@@ -1128,7 +1136,7 @@ class DeriveMixin(types.DeriveMixin):
 
         cdef CK_OBJECT_HANDLE key
 
-        assertRV(C_DeriveKey(self.session._handle,
+        assertRV(_funclist.C_DeriveKey(self.session._handle,
                              mech.data,
                              self._handle,
                              attrs.data, attrs.count,
@@ -1146,7 +1154,6 @@ _CLASS_MAP = {
 }
 
 
-
 cdef class lib:
     """
     Main entry point.
@@ -1161,15 +1168,44 @@ cdef class lib:
     cdef public tuple cryptoki_version
     cdef public tuple library_version
 
-    def __cinit__(self):
-        assertRV(C_Initialize(NULL))
+    def _load_pkcs11_lib(self, so):
+        """Load a PKCS#11 library, and extract function calls.
+
+        This method will dynamically load a PKCS11 library, and attempt to
+        resolve the symbol 'C_GetFunctionList()'. Once found, the entry point
+        is called to populate an internal table of function pointers.
+
+        This is a private method, and must never be called directly.
+        Called when a new lib class is instantiated.
+
+        :param so: the path to a valid PKCS#11 library
+        :type so: str
+        :raises: RuntimeError or PKCS11Error
+        :rtype: None
+        """
+
+        # to keep a pointer to the C_GetFunctionList address returned by dlsym()
+        cdef C_GetFunctionList_ptr C_GetFunctionList
+
+        handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
+        if handle == NULL:
+            raise RuntimeError(dlfcn.dlerror())
+
+        C_GetFunctionList = <C_GetFunctionList_ptr> dlfcn.dlsym(handle, 'C_GetFunctionList')
+        if C_GetFunctionList == NULL:
+            raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, dlfcn.dlerror()))
+
+        assertRV(C_GetFunctionList(&_funclist))
+
+    def __cinit__(self, so):
+        self._load_pkcs11_lib(so)
+        # at this point, _funclist contains all function pointers to the library
+        assertRV(_funclist.C_Initialize(NULL))
 
     def __init__(self, so):
         self.so = so
-
         cdef CK_INFO info
-
-        assertRV(C_GetInfo(&info))
+        assertRV(_funclist.C_GetInfo(&info))
 
         _fix_string_length(info.manufacturerID,
                            sizeof(info.manufacturerID))
@@ -1194,25 +1230,26 @@ cdef class lib:
         return '<pkcs11.lib ({so})>'.format(
             so=self.so)
 
+
     def get_slots(self, token_present=False):
         """Get all slots."""
 
         cdef CK_ULONG count
 
-        assertRV(C_GetSlotList(token_present, NULL, &count))
+        assertRV(_funclist.C_GetSlotList(token_present, NULL, &count))
 
         if count == 0:
             return []
 
         cdef CK_ULONG [:] slotIDs = CK_ULONG_buffer(count)
 
-        assertRV(C_GetSlotList(token_present, &slotIDs[0], &count))
+        assertRV(_funclist.C_GetSlotList(token_present, &slotIDs[0], &count))
 
         cdef CK_SLOT_INFO info
         slots = []
 
         for slotID in slotIDs:
-            assertRV(C_GetSlotInfo(slotID, &info))
+            assertRV(_funclist.C_GetSlotInfo(slotID, &info))
 
             _fix_string_length(info.slotDescription,
                                sizeof(info.slotDescription))
@@ -1222,6 +1259,7 @@ cdef class lib:
             slots.append(Slot(self, slotID, **info))
 
         return slots
+
 
     def get_tokens(self,
                    token_label=None,
@@ -1277,4 +1315,5 @@ cdef class lib:
             return token
 
     def __dealloc__(self):
-        assertRV(C_Finalize(NULL))
+        if _funclist != NULL:
+            assertRV(_funclist.C_Finalize(NULL))

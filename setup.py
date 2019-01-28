@@ -11,11 +11,6 @@ if __name__ == '__main__':
             open('README.rst') as readme:
 
         ext_modules = [
-            Extension('pkcs11._loader',
-                    sources=[
-                        'pkcs11/_loader.pyx',
-                    ],
-            ),
             Extension('pkcs11._pkcs11',
                     sources=[
                         'pkcs11/_pkcs11.pyx',
