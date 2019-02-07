@@ -19,16 +19,16 @@ if __name__ == '__main__':
                     sources=[
                         'pkcs11/_pkcs11.pyx',
                     ],
-                    define_macros=[
-                        # These are required to build the PKCS11 headers
-                        #
-                        # They vary based on OS. See extern/pkcs11.h
-                        ('CK_PTR', '*'),
-                        ('CK_DEFINE_FUNCTION(returnType, name)', 'returnType name'),
-                        ('CK_DECLARE_FUNCTION(returnType, name)', 'returnType name'),
-                        ('CK_DECLARE_FUNCTION_POINTER(returnType, name)', 'returnType (* name)'),
-                        ('CK_CALLBACK_FUNCTION(returnType, name)', 'returnType (* name)'),
-                    ],
+                    # define_macros=[
+                    #     # These are required to build the PKCS11 headers
+                    #     #
+                    #     # They vary based on OS. See extern/pkcs11.h
+                    #     ('CK_PTR', '*'),
+                    #     ('CK_DEFINE_FUNCTION(returnType, name)', 'returnType name'),
+                    #     ('CK_DECLARE_FUNCTION(returnType, name)', 'returnType name'),
+                    #     ('CK_DECLARE_FUNCTION_POINTER(returnType, name)', 'returnType (* name)'),
+                    #     ('CK_CALLBACK_FUNCTION(returnType, name)', 'returnType (* name)'),
+                    # ],
                     libraries=libraries,
             ),
         ]
