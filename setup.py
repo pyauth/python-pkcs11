@@ -4,6 +4,10 @@ setup.py
 
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
+from platform import system
+
+# if compiling using MSVC, we need to add user32 library
+libraries = ('user32',) if system() == 'Windows' else ()
 
 if __name__ == '__main__':
     with \
@@ -25,6 +29,7 @@ if __name__ == '__main__':
                         ('CK_DECLARE_FUNCTION_POINTER(returnType, name)', 'returnType (* name)'),
                         ('CK_CALLBACK_FUNCTION(returnType, name)', 'returnType (* name)'),
                     ],
+                    libraries=libraries,
             ),
         ]
 

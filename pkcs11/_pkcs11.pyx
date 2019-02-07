@@ -11,7 +11,12 @@ library loaded.
 from __future__ import (absolute_import, unicode_literals,
                         print_function, division)
 
-from posix cimport dlfcn
+IF UNAME_SYSNAME == "Windows":
+    pass
+#    from .mswin cimport *
+ELSE:
+    from posix cimport dlfcn
+    
 
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
@@ -1167,8 +1172,9 @@ cdef class lib:
     cdef public str library_description
     cdef public tuple cryptoki_version
     cdef public tuple library_version
-
-    def _load_pkcs11_lib(self, so):
+#    cdef HMODULE _handle
+    
+    cdef _load_pkcs11_lib(self, so):
         """Load a PKCS#11 library, and extract function calls.
 
         This method will dynamically load a PKCS11 library, and attempt to
@@ -1187,16 +1193,33 @@ cdef class lib:
         # to keep a pointer to the C_GetFunctionList address returned by dlsym()
         cdef C_GetFunctionList_ptr C_GetFunctionList
 
-        handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
-        if handle == NULL:
-            raise RuntimeError(dlfcn.dlerror())
+        IF UNAME_SYSNAME == "Windows":
+            # self._handle = LoadLibraryW(so)
+            # if self._handle == NULL:
+            #     raise RuntimeError("Cannot open library at {}: {}".format(path, self._winerrormsg()))
+		
+            # if self._handle != NULL:	
+            #     C_GetFunctionList = <C_GetFunctionList_ptr> GetProcAddress(self._handle, 'C_GetFunctionList')
+            #     if C_GetFunctionList == NULL:
+            #         raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, self._winerrormsg()))
+            pass
+        ELSE:
+            handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
+            if handle == NULL:
+                raise RuntimeError(dlfcn.dlerror())
 
-        C_GetFunctionList = <C_GetFunctionList_ptr> dlfcn.dlsym(handle, 'C_GetFunctionList')
-        if C_GetFunctionList == NULL:
-            raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, dlfcn.dlerror()))
+            C_GetFunctionList = <C_GetFunctionList_ptr> dlfcn.dlsym(handle, 'C_GetFunctionList')
+            if C_GetFunctionList == NULL:
+                raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, dlfcn.dlerror()))
 
         assertRV(C_GetFunctionList(&_funclist))
 
+
+    # IF UNAME_SYSNAME == "Windows":
+    #     cdef _winerrormsg(self):
+    #         dw = GetLastError()
+    #         return dw
+    
     def __cinit__(self, so):
         self._load_pkcs11_lib(so)
         # at this point, _funclist contains all function pointers to the library
