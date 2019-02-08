@@ -15,7 +15,7 @@ IF UNAME_SYSNAME == "Windows":
     from .mswin cimport *
 ELSE:
     from posix cimport dlfcn
-    
+
 
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
@@ -1175,7 +1175,7 @@ cdef class lib:
         cdef HMODULE _handle
     ELSE:
         cdef void *_handle
-        
+
     cdef _load_pkcs11_lib(self, so):
         """Load a PKCS#11 library, and extract function calls.
 
@@ -1199,8 +1199,8 @@ cdef class lib:
             self._handle = LoadLibraryW(so)
             if self._handle == NULL:
                 raise RuntimeError("Cannot open library at {}: {}".format(path, self._winerrormsg()))
-		
-            if self._handle != NULL:	
+
+            if self._handle != NULL:
                 C_GetFunctionList = <C_GetFunctionList_ptr> GetProcAddress(self._handle, 'C_GetFunctionList')
                 if C_GetFunctionList == NULL:
                     raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, self._winerrormsg()))
@@ -1230,7 +1230,7 @@ cdef class lib:
                 FreeLibrary(self._handle)
         ELSE:
             if self._handle != NULL:
-                dlclose(self._handle)
+                dlfcn.dlclose(self._handle)
 
 
     IF UNAME_SYSNAME == "Windows":
