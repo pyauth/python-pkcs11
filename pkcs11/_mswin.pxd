@@ -1,6 +1,8 @@
 #!python
 #cython: language_level=3
 #
+# MIT License
+#
 # Copyright 2019 Eric Devolder
 #
 # Permission is hereby granted, free of charge, to any person obtaining
