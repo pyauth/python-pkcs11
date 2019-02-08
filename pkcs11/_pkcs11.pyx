@@ -11,14 +11,13 @@ library loaded.
 from __future__ import (absolute_import, unicode_literals,
                         print_function, division)
 
-IF UNAME_SYSNAME == "Windows":
-    from .mswin cimport *
-ELSE:
-    from posix cimport dlfcn
-
-
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+
+IF UNAME_SYSNAME == "Windows":
+    from . cimport _mswin as mswin
+ELSE:
+    from posix cimport dlfcn
 
 from ._pkcs11_defn cimport *
 include '_errors.pyx'
@@ -1196,12 +1195,12 @@ cdef class lib:
         cdef C_GetFunctionList_ptr C_GetFunctionList
 
         IF UNAME_SYSNAME == "Windows":
-            self._handle = LoadLibraryW(so)
+            self._handle = mswin.LoadLibraryW(so)
             if self._handle == NULL:
                 raise RuntimeError("Cannot open library at {}: {}".format(path, self._winerrormsg()))
 
             if self._handle != NULL:
-                C_GetFunctionList = <C_GetFunctionList_ptr> GetProcAddress(self._handle, 'C_GetFunctionList')
+                C_GetFunctionList = <C_GetFunctionList_ptr> mswin.GetProcAddress(self._handle, 'C_GetFunctionList')
                 if C_GetFunctionList == NULL:
                     raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, self._winerrormsg()))
         ELSE:
@@ -1227,7 +1226,7 @@ cdef class lib:
 
         IF UNAME_SYSNAME == "Windows":
             if self._handle != NULL:
-                FreeLibrary(self._handle)
+                mswin.FreeLibrary(self._handle)
         ELSE:
             if self._handle != NULL:
                 dlfcn.dlclose(self._handle)
@@ -1235,7 +1234,7 @@ cdef class lib:
 
     IF UNAME_SYSNAME == "Windows":
         cdef _winerrormsg(self):
-            dw = GetLastError()
+            dw = mswin.GetLastError()
             # TODO: return error message from Windows, using FormatError()
             return dw
 
