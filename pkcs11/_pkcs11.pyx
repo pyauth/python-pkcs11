@@ -50,14 +50,14 @@ cdef class AttributeList:
 
     cdef CK_ATTRIBUTE *data
     """CK_ATTRIBUTE * representation of the data."""
-    cdef size_t count
+    cdef CK_ULONG count
     """Length of `data`."""
 
     cdef _values
 
     def __cinit__(self, attrs):
         attrs = dict(attrs)
-        self.count = count = len(attrs)
+        self.count = count = <CK_ULONG> len(attrs)
 
         self.data = <CK_ATTRIBUTE *> PyMem_Malloc(count * sizeof(CK_ATTRIBUTE))
         if not self.data:
@@ -73,7 +73,7 @@ cdef class AttributeList:
         for index, (key, value) in enumerate(self._values):
             self.data[index].type = key
             self.data[index].pValue = <CK_CHAR *> value
-            self.data[index].ulValueLen = len(value)
+            self.data[index].ulValueLen = <CK_ULONG>len(value)
 
     def __dealloc__(self):
         PyMem_Free(self.data)
@@ -128,7 +128,7 @@ cdef class MechanismWithParam:
                 oaep_params.ulSourceDataLen = 0
             else:
                 oaep_params.pSourceData = <CK_BYTE *> source_data
-                oaep_params.ulSourceDataLen = len(source_data)
+                oaep_params.ulSourceDataLen = <CK_ULONG> len(source_data)
 
         elif mechanism in (Mechanism.RSA_PKCS_PSS,
                            Mechanism.SHA1_RSA_PKCS_PSS,
@@ -158,10 +158,10 @@ cdef class MechanismWithParam:
                 ecdh1_params.ulSharedDataLen = 0
             else:
                 ecdh1_params.pSharedData = shared_data
-                ecdh1_params.ulSharedDataLen = len(shared_data)
+                ecdh1_params.ulSharedDataLen = <CK_ULONG> len(shared_data)
 
             ecdh1_params.pPublicData = public_data
-            ecdh1_params.ulPublicDataLen = len(public_data)
+            ecdh1_params.ulPublicDataLen = <CK_ULONG> len(public_data)
 
         elif isinstance(param, bytes):
             self.data.pParameter = <CK_BYTE *> param
@@ -175,7 +175,7 @@ cdef class MechanismWithParam:
             raise ArgumentsBad("Unexpected argument to mechanism_param")
 
         self.data.mechanism = mechanism
-        self.data.ulParameterLen = paramlen
+        self.data.ulParameterLen = <CK_ULONG> paramlen
 
         if self.param != NULL:
             self.data.pParameter = self.param
@@ -248,7 +248,7 @@ class Token(types.Token):
         assertRV(_funclist.C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
 
         if pin is not None:
-            assertRV(_funclist.C_Login(handle, user_type, pin, len(pin)))
+            assertRV(_funclist.C_Login(handle, user_type, pin, <CK_ULONG> len(pin)))
 
         return Session(self, handle, rw=rw, user_type=user_type)
 
@@ -498,7 +498,7 @@ class Session(types.Session):
                 Object._make(self, private_key))
 
     def seed_random(self, seed):
-        assertRV(_funclist.C_SeedRandom(self._handle, seed, len(seed)))
+        assertRV(_funclist.C_SeedRandom(self._handle, seed, <CK_ULONG> len(seed)))
 
     def generate_random(self, nbits):
         length = nbits // 8
@@ -521,13 +521,13 @@ class Session(types.Session):
 
             # Run once to get the length
             assertRV(_funclist.C_Digest(self._handle,
-                              data, len(data),
+                              data, <CK_ULONG> len(data),
                               NULL, &length))
 
             digest = CK_BYTE_buffer(length)
 
             assertRV(_funclist.C_Digest(self._handle,
-                              data, len(data),
+                              data, <CK_ULONG> len(data),
                               &digest[0], &length))
 
             return bytes(digest[:length])
@@ -545,7 +545,7 @@ class Session(types.Session):
                 if isinstance(block, types.Key):
                     assertRV(_funclist.C_DigestKey(self._handle, block._handle))
                 else:
-                    assertRV(_funclist.C_DigestUpdate(self._handle, block, len(block)))
+                    assertRV(_funclist.C_DigestUpdate(self._handle, block, <CK_ULONG> len(block)))
 
             # Run once to get the length
             assertRV(_funclist.C_DigestFinal(self._handle, NULL, &length))
@@ -632,7 +632,7 @@ class Object(types.Object):
         cdef CK_ATTRIBUTE template
         template.type = key
         template.pValue = <CK_CHAR *> value
-        template.ulValueLen = len(value)
+        template.ulValueLen = <CK_ULONG>len(value)
 
         assertRV(_funclist.C_SetAttributeValue(self.session._handle, self._handle,
                                      &template, 1))
@@ -764,13 +764,13 @@ class EncryptMixin(types.EncryptMixin):
 
             # Call to find out the buffer length
             assertRV(_funclist.C_Encrypt(self.session._handle,
-                               data, len(data),
+                               data, <CK_ULONG> len(data),
                                NULL, &length))
 
             ciphertext = CK_BYTE_buffer(length)
 
             assertRV(_funclist.C_Encrypt(self.session._handle,
-                               data, len(data),
+                               data, <CK_ULONG> len(data),
                                &ciphertext[0], &length))
 
             return bytes(ciphertext[:length])
@@ -806,7 +806,7 @@ class EncryptMixin(types.EncryptMixin):
 
                 length = buffer_size
                 assertRV(_funclist.C_EncryptUpdate(self.session._handle,
-                                        part_in, len(part_in),
+                                        part_in, <CK_ULONG> len(part_in),
                                         &part_out[0], &length))
 
                 yield bytes(part_out[:length])
@@ -839,13 +839,13 @@ class DecryptMixin(types.DecryptMixin):
 
             # Call to find out the buffer length
             assertRV(_funclist.C_Decrypt(self.session._handle,
-                               data, len(data),
+                               data, <CK_ULONG> len(data),
                                NULL, &length))
 
             plaintext = CK_BYTE_buffer(length)
 
             assertRV(_funclist.C_Decrypt(self.session._handle,
-                               data, len(data),
+                               data, <CK_ULONG> len(data),
                                &plaintext[0], &length))
 
             return bytes(plaintext[:length])
@@ -882,7 +882,7 @@ class DecryptMixin(types.DecryptMixin):
                 length = buffer_size
 
                 assertRV(_funclist.C_DecryptUpdate(self.session._handle,
-                                        part_in, len(part_in),
+                                        part_in, <CK_ULONG> len(part_in),
                                         &part_out[0], &length))
 
                 yield bytes(part_out[:length])
@@ -914,13 +914,13 @@ class SignMixin(types.SignMixin):
 
             # Call to find out the buffer length
             assertRV(_funclist.C_Sign(self.session._handle,
-                            data, len(data),
+                            data, <CK_ULONG> len(data),
                             NULL, &length))
 
             signature = CK_BYTE_buffer(length)
 
             assertRV(_funclist.C_Sign(self.session._handle,
-                            data, len(data),
+                            data, <CK_ULONG> len(data),
                             &signature[0], &length))
 
             return bytes(signature[:length])
@@ -943,7 +943,7 @@ class SignMixin(types.SignMixin):
                     continue
 
                 assertRV(_funclist.C_SignUpdate(self.session._handle,
-                                      part_in, len(part_in)))
+                                      part_in, <CK_ULONG> len(part_in)))
 
             # Finalize
             # Call to find out the buffer length
@@ -974,8 +974,8 @@ class VerifyMixin(types.VerifyMixin):
 
             # Call to find out the buffer length
             assertRV(_funclist.C_Verify(self.session._handle,
-                              data, len(data),
-                              signature, len(signature)))
+                              data, <CK_ULONG> len(data),
+                              signature, <CK_ULONG> len(signature)))
 
     def _verify_generator(self, data, signature,
                           mechanism=None, mechanism_param=None):
@@ -993,11 +993,11 @@ class VerifyMixin(types.VerifyMixin):
                     continue
 
                 assertRV(_funclist.C_VerifyUpdate(self.session._handle,
-                                        part_in, len(part_in)))
+                                        part_in, <CK_ULONG> len(part_in)))
 
 
             assertRV(_funclist.C_VerifyFinal(self.session._handle,
-                                   signature, len(signature)))
+                                   signature, <CK_ULONG> len(signature)))
 
 
 class WrapMixin(types.WrapMixin):
@@ -1083,7 +1083,7 @@ class UnwrapMixin(types.UnwrapMixin):
         assertRV(_funclist.C_UnwrapKey(self.session._handle,
                              mech.data,
                              self._handle,
-                             key_data, len(key_data),
+                             key_data, <CK_ULONG> len(key_data),
                              attrs.data, attrs.count,
                              &key))
 
@@ -1173,7 +1173,9 @@ cdef class lib:
     cdef public tuple library_version
     IF UNAME_SYSNAME == "Windows":
         cdef HMODULE _handle
-    
+    ELSE:
+        cdef void *_handle
+        
     cdef _load_pkcs11_lib(self, so):
         """Load a PKCS#11 library, and extract function calls.
 
@@ -1203,22 +1205,40 @@ cdef class lib:
                 if C_GetFunctionList == NULL:
                     raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, self._winerrormsg()))
         ELSE:
-            handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
-            if handle == NULL:
+            self._handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
+            if self._handle == NULL:
                 raise RuntimeError(dlfcn.dlerror())
 
-            C_GetFunctionList = <C_GetFunctionList_ptr> dlfcn.dlsym(handle, 'C_GetFunctionList')
+            C_GetFunctionList = <C_GetFunctionList_ptr> dlfcn.dlsym(self._handle, 'C_GetFunctionList')
             if C_GetFunctionList == NULL:
                 raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, dlfcn.dlerror()))
 
         assertRV(C_GetFunctionList(&_funclist))
 
 
+    cdef _unload_pkcs11_lib(self):
+        """Unload a PKCS#11 library.
+
+        This method will dynamically unload a PKCS11 library.
+
+        This is a private method, and must never be called directly.
+        Called when a lib instance is destroyed.
+        """
+
+        IF UNAME_SYSNAME == "Windows":
+            if self._handle != NULL:
+                FreeLibrary(self._handle)
+        ELSE:
+            if self._handle != NULL:
+                dlclose(self._handle)
+
+
     IF UNAME_SYSNAME == "Windows":
         cdef _winerrormsg(self):
             dw = GetLastError()
+            # TODO: return error message from Windows, using FormatError()
             return dw
-    
+
     def __cinit__(self, so):
         self._load_pkcs11_lib(so)
         # at this point, _funclist contains all function pointers to the library
@@ -1339,3 +1359,5 @@ cdef class lib:
     def __dealloc__(self):
         if _funclist != NULL:
             assertRV(_funclist.C_Finalize(NULL))
+
+        self._unload_pkcs11_lib()

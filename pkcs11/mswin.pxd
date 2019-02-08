@@ -4,8 +4,8 @@ Definitions to support compilation on Windows platform
 
 cdef extern from "Windows.h":
     ctypedef unsigned long DWORD
-    ctypedef Py_UNICODE WCHAR
-    ctypedef const WCHAR *LPCWSTR
+    ctypedef Py_UNICODE wchar_t
+    ctypedef const wchar_t *LPCWSTR
     ctypedef const char *LPCSTR
     ctypedef void *PVOID
     ctypedef PVOID HANDLE
