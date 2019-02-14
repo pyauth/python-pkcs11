@@ -4,7 +4,7 @@ PKCS#11 Sessions
 
 import pkcs11
 
-from . import TestCase, TOKEN_PIN, Only, Not, requires, FIXME
+from . import TestCase, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, requires, FIXME
 
 
 class SessionTests(TestCase):
@@ -23,7 +23,7 @@ class SessionTests(TestCase):
 
     @Only.softhsm2  # We don't have credentials to do this for other platforms
     def test_open_session_and_login_so(self):
-        with self.token.open(rw=True, so_pin='5678') as session:
+        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
             self.assertIsInstance(session, pkcs11.Session)
 
     @requires(pkcs11.Mechanism.AES_KEY_GEN)

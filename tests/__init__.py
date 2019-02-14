@@ -1,10 +1,20 @@
 """
 PKCS#11 Tests
+
+The following environment variables will influence the behaviour of test cases:
+ - PKCS11_MODULE, mandatory, points to the library/DLL to use for testing
+ - PKCS11_TOKEN_LABEL, mandatory, contains the token label
+ - PKCS11_TOKEN_PIN, optional (default is None), contains the PIN/passphrase of the token
+ - PKCS11_TOKEN_SO_PIN, optional (default is same as PKCS11_TOKEN_PIN), security officer PIN
+ - OPENSSL_PATH, optional, path to openssl executable (i.e. the folder that contains it)
+
 """
 
 import os
+import shutil
 import unittest
 from functools import wraps
+from warnings import warn
 
 import pkcs11
 
@@ -17,9 +27,21 @@ except KeyError:
 
 try:
     TOKEN = os.environ['PKCS11_TOKEN_LABEL']
-    TOKEN_PIN = os.environ.get('PKCS11_TOKEN_PIN')  # Can be None
 except KeyError:
-    raise RuntimeError("Must define `PKCS11_TOKEN_LABEL` to run tests.")
+    raise RuntimeError("Must define `PKCS11_TOKEN_LABEL' to run tests.")
+
+TOKEN_PIN = os.environ.get('PKCS11_TOKEN_PIN')  # Can be None
+if TOKEN_PIN is None:
+    warn("`PKCS11_TOKEN_PIN' env variable is unset.")
+
+TOKEN_SO_PIN = os.environ.get('PKCS11_TOKEN_SO_PIN')
+if TOKEN_SO_PIN is None:
+    TOKEN_SO_PIN = TOKEN_PIN
+    warn("`PKCS11_TOKEN_SO_PIN' env variable is unset. Using value from `PKCS11_TOKEN_PIN'")
+
+OPENSSL = shutil.which('openssl', path=os.environ.get('OPENSSL_PATH'))
+if OPENSSL is None:
+    warn("Path to OpenSSL not found. Please adjust `PATH' or define `OPENSSL_PATH'")
 
 
 class TestCase(unittest.TestCase):
@@ -94,19 +116,28 @@ class Is:
     """
     Test what device we're using.
     """
-    softhsm2 = LIB.endswith('libsofthsm2.so')
-    nfast = LIB.endswith('libcknfast.so')
+    # trick: str.endswith() can accept tuples,
+    # see https://stackoverflow.com/questions/18351951/check-if-string-ends-with-one-of-the-strings-from-a-list
+    softhsm2 = LIB.lower().endswith(('libsofthsm2.so', 'libsofthsm2.dylib', 'softhsm2.dll', 'softhsm2-x64.dll')) 
+    nfast = LIB.lower().endswith(('libcknfast.so', 'cknfast.dll'))
     opencryptoki = LIB.endswith('libopencryptoki.so')
     travis = os.environ.get('TRAVIS') == 'true'
 
 
+class Avail:
+    """
+    Test if a resource is available
+    """
+    # openssl is searched across the exec path. Optionally, OPENSSL_PATH env variable can be defined
+    # in case there is no direct path to it (i.e. PATH does not point to it)
+    openssl = OPENSSL is not None
+
 class Only:
     """
-    Limit tests to given devices
+    Limit tests to given conditions
     """
-
     softhsm2 = unittest.skipUnless(Is.softhsm2, "SoftHSMv2 only")
-
+    openssl = unittest.skipUnless(Avail.openssl, "openssl not found in the path")
 
 class Not:
     """

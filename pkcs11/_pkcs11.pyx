@@ -1171,7 +1171,7 @@ cdef class lib:
     cdef public tuple cryptoki_version
     cdef public tuple library_version
     IF UNAME_SYSNAME == "Windows":
-        cdef HMODULE _handle
+        cdef mswin.HMODULE _handle
     ELSE:
         cdef void *_handle
 
@@ -1230,13 +1230,6 @@ cdef class lib:
         ELSE:
             if self._handle != NULL:
                 dlfcn.dlclose(self._handle)
-
-
-    IF UNAME_SYSNAME == "Windows":
-        cdef _winerrormsg(self):
-            dw = mswin.GetLastError()
-            # TODO: return error message from Windows, using FormatError()
-            return dw
 
     def __cinit__(self, so):
         self._load_pkcs11_lib(so)

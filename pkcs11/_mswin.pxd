@@ -43,3 +43,8 @@ cdef extern from "Windows.h":
     BOOL FreeLibrary(HMODULE hLinModule)
     PVOID GetProcAddress(HMODULE hModule, LPCSTR lpProcName)
     DWORD GetLastError()
+
+cdef inline _winerrormsg(self):
+    dw = GetLastError()
+    # TODO: return error message from Windows, using FormatError()
+    return dw

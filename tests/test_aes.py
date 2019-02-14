@@ -5,7 +5,7 @@ PKCS#11 AES Secret Keys
 import pkcs11
 from pkcs11 import Mechanism
 
-from . import TestCase, Not, requires, FIXME
+from . import TestCase, requires, FIXME
 
 
 class AESTests(TestCase):

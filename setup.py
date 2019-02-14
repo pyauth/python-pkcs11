@@ -5,10 +5,13 @@ setup.py
 
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
-from platform import system
+import platform
 
-# if compiling using MSVC, we need to add user32 library
-libraries = ('user32',) if system() == 'Windows' else ()
+# if compiling using MSVC, we need to link against user32 library
+if platform.system() == 'Windows':
+    libraries = ('user32',)
+else:
+    libraries = ()
 
 if __name__ == '__main__':
     with \
