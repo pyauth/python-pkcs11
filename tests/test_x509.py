@@ -22,7 +22,7 @@ from pkcs11 import (
     Mechanism,
 )
 
-from . import TestCase, Not, requires
+from . import TestCase, Not, Only, requires, OPENSSL
 
 
 # X.509 self-signed certificate (generated with OpenSSL)
@@ -163,6 +163,7 @@ class X509Tests(TestCase):
         self.assertTrue(key.verify(value, signature,
                                    mechanism=Mechanism.ECDSA_SHA1))
 
+    @Only.openssl
     @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
     def test_self_sign_certificate(self):
         # Warning: proof of concept code only!
@@ -212,15 +213,15 @@ class X509Tests(TestCase):
         })
 
         # Pipe our certificate to OpenSSL to verify it
-        with subprocess.Popen(('openssl', 'verify'),
+        with subprocess.Popen((OPENSSL, 'verify'),
                               stdin=subprocess.PIPE,
                               stdout=subprocess.DEVNULL) as proc:
 
             proc.stdin.write(pem.armor('CERTIFICATE', cert.dump()))
             proc.stdin.close()
-
             self.assertEqual(proc.wait(), 0)
 
+    @Only.openssl
     @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
     def test_sign_csr(self):
         # Warning: proof of concept code only!
@@ -254,7 +255,7 @@ class X509Tests(TestCase):
         })
 
         # Pipe our CSR to OpenSSL to verify it
-        with subprocess.Popen(('openssl', 'req',
+        with subprocess.Popen((OPENSSL, 'req',
                                '-inform', 'der',
                                '-noout',
                                '-verify'),

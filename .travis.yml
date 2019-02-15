@@ -11,6 +11,7 @@ env:
         - PKCS11_MODULE=/home/travis/lib/softhsm/libsofthsm2.so
         - PKCS11_TOKEN_LABEL=TEST
         - PKCS11_TOKEN_PIN=1234
+        - PKCS11_TOKEN_SO_PIN=5678
 
 cache:
     - pip
