@@ -1175,7 +1175,7 @@ cdef class lib:
     ELSE:
         cdef void *_handle
 
-    cdef _load_pkcs11_lib(self, so):
+    cdef _load_pkcs11_lib(self, so) with gil:
         """Load a PKCS#11 library, and extract function calls.
 
         This method will dynamically load a PKCS11 library, and attempt to
@@ -1197,12 +1197,12 @@ cdef class lib:
         IF UNAME_SYSNAME == "Windows":
             self._handle = mswin.LoadLibraryW(so)
             if self._handle == NULL:
-                raise RuntimeError("Cannot open library at {}: {}".format(path, self._winerrormsg()))
+                raise RuntimeError("Cannot open library at {}: {}".format(so, mswin.winerror(so)))
 
             if self._handle != NULL:
                 C_GetFunctionList = <C_GetFunctionList_ptr> mswin.GetProcAddress(self._handle, 'C_GetFunctionList')
                 if C_GetFunctionList == NULL:
-                    raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, self._winerrormsg()))
+                    raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, mswin.winerror(so)))
         ELSE:
             self._handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
             if self._handle == NULL:
@@ -1215,7 +1215,7 @@ cdef class lib:
         assertRV(C_GetFunctionList(&_funclist))
 
 
-    cdef _unload_pkcs11_lib(self):
+    cdef _unload_pkcs11_lib(self) with gil:
         """Unload a PKCS#11 library.
 
         This method will dynamically unload a PKCS11 library.
