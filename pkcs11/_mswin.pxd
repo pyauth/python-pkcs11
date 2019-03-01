@@ -75,16 +75,16 @@ cdef extern from "Windows.h":
 cdef inline winerror(so) with gil:
     """
     returns the last error message, as a string.
-    If the string has '%1', it is substituted with the content of so arg.
+    If the string has '%1', it is substituted with the content of 'so' arg.
     """
     #
     # inspired from https://docs.microsoft.com/en-us/windows/desktop/debug/retrieving-the-last-error-code
     #
-    cdef LPWSTR messageBuffer = NULL
+    cdef LPWSTR msgbuffer = NULL
     dw = GetLastError()
-    errmsg=""
+    errmsg = ""
 
-    if dw!=0:
+    if dw != 0:
         # from https://docs.microsoft.com/en-us/windows/desktop/api/WinBase/nf-winbase-formatmessage
         # at 'Security Remarks':
         # In particular, it is unsafe to take an arbitrary system error code returned from an API
@@ -93,18 +93,17 @@ cdef inline winerror(so) with gil:
         # Given that remark, we are not attempting to parse inserts with a va_list.
         # Instead, we only substitute '%1' with the value of so argument, on the returned string.
         
-        FormatMessageW( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                        NULL,
-                        dw,
-                        MAKELANGID(LANG_USER_DEFAULT, SUBLANG_DEFAULT),
-                        <LPWSTR>&messageBuffer,
-                        0,
-                        NULL )
+        FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL,
+                       dw,
+                       MAKELANGID(LANG_USER_DEFAULT, SUBLANG_DEFAULT),
+                       <LPWSTR>&msgbuffer,
+                       0,
+                       NULL)
 
-        errmsg = <str>messageBuffer
-        LocalFree(messageBuffer)
+        errmsg = <str>msgbuffer # C to python string copy
+        LocalFree(msgbuffer)
         
     return errmsg.replace('%1', so)
 
-
-
+#EOF
