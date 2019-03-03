@@ -293,6 +293,20 @@ class SearchIter:
             self.session._operation_lock.release()
 
 
+def merge_templates(default_template, *user_templates):
+    template = default_template.copy()
+
+    for user_template in user_templates:
+        if user_template is not None:
+            template.update(user_template)
+
+    return {
+        key: value
+        for key, value in template.items()
+        if value is not DEFAULT
+    }
+
+
 class Session(types.Session):
     """Extend Session with implementation."""
 
@@ -348,8 +362,7 @@ class Session(types.Session):
             Attribute.TOKEN: store,
             Attribute.PRIME_BITS: param_length,
         }
-        template_.update(template or {})
-        attrs = AttributeList(template_)
+        attrs = AttributeList(merge_templates(template_, template))
 
         cdef CK_OBJECT_HANDLE obj
 
@@ -407,8 +420,7 @@ class Session(types.Session):
 
             template_[Attribute.VALUE_LEN] = key_length // 8  # In bytes
 
-        template_.update(template or {})
-        attrs = AttributeList(template_)
+        attrs = AttributeList(merge_templates(template_, template))
 
         cdef CK_OBJECT_HANDLE key
 
@@ -465,8 +477,7 @@ class Session(types.Session):
                 Attribute.MODULUS_BITS: key_length,
             })
 
-        public_template_.update(public_template or {})
-        public_attrs = AttributeList(public_template_)
+        public_attrs = AttributeList(merge_templates(public_template_, public_template))
 
         private_template_ = {
             Attribute.CLASS: ObjectClass.PRIVATE_KEY,
@@ -481,8 +492,7 @@ class Session(types.Session):
             Attribute.SIGN: MechanismFlag.SIGN & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
-        private_template_.update(private_template or {})
-        private_attrs = AttributeList(private_template_)
+        private_attrs = AttributeList(merge_templates(private_template_, private_template))
 
         cdef CK_OBJECT_HANDLE public_key
         cdef CK_OBJECT_HANDLE private_key
@@ -706,8 +716,7 @@ class DomainParameters(types.DomainParameters):
             except (AttributeTypeInvalid, FunctionFailed):
                 pass
 
-        public_template_.update(public_template or {})
-        public_attrs = AttributeList(public_template_)
+        public_attrs = AttributeList(merge_templates(public_template_, public_template))
 
         private_template_ = {
             Attribute.CLASS: ObjectClass.PRIVATE_KEY,
@@ -722,8 +731,7 @@ class DomainParameters(types.DomainParameters):
             Attribute.SIGN: MechanismFlag.SIGN & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
-        private_template_.update(private_template or {})
-        private_attrs = AttributeList(private_template_)
+        private_attrs = AttributeList(merge_templates(private_template_, private_template))
 
         cdef CK_OBJECT_HANDLE public_key
         cdef CK_OBJECT_HANDLE private_key
@@ -1074,8 +1082,7 @@ class UnwrapMixin(types.UnwrapMixin):
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
-        template_.update(template or {})
-        attrs = AttributeList(template_)
+        attrs = AttributeList(merge_templates(template_, template))
 
         cdef CK_OBJECT_HANDLE key
 
@@ -1134,8 +1141,7 @@ class DeriveMixin(types.DeriveMixin):
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
-        template_.update(template or {})
-        attrs = AttributeList(template_)
+        attrs = AttributeList(merge_templates(template_, template))
 
         cdef CK_OBJECT_HANDLE key
 
