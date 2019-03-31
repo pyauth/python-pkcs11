@@ -11,9 +11,20 @@ from asn1crypto.keys import (
 )
 from asn1crypto.algos import DSASignature
 from asn1crypto.core import OctetString
-
 from ..constants import Attribute, ObjectClass
 from ..mechanisms import KeyType
+
+# patch in RFC 8410 (https://tools.ietf.org/html/rfc8410)
+rfc_8410_oids = {
+    "X25519": "1.3.101.110",
+    "X448": "1.3.101.111",
+    "Ed25519": "1.3.101.112",
+    "Ed448": "1.3.101.113",
+}
+NamedCurve._map = {
+    **NamedCurve._map,
+    **{v: k for k, v in rfc_8410_oids.items()},
+}
 
 
 def encode_named_curve_parameters(oid):
