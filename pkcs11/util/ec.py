@@ -21,10 +21,7 @@ rfc_8410_oids = {
     "Ed25519": "1.3.101.112",
     "Ed448": "1.3.101.113",
 }
-NamedCurve._map = {
-    **NamedCurve._map,
-    **{v: k for k, v in rfc_8410_oids.items()},
-}
+NamedCurve._map.update({v: k for k, v in rfc_8410_oids.items()})
 
 
 def encode_named_curve_parameters(oid):
