@@ -4,7 +4,7 @@
  * IMPLIED OR EXPRESS WARRANTY; there is no warranty of MERCHANTABILITY, FITNESS FOR A
  * PARTICULAR PURPOSE or NONINFRINGEMENT of the rights of others.
  */
-        
+
 /* Latest version of the specification:
  * http://docs.oasis-open.org/pkcs11/pkcs11-base/v2.40/pkcs11-base-v2.40.html
  */
@@ -382,6 +382,9 @@ typedef CK_ULONG          CK_KEY_TYPE;
 #define CKK_GOSTR3410           0x00000030UL
 #define CKK_GOSTR3411           0x00000031UL
 #define CKK_GOST28147           0x00000032UL
+
+/* from version 3.0 */
+#define CKK_EC_EDWARDS          0x00000040UL
 
 
 
@@ -972,6 +975,10 @@ typedef CK_ULONG          CK_MECHANISM_TYPE;
 
 #define CKM_RSA_PKCS_TPM_1_1           0x00004001UL
 #define CKM_RSA_PKCS_OAEP_TPM_1_1      0x00004002UL
+
+/* from version 3.0 */
+#define CKM_EC_EDWARDS_KEY_PAIR_GEN	   0x00001055UL
+#define CKM_EDDSA                      0x00001057UL
 
 #define CKM_VENDOR_DEFINED             0x80000000UL
 

@@ -11,7 +11,6 @@ from asn1crypto.keys import (
 )
 from asn1crypto.algos import DSASignature
 from asn1crypto.core import OctetString
-
 from ..constants import Attribute, ObjectClass
 from ..mechanisms import KeyType
 

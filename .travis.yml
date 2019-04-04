@@ -21,8 +21,8 @@ before_install:
     - pip install -U pip setuptools
     - pip install -r dev-requirements.txt
     # Install SoftHSMv2
-    - curl https://dist.opendnssec.org/source/softhsm-2.3.0.tar.gz | tar -zxv
-    - (cd softhsm-2.3.0 && ./configure --prefix=$HOME --disable-p11-kit && make all install CC="ccache gcc" CXX="ccache g++")
+    - curl https://dist.opendnssec.org/source/softhsm-2.5.0.tar.gz | tar -zxv
+    - (cd softhsm-2.5.0 && ./configure --prefix=$HOME --disable-p11-kit --disable-gost && make all install CC="ccache gcc" CXX="ccache g++")
 
 before_script:
     # Initialise a token on the SoftHSM
