@@ -158,6 +158,7 @@ ATTRIBUTE_TYPES = {
     Attribute.LABEL: _str,
     Attribute.LOCAL: _bool,
     Attribute.MODIFIABLE: _bool,
+    Attribute.COPYABLE: _bool,
     Attribute.MODULUS: _biginteger,
     Attribute.MODULUS_BITS: _ulong,
     Attribute.NEVER_EXTRACTABLE: _bool,
