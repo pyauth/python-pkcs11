@@ -260,6 +260,8 @@ class Attribute(IntEnum):
 
     MODIFIABLE = 0x00000170
     """Object can be modified (:class:`bool`)."""
+    COPYABLE = 0x00000171
+    """Object can be copied (:class:`bool`)."""
 
     EC_PARAMS = 0x00000180
     """
