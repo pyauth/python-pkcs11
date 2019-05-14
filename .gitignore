@@ -1,6 +1,8 @@
 *.so
 *.c
 __pycache__
+*.pyc
+.eggs/
 
 /build
 /dist/
