@@ -135,6 +135,7 @@ def _enum(type_):
 ATTRIBUTE_TYPES = {
     Attribute.ALWAYS_AUTHENTICATE: _bool,
     Attribute.ALWAYS_SENSITIVE: _bool,
+    Attribute.APPLICATION: _str,
     Attribute.BASE: _biginteger,
     Attribute.CERTIFICATE_TYPE: _enum(CertificateType),
     Attribute.CHECK_VALUE: _bytes,
