@@ -1310,10 +1310,10 @@ cdef class lib:
         """Search for a token matching the parameters."""
 
         for slot in self.get_slots():
-            token = slot.get_token()
-            token_mechanisms = slot.get_mechanisms()
-
             try:
+                token = slot.get_token()
+                token_mechanisms = slot.get_mechanisms()
+            
                 if token_label is not None and \
                         token.label != token_label:
                     continue
