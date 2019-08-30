@@ -192,12 +192,13 @@ class Slot(types.Slot):
 
         assertRV(_funclist.C_GetTokenInfo(self.slot_id, &info))
 
-        _fix_string_length(info.label, sizeof(info.label))
-        _fix_string_length(info.serialNumber, sizeof(info.serialNumber))
-        _fix_string_length(info.manufacturerID, sizeof(info.manufacturerID))
-        _fix_string_length(info.model, sizeof(info.model))
+        label = info.label[:sizeof(info.label)]
+        serialNumber = info.serialNumber[:sizeof(info.serialNumber)]
+        model = info.model[:sizeof(info.model)]
+        manufacturerID = info.manufacturerID[:sizeof(info.manufacturerID)]
 
-        return Token(self, **info)
+        return Token(self, label, serialNumber, model, manufacturerID,
+                     info.hardwareVersion, info.firmwareVersion, info.flags)
 
     def get_mechanisms(self):
         cdef CK_ULONG count
@@ -1247,13 +1248,11 @@ cdef class lib:
         cdef CK_INFO info
         assertRV(_funclist.C_GetInfo(&info))
 
-        _fix_string_length(info.manufacturerID,
-                           sizeof(info.manufacturerID))
-        _fix_string_length(info.libraryDescription,
-                           sizeof(info.libraryDescription))
+        manufacturerID = info.manufacturerID[:sizeof(info.manufacturerID)]
+        libraryDescription = info.libraryDescription[:sizeof(info.libraryDescription)]
 
-        self.manufacturer_id = _CK_UTF8CHAR_to_str(info.manufacturerID)
-        self.library_description = _CK_UTF8CHAR_to_str(info.libraryDescription)
+        self.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturerID)
+        self.library_description = _CK_UTF8CHAR_to_str(libraryDescription)
         self.cryptoki_version = _CK_VERSION_to_tuple(info.cryptokiVersion)
         self.library_version = _CK_VERSION_to_tuple(info.libraryVersion)
 
@@ -1291,12 +1290,13 @@ cdef class lib:
         for slotID in slotIDs:
             assertRV(_funclist.C_GetSlotInfo(slotID, &info))
 
-            _fix_string_length(info.slotDescription,
-                               sizeof(info.slotDescription))
-            _fix_string_length(info.manufacturerID,
-                               sizeof(info.manufacturerID))
+            slotDescription = info.slotDescription[:sizeof(info.slotDescription)]
+            manufacturerID = info.manufacturerID[:sizeof(info.manufacturerID)]
 
-            slots.append(Slot(self, slotID, **info))
+            slots.append(
+                Slot(self, slotID, slotDescription, manufacturerID,
+                     info.hardwareVersion, info.firmwareVersion, info.flags)
+            )
 
         return slots
 
