@@ -618,6 +618,7 @@ class Object(types.Object):
         cdef CK_ATTRIBUTE template
         template.type = key
         template.pValue = NULL
+        template.ulValueLen = <CK_ULONG> 0
 
         # Find out the attribute size
         assertRV(_funclist.C_GetAttributeValue(self.session._handle, self._handle,
