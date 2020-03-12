@@ -1355,6 +1355,14 @@ cdef class lib:
         except StopIteration:
             return token
 
+    def finalize(self):
+        if _funclist != NULL:
+            assertRV(_funclist.C_Finalize(NULL))
+
+    def initialize(self):
+        if _funclist != NULL:
+            assertRV(_funclist.C_Initialize(NULL))
+            
     def __dealloc__(self):
         if _funclist != NULL:
             assertRV(_funclist.C_Finalize(NULL))
