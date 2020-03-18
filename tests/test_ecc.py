@@ -143,10 +143,9 @@ class ECCTests(TestCase):
         """)
         pub = self.session.create_object(decode_ec_public_key(pub))
 
-        # FIXME: why can't I sign this?
-        # signature = priv.sign(b'Example', mechanism=Mechanism.ECDSA)
-        # self.assertTrue(pub.verify(b'Example', signature,
-        #                            mechanism=Mechanism.ECDSA))
+        signature = priv.sign(b'Example', mechanism=Mechanism.ECDSA)
+        self.assertTrue(pub.verify(b'Example', signature,
+                                   mechanism=Mechanism.ECDSA))
 
     @requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN, Mechanism.EDDSA)
     def test_sign_eddsa(self):
@@ -162,4 +161,3 @@ class ECCTests(TestCase):
         data = b'HI BOB!'
         eddsa = priv.sign(data, mechanism=mechanism)
         self.assertTrue(pub.verify(data, eddsa, mechanism=mechanism))
-

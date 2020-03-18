@@ -81,8 +81,8 @@ def decode_ec_private_key(der):
     return {
         Attribute.KEY_TYPE: KeyType.EC,
         Attribute.CLASS: ObjectClass.PRIVATE_KEY,
-        Attribute.EC_PARAMS: asn1['parameters'].dump(),
-        Attribute.VALUE: asn1['private_key'],
+        Attribute.EC_PARAMS: asn1['parameters'].chosen.dump(),
+        Attribute.VALUE: asn1['private_key'].contents,
     }
 
 
