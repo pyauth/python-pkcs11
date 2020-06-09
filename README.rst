@@ -145,7 +145,7 @@ ECDSA
         # Generate an EC keypair in this session from a named curve
         ecparams = session.create_domain_parameters(
             pkcs11.KeyType.EC, {
-                pkcs11.Attribute: pkcs11.util.ec.encode_named_curve_parameters('prime256v1'),
+                pkcs11.Attribute.EC_PARAMS: pkcs11.util.ec.encode_named_curve_parameters('prime256v1'),
             }, local=True)
         pub, priv = ecparams.generate_keypair()
 
@@ -164,9 +164,9 @@ Diffie-Hellman
 
     with token.open() as session:
         # Given shared Diffie-Hellman parameters
-        parameters = session.create_domain_parameters(KeyType.DH, {
-            Attribute.PRIME: prime,  # Diffie-Hellman parameters
-            Attribute.BASE: base,
+        parameters = session.create_domain_parameters(pkcs11.KeyType.DH, {
+            pkcs11.Attribute.PRIME: prime,  # Diffie-Hellman parameters
+            pkcs11.Attribute.BASE: base,
         })
 
         # Generate a DH key pair from the public parameters
@@ -179,7 +179,7 @@ Diffie-Hellman
 
         # Derive a shared session key with perfect forward secrecy
         session_key = private.derive_key(
-            KeyType.AES, 128,
+            pkcs11.KeyType.AES, 128,
             mechanism_param=other_value)
 
 
@@ -196,22 +196,22 @@ Elliptic-Curve Diffie-Hellman
     with token.open() as session:
         # Given DER encocded EC parameters, e.g. from
         #    openssl ecparam -outform der -name <named curve>
-        parameters = session.create_domain_parameters(KeyType.EC, {
-            Attribute.EC_PARAMS: ecparams,
+        parameters = session.create_domain_parameters(pkcs11.KeyType.EC, {
+            pkcs11.Attribute.EC_PARAMS: ecparams,
         })
 
         # Generate a DH key pair from the public parameters
         public, private = parameters.generate_keypair()
 
         # Share the public half of it with our other party.
-        _network_.write(public[Attribute.EC_POINT])
+        _network_.write(public[pkcs11.Attribute.EC_POINT])
         # And get their shared value
         other_value = _network_.read()
 
         # Derive a shared session key
         session_key = private.derive_key(
-            KeyType.AES, 128,
-            mechanism_param=(KDF.NULL, None, other_value))
+            pkcs11.KeyType.AES, 128,
+            mechanism_param=(pkcs11.KDF.NULL, None, other_value))
 
 Tested Compatibility
 --------------------
