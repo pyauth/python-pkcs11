@@ -225,7 +225,7 @@ class Slot(types.Slot):
 class Token(types.Token):
     """Extend Token with implementation."""
 
-    def open(self, rw=False, user_pin=None, so_pin=None, p_auth=False):
+    def open(self, rw=False, user_pin=None, so_pin=None, use_protected_auth=False):
         cdef CK_SESSION_HANDLE handle
         cdef CK_FLAGS flags = CKF_SERIAL_SESSION
         cdef CK_USER_TYPE user_type
@@ -235,11 +235,11 @@ class Token(types.Token):
 
         if user_pin is not None and so_pin is not None:
             raise ArgumentsBad("Set either `user_pin` or `so_pin`")
-        elif user_pin is not None and use_pap:
-            raise ArgumentsBad("Set either `user_pin` or `p_auth`")
-        elif so_pin is not None and use_pap:
-            raise ArgumentsBad("Set either `so_pin` or `p_auth`")
-        elif p_auth:
+        elif user_pin is not None and use_protected_auth:
+            raise ArgumentsBad("Set either `user_pin` or `use_protected_auth`")
+        elif so_pin is not None and use_protected_auth:
+            raise ArgumentsBad("Set either `so_pin` or `use_protected_auth`")
+        elif use_protected_auth:
             pin = None
             user_type = CKU_USER
         elif user_pin is not None:
@@ -254,11 +254,11 @@ class Token(types.Token):
 
         assertRV(_funclist.C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
 
-        if p_auth:
+        if use_protected_auth:
             if self.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
-                assertRV(_funclist.C_Login(handle, user_type, NULL, < CK_ULONG > 0))
+                assertRV(_funclist.C_Login(handle, user_type, NULL, <CK_ULONG> 0))
             else:
-                raise ArgumentsBad('Protected authentication is not supported by loaded module')
+                raise ArgumentsBad("Protected authentication is not supported by loaded module")
         elif pin is not None:
             assertRV(_funclist.C_Login(handle, user_type, pin, <CK_ULONG> len(pin)))
 
