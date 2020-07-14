@@ -59,6 +59,12 @@ Classes
 
             :rtype: Token
 
+        .. method:: reinitialize()
+
+            Reinitializes the loaded PKCS#11 library.
+
+            :rtype: None
+
         .. attribute:: cryptoki_version
 
             PKCS#11 Cryptoki standard version (:class:`tuple`).
