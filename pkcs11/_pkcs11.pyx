@@ -32,6 +32,7 @@ from .types import (
     _CK_UTF8CHAR_to_str,
     _CK_VERSION_to_tuple,
     _CK_MECHANISM_TYPE_to_enum,
+    PROTECTED_AUTH,
 )
 
 
@@ -225,7 +226,7 @@ class Slot(types.Slot):
 class Token(types.Token):
     """Extend Token with implementation."""
 
-    def open(self, rw=False, user_pin=None, so_pin=None, use_protected_auth=False):
+    def open(self, rw=False, user_pin=None, so_pin=None):
         cdef CK_SESSION_HANDLE handle
         cdef CK_FLAGS flags = CKF_SERIAL_SESSION
         cdef CK_USER_TYPE user_type
@@ -235,13 +236,12 @@ class Token(types.Token):
 
         if user_pin is not None and so_pin is not None:
             raise ArgumentsBad("Set either `user_pin` or `so_pin`")
-        elif user_pin is not None and use_protected_auth:
-            raise ArgumentsBad("Set either `user_pin` or `use_protected_auth`")
-        elif so_pin is not None and use_protected_auth:
-            raise ArgumentsBad("Set either `so_pin` or `use_protected_auth`")
-        elif use_protected_auth:
+        elif user_pin is PROTECTED_AUTH:
             pin = None
             user_type = CKU_USER
+        elif so_pin is PROTECTED_AUTH:
+            pin = None
+            user_type = CKU_SO
         elif user_pin is not None:
             pin = user_pin.encode('utf-8')
             user_type = CKU_USER
@@ -254,7 +254,7 @@ class Token(types.Token):
 
         assertRV(_funclist.C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
 
-        if use_protected_auth:
+        if so_pin is PROTECTED_AUTH or user_pin is PROTECTED_AUTH:
             if self.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
                 assertRV(_funclist.C_Login(handle, user_type, NULL, <CK_ULONG> 0))
             else:
