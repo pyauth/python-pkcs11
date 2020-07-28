@@ -32,6 +32,7 @@ from .types import (
     _CK_UTF8CHAR_to_str,
     _CK_VERSION_to_tuple,
     _CK_MECHANISM_TYPE_to_enum,
+    PROTECTED_AUTH,
 )
 
 
@@ -235,6 +236,12 @@ class Token(types.Token):
 
         if user_pin is not None and so_pin is not None:
             raise ArgumentsBad("Set either `user_pin` or `so_pin`")
+        elif user_pin is PROTECTED_AUTH:
+            pin = None
+            user_type = CKU_USER
+        elif so_pin is PROTECTED_AUTH:
+            pin = None
+            user_type = CKU_SO
         elif user_pin is not None:
             pin = user_pin.encode('utf-8')
             user_type = CKU_USER
@@ -247,7 +254,12 @@ class Token(types.Token):
 
         assertRV(_funclist.C_OpenSession(self.slot.slot_id, flags, NULL, NULL, &handle))
 
-        if pin is not None:
+        if so_pin is PROTECTED_AUTH or user_pin is PROTECTED_AUTH:
+            if self.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
+                assertRV(_funclist.C_Login(handle, user_type, NULL, <CK_ULONG> 0))
+            else:
+                raise ArgumentsBad("Protected authentication is not supported by loaded module")
+        elif pin is not None:
             assertRV(_funclist.C_Login(handle, user_type, pin, <CK_ULONG> len(pin)))
 
         return Session(self, handle, rw=rw, user_type=user_type)
