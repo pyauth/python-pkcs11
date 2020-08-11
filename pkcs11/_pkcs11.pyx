@@ -927,22 +927,25 @@ class SignMixin(types.SignMixin):
             self.key_type, DEFAULT_SIGN_MECHANISMS,
             mechanism, mechanism_param)
 
+        cdef CK_ULONG session_handle = self.session._handle
+        cdef CK_BYTE *data_buffer = data
+        cdef CK_ULONG data_length = len(data)
         cdef CK_BYTE [:] signature
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(_funclist.C_SignInit(self.session._handle, mech.data, self._handle))
+            assertRV(_funclist.C_SignInit(session_handle, mech.data,
+                                          self._handle))
 
             # Call to find out the buffer length
-            assertRV(_funclist.C_Sign(self.session._handle,
-                            data, <CK_ULONG> len(data),
-                            NULL, &length))
+            assertRV(_funclist.C_Sign(session_handle, &data_buffer[0],
+                                      data_length, NULL, &length))
 
             signature = CK_BYTE_buffer(length)
 
-            assertRV(_funclist.C_Sign(self.session._handle,
-                            data, <CK_ULONG> len(data),
-                            &signature[0], &length))
+            with nogil:
+                assertRV(_funclist.C_Sign(session_handle, &data_buffer[0],
+                                          data_length, &signature[0], &length))
 
             return bytes(signature[:length])
 
@@ -953,11 +956,13 @@ class SignMixin(types.SignMixin):
             self.key_type, DEFAULT_SIGN_MECHANISMS,
             mechanism, mechanism_param)
 
+        cdef CK_ULONG session_handle = self.session._handle
         cdef CK_BYTE [:] signature
         cdef CK_ULONG length
 
         with self.session._operation_lock:
-            assertRV(_funclist.C_SignInit(self.session._handle, mech.data, self._handle))
+            assertRV(_funclist.C_SignInit(session_handle, mech.data,
+                                          self._handle))
 
             for part_in in data:
                 if not part_in:
@@ -968,13 +973,13 @@ class SignMixin(types.SignMixin):
 
             # Finalize
             # Call to find out the buffer length
-            assertRV(_funclist.C_SignFinal(self.session._handle,
-                                 NULL, &length))
+            assertRV(_funclist.C_SignFinal(session_handle, NULL, &length))
 
             signature = CK_BYTE_buffer(length)
 
-            assertRV(_funclist.C_SignFinal(self.session._handle,
-                                 &signature[0], &length))
+            with nogil:
+                assertRV(_funclist.C_SignFinal(session_handle,
+                                               &signature[0], &length))
 
             return bytes(signature[:length])
 

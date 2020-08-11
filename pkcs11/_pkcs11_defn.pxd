@@ -432,7 +432,7 @@ cdef extern from '../extern/cryptoki.h':
                      CK_BYTE *text,
                      CK_ULONG text_len,
                      CK_BYTE *signature,
-                     CK_ULONG *sig_len)
+                     CK_ULONG *sig_len) nogil
 
         CK_RV C_SignUpdate(CK_SESSION_HANDLE session,
                            CK_BYTE *part,
@@ -440,7 +440,7 @@ cdef extern from '../extern/cryptoki.h':
 
         CK_RV C_SignFinal(CK_SESSION_HANDLE session,
                           CK_BYTE *signature,
-                          CK_ULONG *sig_len)
+                          CK_ULONG *sig_len) nogil
 
         CK_RV C_SignRecoverInit(CK_SESSION_HANDLE session,
                                 CK_MECHANISM *mechanism,
