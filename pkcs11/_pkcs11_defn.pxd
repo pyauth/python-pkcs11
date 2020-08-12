@@ -248,267 +248,267 @@ cdef extern from '../extern/cryptoki.h':
         ## caution: order matters!
 
         ## general purpose
-        CK_RV C_Initialize(void *)
+        CK_RV C_Initialize(void *) nogil
 
-        CK_RV C_Finalize(void *)
+        CK_RV C_Finalize(void *) nogil
 
-        CK_RV C_GetInfo(CK_INFO *info)
+        CK_RV C_GetInfo(CK_INFO *info) nogil
 
-        CK_RV C_GetFunctionList(CK_FUNCTION_LIST **)
+        CK_RV C_GetFunctionList(CK_FUNCTION_LIST **) nogil
 
         ## slot and token management
         CK_RV C_GetSlotList(CK_BBOOL tokenPresent,
                             CK_SLOT_ID *slotList,
-                            CK_ULONG *count)
+                            CK_ULONG *count) nogil
 
         CK_RV C_GetSlotInfo(CK_SLOT_ID slotID,
-                            CK_SLOT_INFO *info)
+                            CK_SLOT_INFO *info) nogil
 
         CK_RV C_GetTokenInfo(CK_SLOT_ID slotID,
-                             CK_TOKEN_INFO *info)
+                             CK_TOKEN_INFO *info) nogil
 
         CK_RV C_GetMechanismList(CK_SLOT_ID slotID,
                                  CK_MECHANISM_TYPE *mechanismList,
-                                 CK_ULONG *count)
+                                 CK_ULONG *count) nogil
 
         CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID,
                                  CK_MECHANISM_TYPE mechanism,
-                                 CK_MECHANISM_INFO *info)
+                                 CK_MECHANISM_INFO *info) nogil
 
         CK_RV C_InitToken(CK_SLOT_ID slotID,
                           CK_UTF8CHAR *pPin,
                           CK_ULONG ulPinLen,
-                          CK_UTF8CHAR *pLabel)
+                          CK_UTF8CHAR *pLabel) nogil
 
         CK_RV C_InitPIN(CK_SESSION_HANDLE hSession,
                         CK_UTF8CHAR *pPin,
-                        CK_ULONG ulPinLen)
+                        CK_ULONG ulPinLen) nogil
 
         CK_RV C_SetPIN(CK_SESSION_HANDLE hSession,
                        CK_UTF8CHAR *pOldPin,
                        CK_ULONG ulOldLen,
                        CK_UTF8CHAR *pNewPin,
-                       CK_ULONG ulNewLen)
+                       CK_ULONG ulNewLen) nogil
 
         ## session management
         CK_RV C_OpenSession(CK_SLOT_ID slotID,
                             CK_FLAGS flags,
                             void *application,
                             void *notify,
-                            CK_SESSION_HANDLE *handle)
+                            CK_SESSION_HANDLE *handle) nogil
 
-        CK_RV C_CloseSession(CK_SESSION_HANDLE session)
+        CK_RV C_CloseSession(CK_SESSION_HANDLE session) nogil
 
-        CK_RV C_CloseAllSessions(CK_SLOT_ID slotID)
+        CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) nogil
 
         CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession,
-                               CK_SESSION_INFO *pInfo)
+                               CK_SESSION_INFO *pInfo) nogil
 
         CK_RV C_GetOperationState(CK_SESSION_HANDLE hSession,
                                   CK_BYTE *pOperationState,
-                                  CK_ULONG *pulOperationStateLen)
+                                  CK_ULONG *pulOperationStateLen) nogil
 
         CK_RV C_SetOperationState(CK_SESSION_HANDLE hSession,
                                   CK_BYTE *pOperationState,
                                   CK_ULONG ulOperationStateLen,
                                   CK_OBJECT_HANDLE hEncryptionKey,
-                                  CK_OBJECT_HANDLE hAuthenticationKey)
+                                  CK_OBJECT_HANDLE hAuthenticationKey) nogil
 
         CK_RV C_Login(CK_SESSION_HANDLE session,
                       CK_USER_TYPE userType,
                       CK_UTF8CHAR *pin,
-                      CK_ULONG pinLen)
+                      CK_ULONG pinLen) nogil
 
-        CK_RV C_Logout(CK_SESSION_HANDLE session)
+        CK_RV C_Logout(CK_SESSION_HANDLE session) nogil
 
         ## object management
         CK_RV C_CreateObject(CK_SESSION_HANDLE session,
                              CK_ATTRIBUTE *template,
                              CK_ULONG count,
-                             CK_OBJECT_HANDLE *key)
+                             CK_OBJECT_HANDLE *key) nogil
 
         CK_RV C_CopyObject(CK_SESSION_HANDLE session,
                            CK_OBJECT_HANDLE key,
                            CK_ATTRIBUTE *template,
                            CK_ULONG count,
-                           CK_OBJECT_HANDLE *new_key)
+                           CK_OBJECT_HANDLE *new_key) nogil
 
         CK_RV C_DestroyObject(CK_SESSION_HANDLE session,
-                              CK_OBJECT_HANDLE key)
+                              CK_OBJECT_HANDLE key) nogil
 
         CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession,
                               CK_OBJECT_HANDLE hObject,
-                              CK_ULONG *pulSize)
+                              CK_ULONG *pulSize) nogil
 
         CK_RV C_GetAttributeValue(CK_SESSION_HANDLE session,
                                   CK_OBJECT_HANDLE key,
                                   CK_ATTRIBUTE *template,
-                                  CK_ULONG count)
+                                  CK_ULONG count) nogil
 
         CK_RV C_SetAttributeValue(CK_SESSION_HANDLE session,
                                   CK_OBJECT_HANDLE key,
                                   CK_ATTRIBUTE *template,
-                                  CK_ULONG count)
+                                  CK_ULONG count) nogil
 
         CK_RV C_FindObjectsInit(CK_SESSION_HANDLE session,
                                 CK_ATTRIBUTE *template,
-                                CK_ULONG count)
+                                CK_ULONG count) nogil
 
         CK_RV C_FindObjects(CK_SESSION_HANDLE session,
                             CK_OBJECT_HANDLE *objects,
                             CK_ULONG objectsMax,
-                            CK_ULONG *objectsLength)
+                            CK_ULONG *objectsLength) nogil
 
-        CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE session)
+        CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE session) nogil
 
         ## encryption and decryption
         CK_RV C_EncryptInit(CK_SESSION_HANDLE session,
                             CK_MECHANISM *mechanism,
-                            CK_OBJECT_HANDLE key)
+                            CK_OBJECT_HANDLE key) nogil
 
         CK_RV C_Encrypt(CK_SESSION_HANDLE session,
                         CK_BYTE *plaintext,
                         CK_ULONG plaintext_len,
                         CK_BYTE *ciphertext,
-                        CK_ULONG *ciphertext_len)
+                        CK_ULONG *ciphertext_len) nogil
 
         CK_RV C_EncryptUpdate(CK_SESSION_HANDLE session,
                               CK_BYTE *part_in,
                               CK_ULONG part_in_len,
                               CK_BYTE *part_out,
-                              CK_ULONG *part_out_len)
+                              CK_ULONG *part_out_len) nogil
 
         CK_RV C_EncryptFinal(CK_SESSION_HANDLE session,
                              CK_BYTE *part_out,
-                             CK_ULONG *part_out_len)
+                             CK_ULONG *part_out_len) nogil
 
         CK_RV C_DecryptInit(CK_SESSION_HANDLE session,
                             CK_MECHANISM *mechanism,
-                            CK_OBJECT_HANDLE key)
+                            CK_OBJECT_HANDLE key) nogil
 
         CK_RV C_Decrypt(CK_SESSION_HANDLE session,
                         CK_BYTE *ciphertext,
                         CK_ULONG ciphertext_len,
                         CK_BYTE *plaintext,
-                        CK_ULONG *plaintext_len)
+                        CK_ULONG *plaintext_len) nogil
 
         CK_RV C_DecryptUpdate(CK_SESSION_HANDLE session,
                               CK_BYTE *part_in,
                               CK_ULONG part_in_len,
                               CK_BYTE *part_out,
-                              CK_ULONG *part_out_len)
+                              CK_ULONG *part_out_len) nogil
 
         CK_RV C_DecryptFinal(CK_SESSION_HANDLE session,
                              CK_BYTE *part_out,
-                             CK_ULONG *part_out_len)
+                             CK_ULONG *part_out_len) nogil
 
         ## Message digests
         CK_RV C_DigestInit(CK_SESSION_HANDLE session,
-                           CK_MECHANISM *mechanism)
+                           CK_MECHANISM *mechanism) nogil
 
         CK_RV C_Digest(CK_SESSION_HANDLE session,
                        CK_BYTE *data,
                        CK_ULONG data_len,
                        CK_BYTE *digest,
-                       CK_ULONG *digest_len)
+                       CK_ULONG *digest_len) nogil
 
         CK_RV C_DigestUpdate(CK_SESSION_HANDLE session,
                              CK_BYTE *data,
-                             CK_ULONG data_len)
+                             CK_ULONG data_len) nogil
 
         CK_RV C_DigestKey(CK_SESSION_HANDLE session,
-                          CK_OBJECT_HANDLE key)
+                          CK_OBJECT_HANDLE key) nogil
 
         CK_RV C_DigestFinal(CK_SESSION_HANDLE session,
                             CK_BYTE *digest,
-                            CK_ULONG *digest_len)
+                            CK_ULONG *digest_len) nogil
 
         ## Signing and MACing
         CK_RV C_SignInit(CK_SESSION_HANDLE session,
                          CK_MECHANISM *mechanism,
-                         CK_OBJECT_HANDLE key)
+                         CK_OBJECT_HANDLE key) nogil
 
         CK_RV C_Sign(CK_SESSION_HANDLE session,
                      CK_BYTE *text,
                      CK_ULONG text_len,
                      CK_BYTE *signature,
-                     CK_ULONG *sig_len)
+                     CK_ULONG *sig_len) nogil
 
         CK_RV C_SignUpdate(CK_SESSION_HANDLE session,
                            CK_BYTE *part,
-                           CK_ULONG part_len)
+                           CK_ULONG part_len) nogil
 
         CK_RV C_SignFinal(CK_SESSION_HANDLE session,
                           CK_BYTE *signature,
-                          CK_ULONG *sig_len)
+                          CK_ULONG *sig_len) nogil
 
         CK_RV C_SignRecoverInit(CK_SESSION_HANDLE session,
                                 CK_MECHANISM *mechanism,
-                                CK_OBJECT_HANDLE key)
+                                CK_OBJECT_HANDLE key) nogil
 
         CK_RV C_SignRecover(CK_SESSION_HANDLE session,
                             CK_BYTE *text,
                             CK_ULONG text_len,
                             CK_BYTE *signature,
-                            CK_ULONG *sig_len)
+                            CK_ULONG *sig_len) nogil
 
 
         ## Verifying signatures and MACs
         CK_RV C_VerifyInit(CK_SESSION_HANDLE session,
                            CK_MECHANISM *mechanism,
-                           CK_OBJECT_HANDLE key)
+                           CK_OBJECT_HANDLE key) nogil
 
         CK_RV C_Verify(CK_SESSION_HANDLE session,
                        CK_BYTE *text,
                        CK_ULONG text_len,
                        CK_BYTE *signature,
-                       CK_ULONG sig_len)
+                       CK_ULONG sig_len) nogil
 
         CK_RV C_VerifyUpdate(CK_SESSION_HANDLE session,
                              CK_BYTE *text,
-                             CK_ULONG text_len)
+                             CK_ULONG text_len) nogil
 
         CK_RV C_VerifyFinal(CK_SESSION_HANDLE session,
                             CK_BYTE *signature,
-                            CK_ULONG sig_len)
+                            CK_ULONG sig_len) nogil
 
         CK_RV C_VerifyRecoverInit(CK_SESSION_HANDLE session,
                                   CK_MECHANISM *mechanism,
-                                  CK_OBJECT_HANDLE key)
+                                  CK_OBJECT_HANDLE key) nogil
 
         CK_RV C_VerifyRecover(CK_SESSION_HANDLE session,
                               CK_BYTE *text,
                               CK_ULONG text_len,
                               CK_BYTE *signature,
-                              CK_ULONG sig_len)
+                              CK_ULONG sig_len) nogil
 
         ## dual-function crypto operations
         CK_RV C_DigestEncryptUpdate(CK_SESSION_HANDLE session,
                                     CK_BYTE *data,
                                     CK_ULONG data_len,
                                     CK_BYTE *encrypted,
-                                    CK_ULONG *encrypted_len)
+                                    CK_ULONG *encrypted_len) nogil
 
         CK_RV C_DecryptDigestUpdate(CK_SESSION_HANDLE session,
                                     CK_BYTE *encrypted,
                                     CK_ULONG encrypted_len,
                                     CK_BYTE *data,
-                                    CK_ULONG *data_len)
+                                    CK_ULONG *data_len) nogil
 
         CK_RV C_SignEncryptUpdate(CK_SESSION_HANDLE session,
                                   CK_BYTE *part,
-                                  CK_ULONG part_len)
+                                  CK_ULONG part_len) nogil
 
         CK_RV C_DecryptVerifyUpdate(CK_SESSION_HANDLE session,
                                     CK_BYTE *text,
-                                    CK_ULONG text_len)
+                                    CK_ULONG text_len) nogil
 
         ## key management
         CK_RV C_GenerateKey(CK_SESSION_HANDLE session,
                             CK_MECHANISM *mechanism,
                             CK_ATTRIBUTE *template,
                             CK_ULONG count,
-                            CK_OBJECT_HANDLE *key)
+                            CK_OBJECT_HANDLE *key) nogil
 
         CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE session,
                                 CK_MECHANISM *mechanism,
@@ -517,14 +517,14 @@ cdef extern from '../extern/cryptoki.h':
                                 CK_ATTRIBUTE *private_template,
                                 CK_ULONG private_count,
                                 CK_OBJECT_HANDLE *public_key,
-                                CK_OBJECT_HANDLE *private_key)
+                                CK_OBJECT_HANDLE *private_key) nogil
 
         CK_RV C_WrapKey(CK_SESSION_HANDLE session,
                         CK_MECHANISM *mechanism,
                         CK_OBJECT_HANDLE wrapping_key,
                         CK_OBJECT_HANDLE key_to_wrap,
                         CK_BYTE *wrapped_key,
-                        CK_ULONG *wrapped_key_len)
+                        CK_ULONG *wrapped_key_len) nogil
 
         CK_RV C_UnwrapKey(CK_SESSION_HANDLE session,
                           CK_MECHANISM *mechanism,
@@ -533,37 +533,35 @@ cdef extern from '../extern/cryptoki.h':
                           CK_ULONG wrapped_key_len,
                           CK_ATTRIBUTE *attrs,
                           CK_ULONG attr_len,
-                          CK_OBJECT_HANDLE *unwrapped_key)
+                          CK_OBJECT_HANDLE *unwrapped_key) nogil
 
         CK_RV C_DeriveKey(CK_SESSION_HANDLE session,
                           CK_MECHANISM *mechanism,
                           CK_OBJECT_HANDLE src_key,
                           CK_ATTRIBUTE *template,
                           CK_ULONG count,
-                          CK_OBJECT_HANDLE *new_key)
+                          CK_OBJECT_HANDLE *new_key) nogil
 
         ## random number generation
         CK_RV C_SeedRandom(CK_SESSION_HANDLE session,
                            CK_BYTE *seed,
-                           CK_ULONG length)
+                           CK_ULONG length) nogil
 
         CK_RV C_GenerateRandom(CK_SESSION_HANDLE session,
                                CK_BYTE *random,
-                               CK_ULONG length)
+                               CK_ULONG length) nogil
 
 
         ## parallel processing
-        CK_RV C_GetFunctionStatus(CK_SESSION_HANDLE session)
+        CK_RV C_GetFunctionStatus(CK_SESSION_HANDLE session) nogil
 
-        CK_RV C_CancelFunction(CK_SESSION_HANDLE session)
+        CK_RV C_CancelFunction(CK_SESSION_HANDLE session) nogil
 
         ## smart card events
         CK_RV C_WaitForSlotEvent(CK_FLAGS flags,
                                  CK_SLOT_ID *slot,
-                                 void *pRserved)
+                                 void *pRserved) nogil
 
 # The only external API call that must be defined in a PKCS#11 library
 # All other APIs are taken from the CK_FUNCTION_LIST table
-ctypedef CK_RV (*C_GetFunctionList_ptr) (CK_FUNCTION_LIST **)
-
-
+ctypedef CK_RV (*C_GetFunctionList_ptr) (CK_FUNCTION_LIST **) nogil

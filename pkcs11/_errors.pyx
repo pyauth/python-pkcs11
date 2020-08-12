@@ -82,7 +82,7 @@ cdef ERROR_MAP = {
 }
 
 
-cpdef void assertRV(CK_RV rv) except *:
+cpdef void assertRV(CK_RV rv) nogil except *:
     """Check for an acceptable RV value or thrown an exception."""
     if rv != CKR_OK:
         raise ERROR_MAP.get(rv,
