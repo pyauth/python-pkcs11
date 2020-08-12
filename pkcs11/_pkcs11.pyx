@@ -575,7 +575,7 @@ class Session(types.Session):
 
     def seed_random(self, seed):
         cdef CK_SESSION_HANDLE handle = self._handle
-        cdef CK_BYTE *seed_data = seed.data
+        cdef CK_BYTE *seed_data = seed
         cdef CK_ULONG seed_len = len(seed)
 
         with nogil:
@@ -925,8 +925,8 @@ class EncryptMixin(types.EncryptMixin):
         cdef CK_SESSION_HANDLE handle = self.session._handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE key = self._handle
-        cdef CK_BYTE *data_ptr = data
-        cdef CK_ULONG data_len = len(data)
+        cdef CK_BYTE *data_ptr
+        cdef CK_ULONG data_len
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
 
