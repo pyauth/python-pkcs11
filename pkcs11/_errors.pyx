@@ -84,6 +84,6 @@ cdef ERROR_MAP = {
 
 cpdef void assertRV(CK_RV rv) nogil except *:
     """Check for an acceptable RV value or thrown an exception."""
-    if rv != CKR_OK:
+    if rv != CKR_OK and rv != CKR_NO_EVENT:
         raise ERROR_MAP.get(rv,
                             PKCS11Error("Unmapped error code %s" % hex(rv)))
