@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/danni/python-pkcs11.svg?branch=master
+    :target: https://travis-ci.org/danni/python-pkcs11
+
 Python PKCS#11 - High Level Wrapper API
 =======================================
 
