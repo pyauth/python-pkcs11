@@ -150,6 +150,7 @@ cdef extern from '../extern/cryptoki.h':
     cdef enum:  # CK_FLAGS
         CKF_RW_SESSION,
         CKF_SERIAL_SESSION,
+        CKF_DONT_BLOCK,
 
     cdef enum:  # CKZ
         CKZ_DATA_SPECIFIED,
