@@ -1550,17 +1550,16 @@ cdef class lib:
         except StopIteration:
             return token
 
-    def wait_for_slot_event(self, blocking=False):
-        cdef CK_FLAGS flag = 0
+    def wait_for_slot_event(self, blocking=True):
         cdef CK_SLOT_ID slot_id
+        cdef CKF_DONT_BLOCK dont_block = 0
 
         if not blocking:
-            flag = 1
+            dont_block = 1
 
-        rv = _funclist.C_WaitForSlotEvent(flag, & slot_id, NULL)
-        assertRV(rv)
-        if rv == CKR_NO_EVENT:
-            return -1
+        with nogil:
+            assertRV(_funclist.C_WaitForSlotEvent(dont_block, &slot_id, NULL))
+
         return slot_id
 
     def reinitialize(self):
