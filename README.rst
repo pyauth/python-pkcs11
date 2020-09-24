@@ -148,7 +148,7 @@ ECDSA
         # Generate an EC keypair in this session from a named curve
         ecparams = session.create_domain_parameters(
             pkcs11.KeyType.EC, {
-                pkcs11.Attribute.EC_PARAMS: pkcs11.util.ec.encode_named_curve_parameters('prime256v1'),
+                pkcs11.Attribute.EC_PARAMS: pkcs11.util.ec.encode_named_curve_parameters('secp256r1'),
             }, local=True)
         pub, priv = ecparams.generate_keypair()
 
