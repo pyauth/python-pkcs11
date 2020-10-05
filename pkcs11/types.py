@@ -490,11 +490,12 @@ class Session:
         :param int key_length: Key length in bits (e.g. 256).
         :param bytes id: Key identifier.
         :param str label: Key label.
-        :param store: Store key on token (requires R/W session).
+        :param bool store: Store key on token (requires R/W session).
         :param MechanismFlag capabilities: Key capabilities (or default).
         :param Mechanism mechanism: Generation mechanism (or default).
         :param bytes mechanism_param: Optional vector to the mechanism.
-        :param dict(Attribute,*) template: Additional attributes.
+        :param dict(Attribute,*) private_template: Additional attributes for private key.
+        :param dict(Attribute,*) public_template: Additional attributes for public key.
 
         :rtype: (PublicKey, PrivateKey)
         """
