@@ -135,9 +135,8 @@ class AESTests(TestCase):
     ])
     @requires(Mechanism.AES_ECB_ENCRYPT_DATA)
     @FIXME.opencryptoki  # can't set key attributes
-    def test_derive_ecb_encrypt(self, test_type, test_key_length, iv_length):
-        """
-        Function to test AES Key Derivation using the ECB_ENCRYPT Mechanism.
+    def test_derive_using_ecb_encrypt(self, test_type, test_key_length, iv_length):
+        """Function to test AES Key Derivation using the ECB_ENCRYPT Mechanism.
 
         Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
         """
@@ -175,14 +174,59 @@ class AESTests(TestCase):
         else:
             self.assertTrue(derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key")
 
-            # Test capability of Key to Encrypt/Decrypt data
-            data = b'HELLO WORLD' * 1024
+    @parameterized.expand([
+        ("POSITIVE_128_BIT",            128, 16),
+        ("POSITIVE_256_BIT_LONG_IV",    256, 32),
+    ])
+    @requires(Mechanism.AES_ECB_ENCRYPT_DATA)
+    @FIXME.opencryptoki  # can't set key attributes
+    def test_encrypt_with_key_derived_using_ecb_encrypt(self, test_type, test_key_length, iv_length):
+        """Function to test Data Encryption/Decryption using a Derived AES Key.
 
-            iv = self.session.generate_random(128)
-            crypttext = self.key.encrypt(data, mechanism_param=iv)
-            text = self.key.decrypt(crypttext, mechanism_param=iv)
+        Function to test Data Encryption/Decryption using an AES Key
+        Derived by the ECB_ENCRYPT Mechanism.
 
-            self.assertEqual(text, data)
+        Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
+        """
+
+        # Create the Master Key
+        capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
+        capabilities |= pkcs11.MechanismFlag.DERIVE
+        key = self.session.generate_key(pkcs11.KeyType.AES, key_length=test_key_length,
+                                        capabilities=capabilities,
+                                        template={
+                                            pkcs11.Attribute.EXTRACTABLE: True,
+                                            pkcs11.Attribute.DERIVE: True,
+                                            pkcs11.Attribute.SENSITIVE: False,
+                                        })
+
+        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
+
+        # Derive a Key from the Master Key
+        iv = b'0' * iv_length
+        try:
+            derived_key = key.derive_key(pkcs11.KeyType.AES, key_length=test_key_length,
+                                         capabilities=capabilities,
+                                         mechanism=Mechanism.AES_ECB_ENCRYPT_DATA,
+                                         mechanism_param=iv,
+                                         template={
+                                             pkcs11.Attribute.EXTRACTABLE: True,
+                                             pkcs11.Attribute.SENSITIVE: False,
+                                         })
+        except (pkcs11.exceptions.MechanismParamInvalid,
+                pkcs11.exceptions.FunctionFailed) as e:
+            derived_key = None
+
+        self.assertTrue(derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key")
+
+        # Test capability of Key to Encrypt/Decrypt data
+        data = b'HELLO WORLD' * 1024
+
+        iv = self.session.generate_random(128)
+        crypttext = self.key.encrypt(data, mechanism_param=iv)
+        text = self.key.decrypt(crypttext, mechanism_param=iv)
+
+        self.assertEqual(text, data)
 
     @parameterized.expand([
         ("POSITIVE_128_BIT",            128, 16, 16),
@@ -197,9 +241,8 @@ class AESTests(TestCase):
     ])
     @requires(Mechanism.AES_CBC_ENCRYPT_DATA)
     @FIXME.opencryptoki  # can't set key attributes
-    def test_derive_cbc_encrypt(self, test_type, test_key_length, iv_length, data_length):
-        """
-        Function to test AES Key Derivation using the CBC_ENCRYPT Mechanism.
+    def test_derive_using_cbc_encrypt(self, test_type, test_key_length, iv_length, data_length):
+        """Function to test AES Key Derivation using the CBC_ENCRYPT Mechanism.
 
         Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
         """
@@ -239,12 +282,59 @@ class AESTests(TestCase):
         else:
             self.assertTrue(derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key")
 
-            # Test capability of Key to Encrypt/Decrypt data
-            data = b'HELLO WORLD' * 1024
+    @parameterized.expand([
+        ("POSITIVE_128_BIT",            128, 16, 16),
+        ("POSITIVE_256_BIT",            256, 16, 32),
+        ("POSITIVE_256_BIT_LONG_DATA",  256, 16, 64),
+    ])
+    @requires(Mechanism.AES_CBC_ENCRYPT_DATA)
+    @FIXME.opencryptoki  # can't set key attributes
+    def test_encrypt_with_key_derived_using_cbc_encrypt(self, test_type, test_key_length, iv_length, data_length):
+        """Function to test Data Encryption/Decryption using a Derived AES Key.
 
-            iv = self.session.generate_random(128)
-            crypttext = self.key.encrypt(data, mechanism_param=iv)
-            text = self.key.decrypt(crypttext, mechanism_param=iv)
+        Function to test Data Encryption/Decryption using an AES Key
+        Derived by the CBC_ENCRYPT Mechanism.
 
-            self.assertEqual(text, data)
+        Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
+        """
 
+        # Create the Master Key
+        capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
+        capabilities |= pkcs11.MechanismFlag.DERIVE
+        key = self.session.generate_key(pkcs11.KeyType.AES, key_length=test_key_length,
+                                        capabilities=capabilities,
+                                        template={
+                                            pkcs11.Attribute.EXTRACTABLE: True,
+                                            pkcs11.Attribute.DERIVE: True,
+                                            pkcs11.Attribute.SENSITIVE: False,
+                                        })
+
+        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
+
+        # Derive a Key from the Master Key
+        iv = b'0' * iv_length
+        data = b'1' * data_length
+        try:
+            derived_key = key.derive_key(pkcs11.KeyType.AES, key_length=test_key_length,
+                                         capabilities=capabilities,
+                                         mechanism=Mechanism.AES_CBC_ENCRYPT_DATA,
+                                         mechanism_param=(iv, data),
+                                         template={
+                                             pkcs11.Attribute.EXTRACTABLE: True,
+                                             pkcs11.Attribute.SENSITIVE: False,
+                                         })
+        except (pkcs11.exceptions.MechanismParamInvalid,
+                pkcs11.exceptions.FunctionFailed,
+                IndexError) as e:
+            derived_key = None
+
+        self.assertTrue(derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key")
+
+        # Test capability of Key to Encrypt/Decrypt data
+        data = b'HELLO WORLD' * 1024
+
+        iv = self.session.generate_random(128)
+        crypttext = self.key.encrypt(data, mechanism_param=iv)
+        text = self.key.decrypt(crypttext, mechanism_param=iv)
+
+        self.assertEqual(text, data)
