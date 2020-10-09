@@ -126,16 +126,16 @@ class AESTests(TestCase):
                          key2[pkcs11.Attribute.VALUE])
 
     @parameterized.expand([
-        ("POSITIVE_128_BIT",            128, 16),
-        ("POSITIVE_128_BIT_LONG_IV",    128, 32),
-        ("NEGATIVE_128_BIT_BAD_IV",     128, 15),
-        ("POSITIVE_256_BIT_LONG_IV",    256, 32),
-        ("NEGATIVE_256_BIT_SHORT_IV",   256, 16),
-        ("NEGATIVE_256_BIT_BAD_IV",     256, 31),
+        ("POSITIVE_128_BIT",            128, 16, TestCase.assertIsNotNone),
+        ("POSITIVE_128_BIT_LONG_IV",    128, 32, TestCase.assertIsNotNone),
+        ("NEGATIVE_128_BIT_BAD_IV",     128, 15, TestCase.assertIsNone),
+        ("POSITIVE_256_BIT_LONG_IV",    256, 32, TestCase.assertIsNotNone),
+        ("NEGATIVE_256_BIT_SHORT_IV",   256, 16, TestCase.assertIsNone),
+        ("NEGATIVE_256_BIT_BAD_IV",     256, 31, TestCase.assertIsNone),
     ])
     @requires(Mechanism.AES_ECB_ENCRYPT_DATA)
     @FIXME.opencryptoki  # can't set key attributes
-    def test_derive_using_ecb_encrypt(self, test_type, test_key_length, iv_length):
+    def test_derive_using_ecb_encrypt(self, test_type, test_key_length, iv_length, assert_fn):
         """Function to test AES Key Derivation using the ECB_ENCRYPT Mechanism.
 
         Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
@@ -169,10 +169,7 @@ class AESTests(TestCase):
                 pkcs11.exceptions.FunctionFailed) as e:
             derived_key = None
 
-        if test_type.startswith("NEGATIVE"):
-            self.assertTrue(derived_key is None, "Unexpected {}-bit Derived Key".format(test_key_length))
-        else:
-            self.assertTrue(derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length))
+        assert_fn(self, derived_key, "{}-bit Key Derivation Failure".format(test_key_length))
 
     @parameterized.expand([
         ("POSITIVE_128_BIT",            128, 16),
@@ -229,19 +226,19 @@ class AESTests(TestCase):
         self.assertEqual(text, data)
 
     @parameterized.expand([
-        ("POSITIVE_128_BIT",            128, 16, 16),
-        ("POSITIVE_128_BIT_LONG_DATA",  128, 16, 64),
-        ("NEGATIVE_128_BIT_BAD_IV",     128, 15, 16),
-        ("NEGATIVE_128_BIT_BAD_DATA",   128, 16, 31),
-        ("POSITIVE_256_BIT",            256, 16, 32),
-        ("POSITIVE_256_BIT_LONG_DATA",  256, 16, 64),
-        ("NEGATIVE_256_BIT_BAD_IV",     256, 15, 16),
-        ("NEGATIVE_256_BIT_BAD_DATA",   256, 16, 31),
-        ("NEGATIVE_256_BIT_SHORT_DATA", 256, 16, 16),
+        ("POSITIVE_128_BIT",            128, 16, 16, TestCase.assertIsNotNone),
+        ("POSITIVE_128_BIT_LONG_DATA",  128, 16, 64, TestCase.assertIsNotNone),
+        ("NEGATIVE_128_BIT_BAD_IV",     128, 15, 16, TestCase.assertIsNone),
+        ("NEGATIVE_128_BIT_BAD_DATA",   128, 16, 31, TestCase.assertIsNone),
+        ("POSITIVE_256_BIT",            256, 16, 32, TestCase.assertIsNotNone),
+        ("POSITIVE_256_BIT_LONG_DATA",  256, 16, 64, TestCase.assertIsNotNone),
+        ("NEGATIVE_256_BIT_BAD_IV",     256, 15, 16, TestCase.assertIsNone),
+        ("NEGATIVE_256_BIT_BAD_DATA",   256, 16, 31, TestCase.assertIsNone),
+        ("NEGATIVE_256_BIT_SHORT_DATA", 256, 16, 16, TestCase.assertIsNone),
     ])
     @requires(Mechanism.AES_CBC_ENCRYPT_DATA)
     @FIXME.opencryptoki  # can't set key attributes
-    def test_derive_using_cbc_encrypt(self, test_type, test_key_length, iv_length, data_length):
+    def test_derive_using_cbc_encrypt(self, test_type, test_key_length, iv_length, data_length, assert_fn):
         """Function to test AES Key Derivation using the CBC_ENCRYPT Mechanism.
 
         Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
@@ -277,10 +274,7 @@ class AESTests(TestCase):
                 IndexError) as e:
             derived_key = None
 
-        if test_type.startswith("NEGATIVE"):
-            self.assertTrue(derived_key is None, "Unexpected {}-bit Derived Key".format(test_key_length))
-        else:
-            self.assertTrue(derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length))
+        assert_fn(self, derived_key, "{}-bit Key Derivation Failure".format(test_key_length))
 
     @parameterized.expand([
         ("POSITIVE_128_BIT",            128, 16, 16),
