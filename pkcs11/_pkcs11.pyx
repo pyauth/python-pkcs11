@@ -177,7 +177,7 @@ cdef class MechanismWithParam:
             self.param = aes_cbc_params = \
                     <CK_AES_CBC_ENCRYPT_DATA_PARAMS *> PyMem_Malloc(paramlen)
             (iv, data) = param
-            aes_cbc_params.iv = [<CK_BYTE> x for x in iv[:16]]
+            aes_cbc_params.iv = iv[:16]
             aes_cbc_params.pData = <CK_BYTE *> data
             aes_cbc_params.length = len(data)
 
