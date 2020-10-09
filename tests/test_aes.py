@@ -152,7 +152,7 @@ class AESTests(TestCase):
                                             pkcs11.Attribute.SENSITIVE: False,
                                         })
 
-        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
+        self.assertTrue(key is not None, "Failed to create {}-bit Master Key".format(test_key_length))
 
         # Derive a Key from the Master Key
         iv = b'0' * iv_length
@@ -170,9 +170,9 @@ class AESTests(TestCase):
             derived_key = None
 
         if test_type.startswith("NEGATIVE"):
-            self.assertTrue(derived_key is None, f"Unexpected {test_key_length}-bit Derived Key")
+            self.assertTrue(derived_key is None, "Unexpected {}-bit Derived Key".format(test_key_length))
         else:
-            self.assertTrue(derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key")
+            self.assertTrue(derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length))
 
     @parameterized.expand([
         ("POSITIVE_128_BIT",            128, 16),
@@ -200,7 +200,7 @@ class AESTests(TestCase):
                                             pkcs11.Attribute.SENSITIVE: False,
                                         })
 
-        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
+        self.assertTrue(key is not None, "Failed to create {}-bit Master Key".format(test_key_length))
 
         # Derive a Key from the Master Key
         iv = b'0' * iv_length
@@ -217,7 +217,7 @@ class AESTests(TestCase):
                 pkcs11.exceptions.FunctionFailed) as e:
             derived_key = None
 
-        self.assertTrue(derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key")
+        self.assertTrue(derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length))
 
         # Test capability of Key to Encrypt/Decrypt data
         data = b'HELLO WORLD' * 1024
@@ -258,7 +258,7 @@ class AESTests(TestCase):
                                             pkcs11.Attribute.SENSITIVE: False,
                                         })
 
-        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
+        self.assertTrue(key is not None, "Failed to create {}-bit Master Key".format(test_key_length))
 
         # Derive a Key from the Master Key
         iv = b'0' * iv_length
@@ -278,9 +278,9 @@ class AESTests(TestCase):
             derived_key = None
 
         if test_type.startswith("NEGATIVE"):
-            self.assertTrue(derived_key is None, f"Unexpected {test_key_length}-bit Derived Key")
+            self.assertTrue(derived_key is None, "Unexpected {}-bit Derived Key".format(test_key_length))
         else:
-            self.assertTrue(derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key")
+            self.assertTrue(derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length))
 
     @parameterized.expand([
         ("POSITIVE_128_BIT",            128, 16, 16),
@@ -309,7 +309,7 @@ class AESTests(TestCase):
                                             pkcs11.Attribute.SENSITIVE: False,
                                         })
 
-        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
+        self.assertTrue(key is not None, "Failed to create {}-bit Master Key".format(test_key_length))
 
         # Derive a Key from the Master Key
         iv = b'0' * iv_length
@@ -328,7 +328,7 @@ class AESTests(TestCase):
                 IndexError) as e:
             derived_key = None
 
-        self.assertTrue(derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key")
+        self.assertTrue(derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length))
 
         # Test capability of Key to Encrypt/Decrypt data
         data = b'HELLO WORLD' * 1024
