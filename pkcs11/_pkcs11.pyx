@@ -1550,6 +1550,27 @@ cdef class lib:
         except StopIteration:
             return token
 
+    def wait_for_slot_event(self, blocking=True):
+        cdef CK_SLOT_ID slot_id
+        cdef CK_FLAGS flag = 0
+
+        if not blocking:
+            flag |= CKF_DONT_BLOCK
+
+        with nogil:
+            assertRV(_funclist.C_WaitForSlotEvent(flag, &slot_id, NULL))
+
+        cdef CK_SLOT_INFO info
+
+        with nogil:
+            assertRV(_funclist.C_GetSlotInfo(slot_id, &info))
+
+        slotDescription = info.slotDescription[:sizeof(info.slotDescription)]
+        manufacturerID = info.manufacturerID[:sizeof(info.manufacturerID)]
+
+        return Slot(self, slot_id, slotDescription, manufacturerID,
+                 info.hardwareVersion, info.firmwareVersion, info.flags)
+
     def reinitialize(self):
         if _funclist != NULL:
             with nogil:

@@ -59,6 +59,17 @@ Classes
 
             :rtype: Token
 
+        .. method:: wait_for_slot_event(blocking=True)
+
+            Waits for a slot event such as a token insertion or removal to occur.
+
+            Returns the Slot on which the event was detected. If not blocking and no slot events were detected
+            :class:`pkcs11.exceptions.NoEvent` is raised.
+
+            :param blocking: If true, the thread will block.
+
+            :rtype: Slot
+
         .. method:: reinitialize()
 
             Reinitializes the loaded PKCS#11 library.
