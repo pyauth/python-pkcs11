@@ -184,10 +184,10 @@ class X509Tests(TestCase):
             },
             'validity': {
                 'not_before': Time({
-                    'utc_time': datetime.datetime(2017, 1, 1, 0, 0),
+                    'utc_time': datetime.datetime(2017, 1, 1, 0, 0, tzinfo=datetime.timezone.utc),
                 }),
                 'not_after':  Time({
-                    'utc_time': datetime.datetime(2038, 12, 31, 23, 59),
+                    'utc_time': datetime.datetime(2038, 12, 31, 23, 59, tzinfo=datetime.timezone.utc),
                 }),
             },
             'subject_public_key_info': {
