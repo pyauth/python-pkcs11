@@ -10,7 +10,7 @@ babel==2.8.0              # via sphinx
 certifi==2019.11.28       # via requests
 cffi==1.14.0              # via cryptography
 chardet==3.0.4            # via requests
-cryptography==2.8         # via -r dev-requirements.in
+cryptography==3.2         # via -r dev-requirements.in
 cython==0.29.15           # via -r dev-requirements.in
 docutils==0.16            # via sphinx
 entrypoints==0.3          # via flake8
