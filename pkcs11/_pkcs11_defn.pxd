@@ -243,6 +243,15 @@ cdef extern from '../extern/cryptoki.h':
         CK_ULONG ulPublicDataLen
         CK_BYTE *pPublicData
 
+    ctypedef struct CK_KEY_DERIVATION_STRING_DATA:
+        CK_BYTE *pData
+        CK_ULONG ulLen
+
+    ctypedef struct CK_AES_CBC_ENCRYPT_DATA_PARAMS:
+        CK_BYTE iv[16]
+        CK_BYTE *pData
+        CK_ULONG length
+
     cdef struct CK_FUNCTION_LIST:
         CK_VERSION version
         ## pointers to library functions are stored here

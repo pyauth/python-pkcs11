@@ -22,6 +22,7 @@ markupsafe==1.1.1         # via jinja2
 mccabe==0.6.1             # via flake8
 oscrypto==1.2.0           # via -r dev-requirements.in
 packaging==20.1           # via sphinx
+parameterized==0.7.4      # via -r dev-requirements.in
 pycodestyle==2.5.0        # via flake8
 pycparser==2.19           # via cffi
 pyflakes==2.1.1           # via flake8

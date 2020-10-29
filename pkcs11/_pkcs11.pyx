@@ -109,6 +109,8 @@ cdef class MechanismWithParam:
         cdef CK_RSA_PKCS_OAEP_PARAMS *oaep_params
         cdef CK_RSA_PKCS_PSS_PARAMS *pss_params
         cdef CK_ECDH1_DERIVE_PARAMS *ecdh1_params
+        cdef CK_KEY_DERIVATION_STRING_DATA *aes_ecb_params
+        cdef CK_AES_CBC_ENCRYPT_DATA_PARAMS *aes_cbc_params
 
         # Unpack mechanism parameters
         if mechanism is Mechanism.RSA_PKCS_OAEP:
@@ -162,6 +164,22 @@ cdef class MechanismWithParam:
 
             ecdh1_params.pPublicData = public_data
             ecdh1_params.ulPublicDataLen = <CK_ULONG> len(public_data)
+
+        elif mechanism is Mechanism.AES_ECB_ENCRYPT_DATA:
+            paramlen = sizeof(CK_KEY_DERIVATION_STRING_DATA)
+            self.param = aes_ecb_params = \
+                <CK_KEY_DERIVATION_STRING_DATA *> PyMem_Malloc(paramlen)
+            aes_ecb_params.pData = <CK_BYTE *> param
+            aes_ecb_params.ulLen = len(param)
+
+        elif mechanism is Mechanism.AES_CBC_ENCRYPT_DATA:
+            paramlen = sizeof(CK_AES_CBC_ENCRYPT_DATA_PARAMS)
+            self.param = aes_cbc_params = \
+                    <CK_AES_CBC_ENCRYPT_DATA_PARAMS *> PyMem_Malloc(paramlen)
+            (iv, data) = param
+            aes_cbc_params.iv = iv[:16]
+            aes_cbc_params.pData = <CK_BYTE *> data
+            aes_cbc_params.length = len(data)
 
         elif isinstance(param, bytes):
             self.data.pParameter = <CK_BYTE *> param
