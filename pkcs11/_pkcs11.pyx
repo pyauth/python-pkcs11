@@ -1271,16 +1271,21 @@ class UnwrapMixin(types.UnwrapMixin):
             Attribute.LABEL: label or '',
             Attribute.TOKEN: store,
             # Capabilities
-            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
+            #Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
             Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
-            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
+            #Attribute.WRAP: MechanismFlag.WRAP & capabilities,
             Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
             Attribute.SIGN: MechanismFlag.SIGN & capabilities,
-            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
+            #Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
+        if (object_class == ObjectClass.PRIVATE_KEY):
+            pass
+        else:
+            template_[Attribute.ENCRYPT] = MechanismFlag.ENCRYPT & capabilities
+            template_[Attribute.WRAP] = MechanismFlag.WRAP & capabilities
+            template_[Attribute.VERIFY] = MechanismFlag.VERIFY & capabilities
         attrs = AttributeList(merge_templates(template_, template))
-
         cdef CK_SESSION_HANDLE handle = self.session._handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE unwrapping_key = self._handle
