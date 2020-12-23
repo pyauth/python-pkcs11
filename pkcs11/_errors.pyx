@@ -45,6 +45,7 @@ cdef ERROR_MAP = {
     CKR_PIN_EXPIRED: PinExpired,
     CKR_PIN_INCORRECT: PinIncorrect,
     CKR_PIN_INVALID: PinInvalid,
+    CKR_PIN_LEN_RANGE: PinLenRange,
     CKR_PIN_LOCKED: PinLocked,
     CKR_PIN_TOO_WEAK: PinTooWeak,
     CKR_PUBLIC_KEY_INVALID: PublicKeyInvalid,
