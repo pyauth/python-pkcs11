@@ -253,11 +253,11 @@ class Slot(types.Slot):
 class Token(types.Token):
     """Extend Token with implementation."""
 
-    def open(self, rw=False, user_pin=None, so_pin=None):
+    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None):
         cdef CK_SLOT_ID slot_id = self.slot.slot_id
         cdef CK_SESSION_HANDLE handle
         cdef CK_FLAGS flags = CKF_SERIAL_SESSION
-        cdef CK_USER_TYPE user_type
+        cdef CK_USER_TYPE final_user_type
         cdef CK_UTF8CHAR *pin_data
         cdef CK_ULONG pin_length
 
@@ -268,13 +268,13 @@ class Token(types.Token):
             raise ArgumentsBad("Set either `user_pin` or `so_pin`")
         elif user_pin is PROTECTED_AUTH:
             pin = None
-            user_type = CKU_USER
+            user_type = user_type if user_type is not None else CKU_USER
         elif so_pin is PROTECTED_AUTH:
             pin = None
             user_type = CKU_SO
         elif user_pin is not None:
             pin = user_pin.encode('utf-8')
-            user_type = CKU_USER
+            user_type = user_type if user_type is not None else CKU_USER
         elif so_pin is not None:
             pin = so_pin.encode('utf-8')
             user_type = CKU_SO
@@ -282,6 +282,7 @@ class Token(types.Token):
             pin = None
             user_type = UserType.NOBODY
 
+        final_user_type = user_type
         with nogil:
             assertRV(_funclist.C_OpenSession(slot_id, flags, NULL,
                                              NULL, &handle))
@@ -289,7 +290,7 @@ class Token(types.Token):
         if so_pin is PROTECTED_AUTH or user_pin is PROTECTED_AUTH:
             if self.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
                 with nogil:
-                    assertRV(_funclist.C_Login(handle, user_type, NULL, 0))
+                    assertRV(_funclist.C_Login(handle, final_user_type, NULL, 0))
             else:
                 raise ArgumentsBad("Protected authentication is not supported by loaded module")
         elif pin is not None:
@@ -297,7 +298,7 @@ class Token(types.Token):
             pin_length = len(pin)
 
             with nogil:
-                assertRV(_funclist.C_Login(handle, user_type,
+                assertRV(_funclist.C_Login(handle, final_user_type,
                                            pin_data, pin_length))
 
         return Session(self, handle, rw=rw, user_type=user_type)

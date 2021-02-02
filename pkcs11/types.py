@@ -202,7 +202,7 @@ class Token:
     def __eq__(self, other):
         return self.slot == other.slot
 
-    def open(self, rw=False, user_pin=None, so_pin=None):
+    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None):
         """
         Open a session on the token and optionally log in as a user or
         security officer (pass one of `user_pin` or `so_pin`). Pass PROTECTED_AUTH to
@@ -220,6 +220,9 @@ class Token:
         :param bytes user_pin: Authenticate to this session as a user.
         :param bytes so_pin: Authenticate to this session as a
             security officer.
+        :param user_type: Sets the userType parameter to C_Login.
+            Allows for vendor-defined values. Defaults to UserType.SO if
+            so_pin is set, otherwise UserType.USER.
 
         :rtype: Session
         """
