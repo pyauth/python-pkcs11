@@ -26,6 +26,19 @@ class SessionTests(TestCase):
         with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
             self.assertIsInstance(session, pkcs11.Session)
 
+    @Only.softhsm2  # We don't have credentials to do this for other platforms
+    def test_init_pin(self):
+        temp_token_pin = "bearsbeetsbattlestargalactica"
+
+        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
+            self.assertTrue(session.init_pin(temp_token_pin))
+
+        with self.token.open(user_pin=temp_token_pin) as session:
+            self.assertIsInstance(session, pkcs11.Session)
+
+        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
+            self.assertTrue(session.init_pin(TOKEN_PIN))
+
     @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_generate_key(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:

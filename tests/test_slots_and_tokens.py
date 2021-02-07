@@ -72,3 +72,23 @@ class SlotsAndTokensTests(unittest.TestCase):
         self.assertEqual(token.label, TOKEN)
         self.assertIn(pkcs11.TokenFlag.TOKEN_INITIALIZED, token.flags)
         self.assertIn(pkcs11.TokenFlag.LOGIN_REQUIRED, token.flags)
+
+    @Only.softhsm2
+    def test_init_token(self):
+        lib = pkcs11.lib(LIB)
+        tokens = lib.get_tokens()
+        temp_token_pin = "bearsbeetsbattlestargalactica"
+        temp_token_label = "schrute"
+
+        for token in tokens:
+            if pkcs11.TokenFlag.TOKEN_INITIALIZED not in token.flags:
+                self.assertTrue(token.init_token(temp_token_label,
+                                                 temp_token_pin))
+                break
+        else:
+            raise AssertionError("No Uninitialized token found")
+
+        token, *_ = lib.get_tokens(token_label=temp_token_label)
+
+        self.assertIn(pkcs11.TokenFlag.TOKEN_INITIALIZED, token.flags)
+        self.assertNotIn(pkcs11.TokenFlag.USER_PIN_INITIALIZED, token.flags)

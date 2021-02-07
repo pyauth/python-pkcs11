@@ -253,6 +253,31 @@ class Slot(types.Slot):
 class Token(types.Token):
     """Extend Token with implementation."""
 
+    def init_token(self, token_label, so_pin):
+        cdef CK_SLOT_ID slot_id = self.slot.slot_id
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+        cdef CK_UTF8CHAR *label
+
+        if token_label is None or so_pin is None:
+            raise ArgumentsBad("Set both `token_label` and `so_pin`")
+
+        pin = so_pin.encode('utf-8')
+        tlabel = token_label.encode('utf-8')
+
+        if pin and tlabel:
+            pin_data = pin
+            pin_length = len(pin)
+            label = tlabel
+
+            with nogil:
+                assertRV(_funclist.C_InitToken(slot_id, pin_data, pin_length,
+                                               label))
+
+            return True
+
+        return False
+
     def open(self, rw=False, user_pin=None, so_pin=None):
         cdef CK_SLOT_ID slot_id = self.slot.slot_id
         cdef CK_SESSION_HANDLE handle
@@ -372,6 +397,27 @@ def merge_templates(default_template, *user_templates):
 
 class Session(types.Session):
     """Extend Session with implementation."""
+
+    def init_pin(self, user_pin):
+        cdef CK_OBJECT_HANDLE handle = self._handle
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+
+        if user_pin is None:
+            raise ArgumentsBad("Set `user_pin`")
+
+        pin = user_pin.encode('utf-8')
+
+        if pin:
+            pin_data = pin
+            pin_length = len(pin)
+
+            with nogil:
+                assertRV(_funclist.C_InitPIN(handle, pin_data, pin_length))
+
+            return True
+
+        return False
 
     def close(self):
         cdef CK_OBJECT_HANDLE handle = self._handle
