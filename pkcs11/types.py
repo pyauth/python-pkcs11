@@ -376,7 +376,8 @@ class Session:
         For importing keys see :ref:`importing-keys`.
 
         Requires a read/write session, unless the object is not to be
-        stored.
+        stored. To permanently store the object in a pkcs module add **pkcs.Attribute.TOKEN: True**,
+        see :meth:`pkcs11.Attribute` for more available object attributes.
 
         :param dict(Attribute,*) attrs: attributes of the object to create
         :rtype: Object
