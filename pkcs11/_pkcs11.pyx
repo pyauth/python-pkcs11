@@ -148,7 +148,9 @@ cdef class MechanismWithParam:
 
             (pss_params.hashAlg, pss_params.mgf, pss_params.sLen) = param
 
-        elif mechanism is Mechanism.ECDH1_DERIVE:
+        elif mechanism in (
+                Mechanism.ECDH1_DERIVE,
+                Mechanism.ECDH1_COFACTOR_DERIVE):
             paramlen = sizeof(CK_ECDH1_DERIVE_PARAMS)
             self.param = ecdh1_params = \
                 <CK_ECDH1_DERIVE_PARAMS *> PyMem_Malloc(paramlen)
