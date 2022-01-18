@@ -893,6 +893,7 @@ class DecryptMixin(Object):
             (or None for default).
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
+        :param pin: optional user pin for keys that require it (e.g. YubiKey)
         :param int buffer_size: size of the working buffer (for generators).
 
         :rtype: bytes or iter(bytes)
@@ -929,6 +930,7 @@ class SignMixin(Object):
         :type data: str, bytes or iter(bytes)
         :param Mechanism mechanism: optional signing mechanism
         :param bytes mechanism_param: optional mechanism parameter
+        :param pin: optional user pin for keys that require it (e.g. YubiKey)
 
         :rtype: bytes
         """

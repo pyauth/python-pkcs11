@@ -984,7 +984,7 @@ class DecryptMixin(types.DecryptMixin):
     """Expand DecryptMixin with an implementation."""
 
     def _decrypt(self, data,
-                 mechanism=None, mechanism_param=None):
+                 mechanism=None, mechanism_param=None, pin=None):
         """Non chunking decrypt."""
         mech = MechanismWithParam(
             self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
@@ -997,10 +997,24 @@ class DecryptMixin(types.DecryptMixin):
         cdef CK_ULONG data_len = len(data)
         cdef CK_BYTE [:] plaintext
         cdef CK_ULONG length
+        cdef CK_USER_TYPE user_type
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+
+        if pin is not None:
+            pin = pin.encode('utf-8')
+            pin_data = pin
+            pin_length = len(pin)
+            user_type = CKU_CONTEXT_SPECIFIC
 
         with self.session._operation_lock:
             with nogil:
                 assertRV(_funclist.C_DecryptInit(handle, mech_data, key))
+
+                # Log in if pin provided
+                if pin is not None:
+                    assertRV(_funclist.C_Login(handle, user_type,
+                                               pin_data, pin_length))
 
             # Call to find out the buffer length
             with nogil:
@@ -1017,7 +1031,7 @@ class DecryptMixin(types.DecryptMixin):
 
 
     def _decrypt_generator(self, data,
-                           mechanism=None, mechanism_param=None,
+                           mechanism=None, mechanism_param=None, pin=None,
                            buffer_size=8192):
         """
         Chunking decrypt.
@@ -1040,10 +1054,24 @@ class DecryptMixin(types.DecryptMixin):
         cdef CK_ULONG data_len
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
+        cdef CK_USER_TYPE user_type
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+
+        if pin is not None:
+            pin = pin.encode('utf-8')
+            pin_data = pin
+            pin_length = len(pin)
+            user_type = CKU_CONTEXT_SPECIFIC
 
         with self.session._operation_lock:
             with nogil:
                 assertRV(_funclist.C_DecryptInit(handle, mech_data, key))
+
+                # Log in if pin provided
+                if pin is not None:
+                    assertRV(_funclist.C_Login(handle, user_type,
+                                               pin_data, pin_length))
 
             for part_in in data:
                 if not part_in:
@@ -1075,7 +1103,7 @@ class SignMixin(types.SignMixin):
     """Expand SignMixin with an implementation."""
 
     def _sign(self, data,
-              mechanism=None, mechanism_param=None):
+              mechanism=None, mechanism_param=None, pin=None):
 
         mech = MechanismWithParam(
             self.key_type, DEFAULT_SIGN_MECHANISMS,
@@ -1088,10 +1116,24 @@ class SignMixin(types.SignMixin):
         cdef CK_ULONG data_len = len(data)
         cdef CK_BYTE [:] signature
         cdef CK_ULONG length
+        cdef CK_USER_TYPE user_type
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+
+        if pin is not None:
+            pin = pin.encode('utf-8')
+            pin_data = pin
+            pin_length = len(pin)
+            user_type = CKU_CONTEXT_SPECIFIC
 
         with self.session._operation_lock:
             with nogil:
                 assertRV(_funclist.C_SignInit(handle, mech_data, key))
+
+                # Log in if pin provided
+                if pin is not None:
+                    assertRV(_funclist.C_Login(handle, user_type,
+                                               pin_data, pin_length))
 
                 # Call to find out the buffer length
                 assertRV(_funclist.C_Sign(handle, data_ptr, data_len,
@@ -1106,7 +1148,7 @@ class SignMixin(types.SignMixin):
             return bytes(signature[:length])
 
     def _sign_generator(self, data,
-                        mechanism=None, mechanism_param=None):
+                        mechanism=None, mechanism_param=None, pin=None):
 
         mech = MechanismWithParam(
             self.key_type, DEFAULT_SIGN_MECHANISMS,
@@ -1119,10 +1161,24 @@ class SignMixin(types.SignMixin):
         cdef CK_ULONG data_len
         cdef CK_BYTE [:] signature
         cdef CK_ULONG length
+        cdef CK_USER_TYPE user_type
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+
+        if pin is not None:
+            pin = pin.encode('utf-8')
+            pin_data = pin
+            pin_length = len(pin)
+            user_type = CKU_CONTEXT_SPECIFIC
 
         with self.session._operation_lock:
             with nogil:
                 assertRV(_funclist.C_SignInit(handle, mech_data, key))
+
+                # Log in if pin provided
+                if pin is not None:
+                    assertRV(_funclist.C_Login(handle, user_type,
+                                               pin_data, pin_length))
 
             for part_in in data:
                 if not part_in:
