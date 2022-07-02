@@ -9,9 +9,9 @@ import platform
 
 # if compiling using MSVC, we need to link against user32 library
 if platform.system() == 'Windows':
-    libraries = ('user32',)
+    libraries = ['user32',]
 else:
-    libraries = ()
+    libraries = []
 
 if __name__ == '__main__':
     with \
