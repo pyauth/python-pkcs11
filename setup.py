@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
             install_requires=requirements.readlines(),
             setup_requires=[
-                'cython',
+                'cython!=0.29.31',
                 'setuptools >= 18.0',
                 'setuptools_scm',
             ],
