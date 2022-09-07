@@ -26,6 +26,7 @@ DEFAULT_GENERATE_MECHANISMS = {
     KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
     KeyType.X9_42_DH: Mechanism.X9_42_DH_KEY_PAIR_GEN,
     KeyType.EC_EDWARDS: Mechanism.EC_EDWARDS_KEY_PAIR_GEN,
+    KeyType.GENERIC_SECRET: Mechanism.GENERIC_SECRET_KEY_GEN,
 }
 """
 Default mechanisms for generating keys.

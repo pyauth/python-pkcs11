@@ -658,7 +658,7 @@ class Session(types.Session):
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
 
-        if key_type is KeyType.AES:
+        if key_type not in (KeyType.DES2, KeyType.DES3, KeyType.GOST28147, KeyType.SEED):
             if key_length is None:
                 raise ArgumentsBad("Must provide `key_length'")
 
