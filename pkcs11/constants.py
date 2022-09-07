@@ -11,6 +11,15 @@ except ImportError:
     from aenum import IntEnum, IntFlag, unique
 
 
+DEFAULT = object()
+"""Sentinel value used in templates.
+
+Not all pkcs11 attribute sets are accepted by HSMs.
+Use this value to remove the attribute from the template
+sent to the HSM or to use the HSM default value.
+"""
+
+
 @unique
 class UserType(IntEnum):
     """PKCS#11 user types."""
@@ -251,6 +260,8 @@ class Attribute(IntEnum):
 
     MODIFIABLE = 0x00000170
     """Object can be modified (:class:`bool`)."""
+    COPYABLE = 0x00000171
+    """Object can be copied (:class:`bool`)."""
 
     EC_PARAMS = 0x00000180
     """

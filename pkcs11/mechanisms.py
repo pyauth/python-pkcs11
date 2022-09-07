@@ -95,6 +95,9 @@ class KeyType(IntEnum):
     GOSTR3411 = 0x00000031
     GOST28147 = 0x00000032
 
+    # from version 3.0
+    EC_EDWARDS = 0x00000040
+
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
@@ -698,6 +701,10 @@ class Mechanism(IntEnum):
     .. note:: Default mechanism for generating :attr:`KeyType.X9_42_DH` domain
         parameters (X9.42 DH).
     """
+
+    # from version 3.0
+    EDDSA = 0x00001057
+    EC_EDWARDS_KEY_PAIR_GEN = 0x00001055
 
     _VENDOR_DEFINED = 0x80000000
 

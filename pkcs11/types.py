@@ -27,10 +27,12 @@ from .exceptions import (
     SignatureLenRange,
 )
 
+PROTECTED_AUTH = object()
+"""Indicate the pin should be supplied via an external mechanism (e.g. pin pad)"""
 
 def _CK_UTF8CHAR_to_str(data):
     """Convert CK_UTF8CHAR to string."""
-    return data.decode('utf-8').rstrip()
+    return data.rstrip(b'\0').decode('utf-8').rstrip()
 
 
 def _CK_VERSION_to_tuple(data):
@@ -200,10 +202,11 @@ class Token:
     def __eq__(self, other):
         return self.slot == other.slot
 
-    def open(self, rw=False, user_pin=None, so_pin=None):
+    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None):
         """
         Open a session on the token and optionally log in as a user or
-        security officer (pass one of `user_pin` or `so_pin`).
+        security officer (pass one of `user_pin` or `so_pin`). Pass PROTECTED_AUTH to
+        indicate the pin should be supplied via an external mechanism (e.g. pin pad).
 
         Can be used as a context manager or close with :meth:`Session.close`.
 
@@ -217,6 +220,9 @@ class Token:
         :param bytes user_pin: Authenticate to this session as a user.
         :param bytes so_pin: Authenticate to this session as a
             security officer.
+        :param user_type: Sets the userType parameter to C_Login.
+            Allows for vendor-defined values. Defaults to UserType.SO if
+            so_pin is set, otherwise UserType.USER.
 
         :rtype: Session
         """
@@ -373,7 +379,8 @@ class Session:
         For importing keys see :ref:`importing-keys`.
 
         Requires a read/write session, unless the object is not to be
-        stored.
+        stored. To permanently store the object in the HSM add **pkcs.Attribute.TOKEN: True**,
+        see :meth:`pkcs11.Attribute` for more available object attributes.
 
         :param dict(Attribute,*) attrs: attributes of the object to create
         :rtype: Object
@@ -487,11 +494,12 @@ class Session:
         :param int key_length: Key length in bits (e.g. 256).
         :param bytes id: Key identifier.
         :param str label: Key label.
-        :param store: Store key on token (requires R/W session).
+        :param bool store: Store key on token (requires R/W session).
         :param MechanismFlag capabilities: Key capabilities (or default).
         :param Mechanism mechanism: Generation mechanism (or default).
         :param bytes mechanism_param: Optional vector to the mechanism.
-        :param dict(Attribute,*) template: Additional attributes.
+        :param dict(Attribute,*) private_template: Additional attributes for private key.
+        :param dict(Attribute,*) public_template: Additional attributes for public key.
 
         :rtype: (PublicKey, PrivateKey)
         """
@@ -888,6 +896,7 @@ class DecryptMixin(Object):
             (or None for default).
         :param bytes mechanism_param: optional mechanism parameter
             (e.g. initialisation vector).
+        :param pin: optional user pin for keys that require it (e.g. YubiKey)
         :param int buffer_size: size of the working buffer (for generators).
 
         :rtype: bytes or iter(bytes)
@@ -924,6 +933,7 @@ class SignMixin(Object):
         :type data: str, bytes or iter(bytes)
         :param Mechanism mechanism: optional signing mechanism
         :param bytes mechanism_param: optional mechanism parameter
+        :param pin: optional user pin for keys that require it (e.g. YubiKey)
 
         :rtype: bytes
         """

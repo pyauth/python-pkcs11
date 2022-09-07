@@ -31,20 +31,79 @@ Definitions to support compilation on Windows platform
 cdef extern from "Windows.h":
     ctypedef unsigned long DWORD
     ctypedef Py_UNICODE wchar_t
+    ctypedef wchar_t *LPWSTR
     ctypedef const wchar_t *LPCWSTR
+    ctypedef char *LPSTR
     ctypedef const char *LPCSTR
     ctypedef void *PVOID
+    ctypedef const void *LPCVOID
     ctypedef PVOID HANDLE
+    ctypedef HANDLE HLOCAL
     ctypedef HANDLE HINSTANCE
     ctypedef HINSTANCE HMODULE
     ctypedef bint BOOL
+    ctypedef short INT16
+
+    ctypedef enum LANG_ID:
+        LANG_NEUTRAL
+        LANG_USER_DEFAULT
+        SUBLANG_DEFAULT
+
+    ctypedef enum FORMAT_FLAGS:
+        FORMAT_MESSAGE_ALLOCATE_BUFFER
+        FORMAT_MESSAGE_FROM_SYSTEM
+        FORMAT_MESSAGE_IGNORE_INSERTS
 
     HMODULE LoadLibraryW(LPCWSTR lpLibFileName)
     BOOL FreeLibrary(HMODULE hLinModule)
     PVOID GetProcAddress(HMODULE hModule, LPCSTR lpProcName)
     DWORD GetLastError()
 
-cdef inline _winerrormsg(self):
+    DWORD MAKELANGID(INT16 p, INT16 s)
+    DWORD FormatMessageW(
+        DWORD   dwFlags,
+        LPCVOID lpSource,
+        DWORD   dwMessageId,
+        DWORD   dwLanguageId,
+        LPWSTR  lpBuffer,
+        DWORD   nSize,
+        ...
+    )
+
+    HLOCAL LocalFree(HLOCAL handle)
+
+cdef inline winerror(so) with gil:
+    """
+    returns the last error message, as a string.
+    If the string has '%1', it is substituted with the content of 'so' arg.
+    """
+    #
+    # inspired from https://docs.microsoft.com/en-us/windows/desktop/debug/retrieving-the-last-error-code
+    #
+    cdef LPWSTR msgbuffer = NULL
     dw = GetLastError()
-    # TODO: return error message from Windows, using FormatError()
-    return dw
+    errmsg = ""
+
+    if dw != 0:
+        # from https://docs.microsoft.com/en-us/windows/desktop/api/WinBase/nf-winbase-formatmessage
+        # at 'Security Remarks':
+        # In particular, it is unsafe to take an arbitrary system error code returned from an API
+        # and use FORMAT_MESSAGE_FROM_SYSTEM without FORMAT_MESSAGE_IGNORE_INSERTS.
+        #
+        # Given that remark, we are not attempting to parse inserts with a va_list.
+        # Instead, we only substitute '%1' with the value of so argument, on the returned string.
+        
+        FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL,
+                       dw,
+                       MAKELANGID(LANG_USER_DEFAULT, SUBLANG_DEFAULT),
+                       <LPWSTR>&msgbuffer,
+                       0,
+                       NULL)
+
+        errmsg = <str>msgbuffer # C to python string copy
+        LocalFree(msgbuffer)
+        
+    return errmsg.replace('%1', so)
+
+#EOF

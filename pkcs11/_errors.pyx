@@ -38,6 +38,7 @@ cdef ERROR_MAP = {
     CKR_HOST_MEMORY: HostMemory,
     CKR_MECHANISM_INVALID: MechanismInvalid,
     CKR_MECHANISM_PARAM_INVALID: MechanismParamInvalid,
+    CKR_NO_EVENT: NoEvent,
     CKR_OBJECT_HANDLE_INVALID: ObjectHandleInvalid,
     CKR_OPERATION_ACTIVE: OperationActive,
     CKR_OPERATION_NOT_INITIALIZED: OperationNotInitialized,
@@ -82,7 +83,7 @@ cdef ERROR_MAP = {
 }
 
 
-cpdef void assertRV(CK_RV rv) except *:
+cpdef void assertRV(CK_RV rv) nogil except *:
     """Check for an acceptable RV value or thrown an exception."""
     if rv != CKR_OK:
         raise ERROR_MAP.get(rv,

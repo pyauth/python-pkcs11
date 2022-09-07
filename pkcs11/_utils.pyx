@@ -36,8 +36,3 @@ cdef _unpack_attributes(key, value):
     except KeyError:
         raise NotImplementedError("Can't unpack this %s. "
                                   "Expand ATTRIBUTE_TYPES!" % key)
-
-
-cdef _fix_string_length(CK_UTF8CHAR *string, size_t size):
-    """Insert NUL-bytes into strings so Python knows their length."""
-    string[size - 1] = b'\0'

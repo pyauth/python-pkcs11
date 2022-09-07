@@ -143,7 +143,21 @@ class ECCTests(TestCase):
         """)
         pub = self.session.create_object(decode_ec_public_key(pub))
 
-        # FIXME: why can't I sign this?
-        # signature = priv.sign(b'Example', mechanism=Mechanism.ECDSA)
-        # self.assertTrue(pub.verify(b'Example', signature,
-        #                            mechanism=Mechanism.ECDSA))
+        signature = priv.sign(b'Example', mechanism=Mechanism.ECDSA)
+        self.assertTrue(pub.verify(b'Example', signature,
+                                   mechanism=Mechanism.ECDSA))
+
+    @requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN, Mechanism.EDDSA)
+    def test_sign_eddsa(self):
+        parameters = self.session.create_domain_parameters(KeyType.EC, {
+            # use "Ed25519" once https://github.com/wbond/asn1crypto/pull/134
+            # is merged
+            Attribute.EC_PARAMS: encode_named_curve_parameters('1.3.101.112')
+        }, local=True)
+
+        pub, priv = parameters.generate_keypair()
+
+        mechanism = Mechanism.EDDSA
+        data = b'HI BOB!'
+        eddsa = priv.sign(data, mechanism=mechanism)
+        self.assertTrue(pub.verify(data, eddsa, mechanism=mechanism))

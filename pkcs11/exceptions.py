@@ -202,6 +202,12 @@ class MultipleTokensReturned(PKCS11Error):
     """
 
 
+class NoEvent(PKCS11Error):
+    """
+    No slot events were detected.
+    """
+
+
 class NoSuchKey(PKCS11Error):
     """
     No key matching the parameters was found.

@@ -26,6 +26,7 @@ DEFAULT_GENERATE_MECHANISMS = {
     KeyType.EC: Mechanism.EC_KEY_PAIR_GEN,
     KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
     KeyType.X9_42_DH: Mechanism.X9_42_DH_KEY_PAIR_GEN,
+    KeyType.EC_EDWARDS: Mechanism.EC_EDWARDS_KEY_PAIR_GEN,
     KeyType.GENERIC_SECRET: Mechanism.GENERIC_SECRET_KEY_GEN,
 }
 """
@@ -45,6 +46,7 @@ DEFAULT_KEY_CAPABILITIES = {
     KeyType.EC: _SIGNING | MechanismFlag.DERIVE,
     KeyType.RSA: _ENCRYPTION | _SIGNING | _WRAPPING,
     KeyType.GENERIC_SECRET: 0,
+    KeyType.EC_EDWARDS: _SIGNING,
 }
 """
 Default capabilities for generating keys.
@@ -67,6 +69,7 @@ DEFAULT_SIGN_MECHANISMS = {
     KeyType.DSA: Mechanism.DSA_SHA512,
     KeyType.EC: Mechanism.ECDSA_SHA512,
     KeyType.RSA: Mechanism.SHA512_RSA_PKCS,
+    KeyType.EC_EDWARDS: Mechanism.EDDSA,
 }
 """
 Default mechanisms for sign/verify.
@@ -133,6 +136,7 @@ def _enum(type_):
 ATTRIBUTE_TYPES = {
     Attribute.ALWAYS_AUTHENTICATE: _bool,
     Attribute.ALWAYS_SENSITIVE: _bool,
+    Attribute.APPLICATION: _str,
     Attribute.BASE: _biginteger,
     Attribute.CERTIFICATE_TYPE: _enum(CertificateType),
     Attribute.CHECK_VALUE: _bytes,
@@ -156,6 +160,7 @@ ATTRIBUTE_TYPES = {
     Attribute.LABEL: _str,
     Attribute.LOCAL: _bool,
     Attribute.MODIFIABLE: _bool,
+    Attribute.COPYABLE: _bool,
     Attribute.MODULUS: _biginteger,
     Attribute.MODULUS_BITS: _ulong,
     Attribute.NEVER_EXTRACTABLE: _bool,

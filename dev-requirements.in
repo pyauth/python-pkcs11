@@ -4,6 +4,7 @@ setuptools_scm
 # Used for tests
 oscrypto
 cryptography
+parameterized
 
 sphinx
 sphinx-rtd-theme
