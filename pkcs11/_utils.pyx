@@ -28,11 +28,13 @@ cdef bytes _pack_attribute(key, value):
 
 
 cdef _unpack_attributes(key, value):
-    """Unpack a Attribute bytes array into a Python value."""
+    """
+    Unpack a Attribute bytes array into a Python value.
+    For more custom translations, expand ATTRIBUTE_TYPES in defaults.py.
+    """
 
     try:
         _, unpack = ATTRIBUTE_TYPES[key]
         return unpack(bytes(value))
     except KeyError:
-        raise NotImplementedError("Can't unpack this %s. "
-                                  "Expand ATTRIBUTE_TYPES!" % key)
+        return bytes(values)
