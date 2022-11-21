@@ -6,6 +6,7 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 
 from threading import RLock
 from binascii import hexlify
+from base64 import b64encode
 
 from cached_property import cached_property
 
@@ -16,11 +17,13 @@ from .constants import (
     SlotFlag,
     TokenFlag,
     UserType,
+    CertificateType,
 )
 from .mechanisms import KeyType, Mechanism
 from .exceptions import (
     ArgumentsBad,
     AttributeTypeInvalid,
+    AttributeSensitive,
     NoSuchKey,
     MultipleObjectsReturned,
     SignatureInvalid,
@@ -621,6 +624,62 @@ class Object:
         The :class:`Object` is no longer valid.
         """
         raise NotImplementedError()
+    
+
+    def dict_for_print(self):
+        """
+        This function returns dictionary with most of the object attribute types unchanged.
+        However, some of them can not be translated directly - in that case the dictionary value is a string explaining, what happened.
+        In the same fasion, bytes objects are base64 encoded for printing.
+        
+        Returns:
+            dict: A dictionary where keys are the pkcs11.constants.Attributes names and values are original value objects OR
+            strings with <explanation> OR
+            base64 encoded bytes objects as strings.
+        
+        """
+        ret = {}
+        for attr in list(Attribute):
+            try:
+                attr_value = self[attr]
+            except AttributeTypeInvalid:
+                # Attribute is missing, that's fine.
+                pass
+            except AttributeSensitive:
+                # Attribute is sensitive, but we might still want information about the attribute existence.
+                ret[attr.name] = "<sensitive>"
+            except ValueError as e:
+                # Some bytes-encoded datetimes can't be parsed by Python datetime.datetime(), it might happen with other types as well.
+                # It depends on what exactly is stored on the token.
+                # (bytes value should be included in the error message)
+                ret[attr.name] = f"<ValueError: {e}>"
+            except NotImplementedError as e:
+                # This is an information loss in the python-pkcs11 library.
+                # https://github.com/danni/python-pkcs11/pull/148 should fix this.
+                # Until the merge, we want to atleast know that it happened.
+                ret[attr.name] = (
+                    f"<NotImplementedError: {e} "
+                    "(the number is pointing to the attribute name)>"
+                )
+            else: # (all known exceptions are handled)          
+                attr_type = type(attr_value)
+                
+                # If the result is member of the IntEnum, we want to know the name, not the number    
+                if attr_type in (
+                    ObjectClass,
+                    CertificateType,
+                    KeyType,
+                ):
+                    attr_value = attr_value.name
+                elif attr_type is bytes:
+                    # Since all other value types are oriented mainly for printing
+                    if attr_value == b"":
+                        attr_value = "<empty byte array>"
+                    else:
+                        attr_value = b64encode(attr_value).decode("utf-8")
+
+                ret[attr.name] = attr_value
+        return ret
 
 
 class DomainParameters(Object):
