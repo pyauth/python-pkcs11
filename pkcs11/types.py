@@ -654,9 +654,8 @@ class Object:
                 # (bytes value should be included in the error message)
                 ret[attr.name] = f"<ValueError: {e}>"
             except NotImplementedError as e:
-                # This is an information loss in the python-pkcs11 library.
-                # https://github.com/danni/python-pkcs11/pull/148 should fix this.
-                # Until the merge, we want to atleast know that it happened.
+                # Should not happened, kept here for legacy reasons. Might be removed in the future.
+                # Just in case, we want to atleast know that it happened.
                 ret[attr.name] = (
                     f"<NotImplementedError: {e} "
                     "(the number is pointing to the attribute name)>"
