@@ -37,4 +37,4 @@ cdef _unpack_attributes(key, value):
         _, unpack = ATTRIBUTE_TYPES[key]
         return unpack(bytes(value))
     except KeyError:
-        return bytes(values)
+        return bytes(value)
