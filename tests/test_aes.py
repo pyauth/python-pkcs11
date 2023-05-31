@@ -333,7 +333,6 @@ class AESTests(TestCase):
 
         self.assertEqual(text, data)
 
-
 class AES_CTR_Tests(TestCase):
 
     @requires(Mechanism.AES_KEY_GEN)
@@ -356,3 +355,19 @@ class AES_CTR_Tests(TestCase):
 
         text = self.key.decrypt(crypttext, mechanism_param=params, mechanism=Mechanism.AES_CTR)
         self.assertEqual(data, text)
+
+    @requires(Mechanism.AES_CTR)
+    def test_vector_1(self):
+        """https://www.ietf.org/rfc/rfc3686.txt"""
+        key = self.session.create_object({
+            pkcs11.Attribute.CLASS: pkcs11.ObjectClass.SECRET_KEY,
+            pkcs11.Attribute.KEY_TYPE: pkcs11.KeyType.AES,
+            pkcs11.Attribute.VALUE: bytes.fromhex("AE 68 52 F8 12 10 67 CC 4B F7 A5 76 55 77 F3 9E")
+            })
+
+        data = b'Single block msg'
+        ulCounterBits = 32
+        cb = bytes.fromhex("00 00 00 30 00 00 00 00 00 00 00 00 00 00 00 01")
+        params = (ulCounterBits, cb)
+        crypttext = key.encrypt(data, mechanism_param=params, mechanism=Mechanism.AES_CTR)
+        self.assertEqual(crypttext, bytes.fromhex("E4 09 5D 4F B7 A7 B3 79 2D 61 75 A3 26 13 11 B8"))
