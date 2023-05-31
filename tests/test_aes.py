@@ -332,3 +332,27 @@ class AESTests(TestCase):
         text = self.key.decrypt(crypttext, mechanism_param=iv)
 
         self.assertEqual(text, data)
+
+
+class AES_CTR_Tests(TestCase):
+
+    @requires(Mechanism.AES_KEY_GEN)
+    def setUp(self):
+        super().setUp()
+        self.key = self.session.generate_key(pkcs11.KeyType.AES, 128)
+
+    @requires(Mechanism.AES_CTR)
+    def test_encrypt(self):
+        data = b'INPUT DATA'
+        ulCounterBits = 128
+        cb = 16 * [0]
+        params = (ulCounterBits, cb)
+
+        crypttext = self.key.encrypt(data, mechanism_param=params, mechanism=Mechanism.AES_CTR)
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        # Ensure we didn't just get 16 nulls
+        self.assertFalse(all(c == '\0' for c in crypttext))
+
+        text = self.key.decrypt(crypttext, mechanism_param=params, mechanism=Mechanism.AES_CTR)
+        self.assertEqual(data, text)

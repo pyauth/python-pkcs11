@@ -111,6 +111,7 @@ cdef class MechanismWithParam:
         cdef CK_ECDH1_DERIVE_PARAMS *ecdh1_params
         cdef CK_KEY_DERIVATION_STRING_DATA *aes_ecb_params
         cdef CK_AES_CBC_ENCRYPT_DATA_PARAMS *aes_cbc_params
+        cdef CK_AES_CTR_PARAMS *aes_ctr_params
 
         # Unpack mechanism parameters
         if mechanism is Mechanism.RSA_PKCS_OAEP:
@@ -182,6 +183,14 @@ cdef class MechanismWithParam:
             aes_cbc_params.iv = iv[:16]
             aes_cbc_params.pData = <CK_BYTE *> data
             aes_cbc_params.length = len(data)
+
+        elif mechanism is Mechanism.AES_CTR:
+            paramlen = sizeof(CK_AES_CTR_PARAMS)
+            self.param = aes_ctr_params = \
+                    <CK_AES_CTR_PARAMS *> PyMem_Malloc(paramlen)
+            (ulCounterBits, cb) = param
+            aes_ctr_params.ulCounterBits = ulCounterBits
+            aes_ctr_params.cb = cb
 
         elif isinstance(param, bytes):
             self.data.pParameter = <CK_BYTE *> param
