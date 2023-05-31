@@ -371,3 +371,21 @@ class AES_CTR_Tests(TestCase):
         params = (ulCounterBits, cb)
         crypttext = key.encrypt(data, mechanism_param=params, mechanism=Mechanism.AES_CTR)
         self.assertEqual(crypttext, bytes.fromhex("E4 09 5D 4F B7 A7 B3 79 2D 61 75 A3 26 13 11 B8"))
+
+    @requires(Mechanism.AES_CTR)
+    def test_vector_2(self):
+        """https://www.ietf.org/rfc/rfc3686.txt"""
+        key = self.session.create_object({
+            pkcs11.Attribute.CLASS: pkcs11.ObjectClass.SECRET_KEY,
+            pkcs11.Attribute.KEY_TYPE: pkcs11.KeyType.AES,
+            pkcs11.Attribute.VALUE: bytes.fromhex("7E 24 06 78 17 FA E0 D7 43 D6 CE 1F 32 53 91 63")
+            })
+
+        data = bytes.fromhex("00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\
+                    10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E 1F")
+        ulCounterBits = 32
+        cb = bytes.fromhex("00 6C B6 DB C0 54 3B 59 DA 48 D9 0B 00 00 00 01")
+        params = (ulCounterBits, cb)
+        crypttext = key.encrypt(data, mechanism_param=params, mechanism=Mechanism.AES_CTR)
+        self.assertEqual(crypttext, bytes.fromhex("51 04 A1 06 16 8A 72 D9 79 0D 41 EE 8E DA D3 88\
+                     EB 2E 1E FC 46 DA 57 C8 FC E6 30 DF 91 41 BE 28"))
