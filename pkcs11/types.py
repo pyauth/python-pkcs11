@@ -529,8 +529,8 @@ class Session:
         :param int nbits: Number of bits to generate.
         :rtype: bytes
         """
-        raise NotImplementedError()
-
+        raise NotImplementedError() 
+        
     def digest(self, data, **kwargs):
         """
         Digest `data` using `mechanism`.
@@ -559,7 +559,9 @@ class Session:
             data = (data,)
 
         return self._digest_generator(data, **kwargs)
-
+    
+    def set_pin(self, old_pin, new_pin):
+        pass
 
 class Object:
     """
