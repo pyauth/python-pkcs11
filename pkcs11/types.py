@@ -561,7 +561,7 @@ class Session:
         return self._digest_generator(data, **kwargs)
     
     def set_pin(self, old_pin, new_pin):
-        pass
+        raise NotImplementedError()
 
 class Object:
     """
