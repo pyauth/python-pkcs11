@@ -684,21 +684,32 @@ class Session(types.Session):
         cdef CK_OBJECT_HANDLE handle = self._handle
         cdef CK_UTF8CHAR *old_pin_data
         cdef CK_UTF8CHAR *new_pin_data
-        
+            
         if old_pin is None or new_pin is None:
             raise ArgumentsBad("Set `user_pin`") 
         
         pin_old = old_pin.encode('utf-8')
         pin_new = new_pin.encode('utf-8')
 
+        print("Before altering:")
+        print("  old_pin =", pin_old, "length =", len(pin_old))
+        print("  new_pin =", pin_new, "length =", len(pin_new))
+        
         if pin_old and pin_new:
             old_pin_data = pin_old
             new_pin_data = pin_new
             old_pin_length = len(pin_old)
             new_pin_length = len(pin_new)
-                
+            
+            print("Before C_SetPIN call")
             with nogil: 
                 assertRV(_funclist.C_SetPIN(handle, old_pin_data, old_pin_length, new_pin_data, new_pin_length))
+            print("After C_SetPIN call")
+            
+            print("After altering:")
+            print("  old_pin =", pin_old, "length =", len(pin_old))
+            print("  new_pin =", pin_new, "length =", len(pin_new))
+
             return True
         
         return False
