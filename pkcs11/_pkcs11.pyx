@@ -678,6 +678,7 @@ class Session(types.Session):
                                                  &length))
 
             return bytes(digest[:length])
+    
     def set_pin(self, old_pin, new_pin):
         cdef CK_ULONG old_pin_length 
         cdef CK_ULONG new_pin_length 
@@ -690,10 +691,6 @@ class Session(types.Session):
         
         pin_old = old_pin.encode('utf-8')
         pin_new = new_pin.encode('utf-8')
-
-        print("Before altering:")
-        print("  old_pin =", pin_old, "length =", len(pin_old))
-        print("  new_pin =", pin_new, "length =", len(pin_new))
         
         if pin_old and pin_new:
             old_pin_data = pin_old
@@ -701,15 +698,8 @@ class Session(types.Session):
             old_pin_length = len(pin_old)
             new_pin_length = len(pin_new)
             
-            print("Before C_SetPIN call")
             with nogil: 
                 assertRV(_funclist.C_SetPIN(handle, old_pin_data, old_pin_length, new_pin_data, new_pin_length))
-            print("After C_SetPIN call")
-            
-            print("After altering:")
-            print("  old_pin =", pin_old, "length =", len(pin_old))
-            print("  new_pin =", pin_new, "length =", len(pin_new))
-
             return True
         
         return False
