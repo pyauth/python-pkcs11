@@ -562,6 +562,16 @@ class Session:
     
     def set_pin(self, old_pin, new_pin):
         raise NotImplementedError()
+    
+    def init_pin(self, token_label, so_pin):
+        raise NotImplementedError()
+    
+    def login(self, user_pin, user_type=None):
+        raise NotImplementedError()
+    
+    def logout(self):
+        raise NotImplementedError()
+        
 
 class Object:
     """
