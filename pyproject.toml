@@ -34,5 +34,5 @@ dependencies = ["aenum>=3.1.12; python_version < '3.6'",
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["extern", "pkcs11"]
+include = ["extern", "pkcs11*"]
 exclude = ["tests"]
