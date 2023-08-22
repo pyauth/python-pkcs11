@@ -703,6 +703,27 @@ class Session(types.Session):
             return True
         
         return False
+    
+    def init_pin(self, user_pin):
+        cdef CK_OBJECT_HANDLE handle = self._handle
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+
+        if user_pin is None:
+            raise ArgumentsBad("Set `user_pin`")
+
+        pin = user_pin.encode('utf-8')
+
+        if pin:
+            pin_data = pin
+            pin_length = len(pin)
+
+            with nogil:
+                assertRV(_funclist.C_InitPIN(handle, pin_data, pin_length))
+            
+            return True
+
+        return False
 
 
 class Object(types.Object):
