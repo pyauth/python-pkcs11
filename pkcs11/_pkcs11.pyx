@@ -724,6 +724,41 @@ class Session(types.Session):
             return True
 
         return False
+    def logout(self):
+            cdef CK_OBJECT_HANDLE handle = self._handle
+    
+            with nogil:
+                assertRV(_funclist.C_Logout(handle))
+    
+            return True
+        
+    def login(self, user_pin, user_type=None):
+        cdef CK_OBJECT_HANDLE handle = self._handle
+        cdef CK_USER_TYPE final_user_type
+        cdef CK_ULONG pin_len
+        cdef CK_UTF8CHAR *pin_data
+        
+        pin = user_pin.encode("utf-8")
+        
+        if pin is not None:
+            final_user_type = user_type if user_type is not None else CKU_USER
+            pin_data = pin
+            pin_len = len(pin)
+            
+            print("Attempting login as:", final_user_type)
+            
+            with nogil:
+                assertRV(_funclist.C_Login(handle, final_user_type, pin_data, pin_len))
+            
+            print("Login successful as:", final_user_type)
+            return True
+        else:
+            pin_data = NULL
+            pin_len = 0
+            final_user_type = UserType.NOBODY
+            
+        print("Logged in as:", final_user_type)
+        return False
 
 
 class Object(types.Object):
