@@ -679,6 +679,10 @@ class Mechanism(IntEnum):
     AES_CFB1 = 0x00002108
     AES_KEY_WRAP = 0x00002109
     AES_KEY_WRAP_PAD = 0x0000210A
+    AES_KEY_WRAP_KWP = 0x0000210B
+    """Bug: SoftHSMv2 mechanism AES_KEY_WRAP_PAD is actually AES_KEY_WRAP_KWP"""
+    AES_KEY_WRAP_PKCS7 = 0x0000210C
+    """PKCS #11 v3.1: AES_KEY_WRAP_PAD is deprecated due to confusion in implementation"""
 
     DES_ECB_ENCRYPT_DATA = 0x00001100
     DES_CBC_ENCRYPT_DATA = 0x00001101
