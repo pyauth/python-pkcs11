@@ -6,7 +6,7 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 
 from threading import RLock
 from binascii import hexlify
-import chardet
+import cardet
 
 from cached_property import cached_property
 
