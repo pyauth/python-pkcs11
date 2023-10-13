@@ -32,7 +32,19 @@ PROTECTED_AUTH = object()
 
 def _CK_UTF8CHAR_to_str(data):
     """Convert CK_UTF8CHAR to string."""
-    return data.rstrip(b'\0').decode('utf-8').rstrip()
+    try:
+        return data.rstrip(b'\0').decode('utf-8').rstrip()
+    except UnicodeDecodeError as exc:
+        print(f"Decoding error: {exc}")
+        
+        encoding_info = chardet.detect(data)
+        detected_encoding = encoding_info['encoding']
+        
+        try:
+            decoded_data = data.rstrip(b'\0').decode(detected_encoding).rstrip()
+            print(f"Decoded using {detected_encoding}: {decoded_data}")
+        except UnicodeDecodeError:
+            print("Unable to determine the encoding.")
 
 
 def _CK_VERSION_to_tuple(data):
