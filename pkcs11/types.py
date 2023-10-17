@@ -44,9 +44,9 @@ def _CK_UTF8CHAR_to_str(data):
         try:
             decoded_data = data.rstrip(b'\0').decode(detected_encoding).rstrip()
             print(f"Decoded using {detected_encoding}: {decoded_data}")
+            return decoded_data
         except UnicodeDecodeError:
             print("Unable to determine the encoding.")
-
 
 def _CK_VERSION_to_tuple(data):
     """Convert CK_VERSION to tuple."""
