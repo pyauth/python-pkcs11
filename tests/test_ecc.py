@@ -149,7 +149,7 @@ class ECCTests(TestCase):
 
     @requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN, Mechanism.EDDSA)
     def test_sign_eddsa(self):
-        parameters = self.session.create_domain_parameters(KeyType.EC, {
+        parameters = self.session.create_domain_parameters(KeyType.EC_EDWARDS, {
             # use "Ed25519" once https://github.com/wbond/asn1crypto/pull/134
             # is merged
             Attribute.EC_PARAMS: encode_named_curve_parameters('1.3.101.112')
