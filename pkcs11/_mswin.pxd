@@ -1,6 +1,5 @@
 #!python
 #cython: language_level=3
-# -*- coding: UTF-8 -*-
 #
 # MIT License
 #
@@ -99,7 +98,7 @@ cdef inline winerror(so) with gil:
                        0,
                        NULL)
 
-        errmsg = <str>msgbuffer # C to python string copy
+        errmsg = str(msgbuffer) # C to python string copy
         LocalFree(msgbuffer)
         
     return errmsg.replace('%1', so)
