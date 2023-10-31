@@ -98,7 +98,7 @@ cdef inline winerror(so) with gil:
                        0,
                        NULL)
 
-        errmsg = bytes(msgbuffer) # C to python string copy
+        errmsg = <bytes>msgbuffer # C to python string copy
         LocalFree(msgbuffer)
         
     return errmsg.replace('%1', so)
