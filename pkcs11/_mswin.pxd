@@ -1,5 +1,6 @@
 #!python
 #cython: language_level=3
+# -*- coding: UTF-8 -*-
 #
 # MIT License
 #
