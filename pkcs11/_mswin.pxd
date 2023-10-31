@@ -30,7 +30,7 @@ Definitions to support compilation on Windows platform
 
 cdef extern from "Windows.h":
     ctypedef unsigned long DWORD
-    ctypedef char *LPSTR
+    ctypedef char *LPCSTR
     ctypedef const char *LPCSTR
     ctypedef void *PVOID
     ctypedef const void *LPCVOID
@@ -51,7 +51,7 @@ cdef extern from "Windows.h":
         FORMAT_MESSAGE_FROM_SYSTEM
         FORMAT_MESSAGE_IGNORE_INSERTS
 
-    HMODULE LoadLibraryW(LPCWSTR lpLibFileName)
+    HMODULE LoadLibraryW(LPCSTR lpLibFileName)
     BOOL FreeLibrary(HMODULE hLinModule)
     PVOID GetProcAddress(HMODULE hModule, LPCSTR lpProcName)
     DWORD GetLastError()
@@ -62,7 +62,7 @@ cdef extern from "Windows.h":
         LPCVOID lpSource,
         DWORD   dwMessageId,
         DWORD   dwLanguageId,
-        LPWSTR  lpBuffer,
+        LPCSTR  lpBuffer,
         DWORD   nSize,
         ...
     )
@@ -77,7 +77,7 @@ cdef inline winerror(so) with gil:
     #
     # inspired from https://docs.microsoft.com/en-us/windows/desktop/debug/retrieving-the-last-error-code
     #
-    cdef LPWSTR msgbuffer = NULL
+    cdef LPCSTR msgbuffer = NULL
     dw = GetLastError()
     errmsg = ""
 
@@ -94,7 +94,7 @@ cdef inline winerror(so) with gil:
                        NULL,
                        dw,
                        MAKELANGID(LANG_USER_DEFAULT, SUBLANG_DEFAULT),
-                       <LPWSTR>&msgbuffer,
+                       <LPCSTR>&msgbuffer,
                        0,
                        NULL)
 
