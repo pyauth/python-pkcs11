@@ -30,8 +30,6 @@ Definitions to support compilation on Windows platform
 
 cdef extern from "Windows.h":
     ctypedef unsigned long DWORD
-    ctypedef wchar_t *LPWSTR
-    ctypedef const wchar_t *LPCWSTR
     ctypedef char *LPSTR
     ctypedef const char *LPCSTR
     ctypedef void *PVOID
