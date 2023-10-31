@@ -30,7 +30,6 @@ Definitions to support compilation on Windows platform
 
 cdef extern from "Windows.h":
     ctypedef unsigned long DWORD
-    ctypedef Py_UNICODE wchar_t
     ctypedef wchar_t *LPWSTR
     ctypedef const wchar_t *LPCWSTR
     ctypedef char *LPSTR
