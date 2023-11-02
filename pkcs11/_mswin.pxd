@@ -30,7 +30,7 @@ Definitions to support compilation on Windows platform
 
 cdef extern from "Windows.h":
     ctypedef unsigned long DWORD
-    ctypedef char *LPCSTR
+    ctypedef char *LPSTR
     ctypedef const char *LPCSTR
     ctypedef void *PVOID
     ctypedef const void *LPCVOID
@@ -62,7 +62,7 @@ cdef extern from "Windows.h":
         LPCVOID lpSource,
         DWORD   dwMessageId,
         DWORD   dwLanguageId,
-        LPCSTR  lpBuffer,
+        LPSTR  lpBuffer,
         DWORD   nSize,
         ...
     )
@@ -77,7 +77,7 @@ cdef inline winerror(so) with gil:
     #
     # inspired from https://docs.microsoft.com/en-us/windows/desktop/debug/retrieving-the-last-error-code
     #
-    cdef LPCSTR msgbuffer = NULL
+    cdef LPSTR msgbuffer = NULL
     dw = GetLastError()
     errmsg = ""
 
@@ -94,11 +94,11 @@ cdef inline winerror(so) with gil:
                        NULL,
                        dw,
                        MAKELANGID(LANG_USER_DEFAULT, SUBLANG_DEFAULT),
-                       <LPCSTR>&msgbuffer,
+                       <LPSTR>&msgbuffer,
                        0,
                        NULL)
 
-        errmsg = <bytes>msgbuffer # C to python string copy
+        errmsg = <str>msgbuffer # C to python string copy
         LocalFree(msgbuffer)
         
     return errmsg.replace('%1', so)
