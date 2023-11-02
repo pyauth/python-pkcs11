@@ -1435,7 +1435,7 @@ cdef class lib:
     pkcs11.types.
     """
 
-    cdef public str so
+    cdef public bytes so
     cdef public str manufacturer_id
     cdef public str library_description
     cdef public tuple cryptoki_version
