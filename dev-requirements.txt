@@ -19,7 +19,7 @@ parameterized==0.7.4      # via -r dev-requirements.in
 pycodestyle==2.5.0        # via flake8
 pycparser==2.19           # via cffi
 pyflakes==2.1.1           # via flake8
-pygments==2.5.2           # via sphinx
+pygments==2.15.0           # via sphinx
 pyparsing==2.4.6          # via packaging
 pytz==2019.3              # via babel
 requests==2.23.0          # via sphinx
