@@ -1,6 +1,6 @@
 asn1crypto==1.5.1         # via oscrypto
 babel==2.8.0              # via sphinx
-certifi==2019.11.28       # via requests
+certifi==2023.7.22       # via requests
 cffi==1.14.0              # via cryptography
 chardet==5.2.0            # via requests
 cryptography==42.0.0         # via -r dev-requirements.in
