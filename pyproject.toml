@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools >= 69.0.3",
+            "cython >= 3.0.8",
+            "asn1crypto >= 1.5.1",
+            "cached-property"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-pkcs11"
+version = "1.0.0"
+description = "PKCS#11 (Cryptoki) support for Python"
+authors = [{name = "Danielle Madeley", email = "danielle@madeley.id.au"}]
+readme = "README.rst"
+requires-python = ">=3.6"
+license = {text = "MIT License"}
+classifiers = ["License :: OSI Approved :: MIT License",
+               "Programming Language :: Python",
+               "Programming Language :: Python :: 3",
+               "Programming Language :: Python :: 3.6",
+               "Programming Language :: Python :: 3.7",
+               "Programming Language :: Python :: 3.8",
+               "Programming Language :: Python :: 3.9",
+               "Programming Language :: Python :: 3.10",
+               "Programming Language :: Python :: 3.11",
+               "Programming Language :: Python :: 3.12",
+               "Topic :: Security :: Cryptography", 
+               "Operating System :: OS Independent"]
+
+[project.urls]
+"Homepage" = "https://github.com/pyauth/python-pkcs11"
+"Bug Tracker" = "https://github.com/pyauth/python-pkcs11/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["extern", "pkcs11*"]
+exclude = ["tests"]

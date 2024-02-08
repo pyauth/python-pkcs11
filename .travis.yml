@@ -2,10 +2,13 @@ sudo: false
 language: python
 
 python:
-    - '3.5'
     - '3.6'
     - '3.7'
     - '3.8'
+    - '3.9'
+    - '3.10',
+    - '3.11',
+    - '3.12'
 
 env:
     global:
@@ -22,8 +25,8 @@ before_install:
     - pip install -U pip setuptools
     - pip install -r dev-requirements.txt
     # Install SoftHSMv2
-    - curl https://dist.opendnssec.org/source/softhsm-2.5.0.tar.gz | tar -zxv
-    - (cd softhsm-2.5.0 && ./configure --prefix=$HOME --disable-p11-kit --disable-gost && make all install CC="ccache gcc" CXX="ccache g++")
+    - curl https://dist.opendnssec.org/source/softhsm-2.6.1.tar.gz | tar -zxv
+    - (cd softhsm-2.6.1 && ./configure --prefix=$HOME --disable-p11-kit --disable-gost && make all install CC="ccache gcc" CXX="ccache g++")
 
 before_script:
     # Initialise a token on the SoftHSM
@@ -42,4 +45,4 @@ deploy:
     skip_upload_docs: true
     on:
         tags: true
-        python: 3.6
+        python: 3.12

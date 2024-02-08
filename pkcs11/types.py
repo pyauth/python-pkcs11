@@ -6,6 +6,8 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 
 from threading import RLock
 from binascii import hexlify
+from base64 import b64encode
+import chardet
 
 from cached_property import cached_property
 
@@ -16,11 +18,13 @@ from .constants import (
     SlotFlag,
     TokenFlag,
     UserType,
+    CertificateType,
 )
 from .mechanisms import KeyType, Mechanism
 from .exceptions import (
     ArgumentsBad,
     AttributeTypeInvalid,
+    AttributeSensitive,
     NoSuchKey,
     MultipleObjectsReturned,
     SignatureInvalid,
@@ -32,7 +36,24 @@ PROTECTED_AUTH = object()
 
 def _CK_UTF8CHAR_to_str(data):
     """Convert CK_UTF8CHAR to string."""
-    return data.rstrip(b'\0').decode('utf-8').rstrip()
+
+    #return data.rstrip(b'\0').decode('utf-8').rstrip()
+
+    try:
+        decoded_data = data.rstrip(b'\0').decode('utf-8').rstrip()
+        return decoded_data
+    except UnicodeDecodeError as exc:
+        print(f"Decoding error: {exc}")
+        encoding_info = chardet.detect(data)
+        detected_encoding = encoding_info['encoding']
+        try:
+            decoded_data = data.rstrip(b'\0').decode(detected_encoding).rstrip()
+            print(f"Decoded using {detected_encoding}: {decoded_data}")
+            return decoded_data
+        except UnicodeDecodeError:
+            print("Unable to determine the encoding.")
+            return "FallbackValue"
+    
 
 
 def _CK_VERSION_to_tuple(data):
@@ -559,6 +580,18 @@ class Session:
             data = (data,)
 
         return self._digest_generator(data, **kwargs)
+    
+    def set_pin(self, old_pin, new_pin):
+        raise NotImplementedError()
+
+    def init_pin(self, user_pin):
+        raise NotImplementedError()
+
+    def login(self, user_pin, user_type=None):
+        raise NotImplementedError()
+
+    def logout(self):
+        raise NotImplementedError()
 
 
 class Object:
@@ -621,6 +654,58 @@ class Object:
         The :class:`Object` is no longer valid.
         """
         raise NotImplementedError()
+    
+    def dict_for_print(self):
+        """
+        Return dictionary with most of the object attribute types unchanged.
+
+        However, some of them cannot be translated directly; in that case, the dictionary value is a string explaining what happened.
+
+        In the same fashion, bytes objexts are base64 encoded for printing.
+
+        Returns:
+            `dict`: A dictionary where keys are the `pkcs11.constants.Attributes` names and values are original value objects 
+            OR strings with <explanation>
+            OR base64 encoded bytes objects as strings. 
+        """
+        ret = {}
+        for attr in list(Attribute):
+            try:
+                attr_value = self[attr]
+            except AttributeTypeInvalid:
+                # Attribute is missing, that's fine.
+                pass
+            except AttributeSensitive:
+                # Attribute is sensitive, but we might still want information about the attribute existence.
+                ret[attr.name] = "<sensitive>"
+            except ValueError as e:
+                # Some bytes-encoded datetimes can't be parsed by Python `datetime.datetime()`; it might happen with other types as well.
+                # It depends on what exactly is stored on the token.
+                # (bytes value should be included in the error message)
+                ret[attr.name] = f"<ValueError: {e}>"
+            except NotImplementedError as e:
+                # Sould not happen, kept here for legacy reasons. Might be removed in the future. 
+                # Just in case we want to know that it happened. 
+                ret[attr.name] = (f"NotImplementedError: {e}""(the number is pointing to the attribute name)>")
+            else:
+                # All known exceptions are handled
+                attr_type = type(attr_value)
+
+                # If the result is member of the IntEnum, we want to know the name, not the number
+                if attr_type in (
+                    ObjectClass,
+                    CertificateType,
+                    KeyType,
+                ):
+                    attr_value = attr_value.name
+                elif attr_type is bytes:
+                    # Since all other value types are oriented mainly for printing
+                    if attr_value == b"":
+                        attr_value = "<empty byte array>"
+                    else:
+                        attr_value = b64encode(attr_value).decode("utf-8")
+                ret[attr.name] = attr_value
+        return ret
 
 
 class DomainParameters(Object):

@@ -659,6 +659,11 @@ class Mechanism(IntEnum):
     AES_CFB1 = 0x00002108
     AES_KEY_WRAP = 0x00002109
     AES_KEY_WRAP_PAD = 0x0000210A
+    AES_KEY_WRAP_KWP = 0x0000210B
+    # Bug: SoftHSMv2 mechanism AES_KEY_WRAP_PAD is actually AES_KEY_WRAP_KWP
+    AES_KEY_WRAP_PKCS7 = 0x0000210C
+    # PKCS#11 v3.1: AES_KEY_WRAP_PAD is deprecated due to confusion in implementation.
+    
 
     DES_ECB_ENCRYPT_DATA = 0x00001100
     DES_CBC_ENCRYPT_DATA = 0x00001101
@@ -707,6 +712,12 @@ class Mechanism(IntEnum):
     EC_EDWARDS_KEY_PAIR_GEN = 0x00001055
 
     _VENDOR_DEFINED = 0x80000000
+
+    # Used by Thales LUNA AES_KWP in cmu importkey for importing PKCS#8 to the HSM:
+    # _VENDOR_DEFINED + 0x170 = CKM_AES_KW
+    # _VENDOR_DEFINED + 0x171 = CKM_AES_KWP
+    VENDOR_DEFINED_170 = _VENDOR_DEFINED + 0x170
+    VENDOR_DEFINED_171 = _VENDOR_DEFINED + 0x171
 
     def __repr__(self):
         return '<Mechanism.%s>' % self.name
