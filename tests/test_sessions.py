@@ -158,3 +158,14 @@ class SessionTests(TestCase):
             self.assertEqual(len(random), 16)
             # Ensure we didn't get 16 bytes of zeros
             self.assertTrue(all(c != '\0' for c in random))
+
+    @Only.softhsm2
+    def test_set_pin(self):
+        old_token_pin = "1234"
+        new_token_pin = "12345"
+
+        with self.token.open(rw=True, user_pin=old_token_pin) as session:
+            self.assertTrue(session.set_pin(old_token_pin, new_token_pin))
+
+        with self.token.open(user_pin=new_token_pin) as session:
+            self.assertIsInstance(session, pkcs11.Session)
