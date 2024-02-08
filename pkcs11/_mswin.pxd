@@ -30,9 +30,6 @@ Definitions to support compilation on Windows platform
 
 cdef extern from "Windows.h":
     ctypedef unsigned long DWORD
-    ctypedef Py_UNICODE wchar_t
-    ctypedef wchar_t *LPWSTR
-    ctypedef const wchar_t *LPCWSTR
     ctypedef char *LPSTR
     ctypedef const char *LPCSTR
     ctypedef void *PVOID
@@ -54,7 +51,7 @@ cdef extern from "Windows.h":
         FORMAT_MESSAGE_FROM_SYSTEM
         FORMAT_MESSAGE_IGNORE_INSERTS
 
-    HMODULE LoadLibraryW(LPCWSTR lpLibFileName)
+    HMODULE LoadLibraryW(LPCSTR lpLibFileName)
     BOOL FreeLibrary(HMODULE hLinModule)
     PVOID GetProcAddress(HMODULE hModule, LPCSTR lpProcName)
     DWORD GetLastError()
@@ -65,7 +62,7 @@ cdef extern from "Windows.h":
         LPCVOID lpSource,
         DWORD   dwMessageId,
         DWORD   dwLanguageId,
-        LPWSTR  lpBuffer,
+        LPSTR  lpBuffer,
         DWORD   nSize,
         ...
     )
@@ -80,7 +77,7 @@ cdef inline winerror(so) with gil:
     #
     # inspired from https://docs.microsoft.com/en-us/windows/desktop/debug/retrieving-the-last-error-code
     #
-    cdef LPWSTR msgbuffer = NULL
+    cdef LPSTR msgbuffer = NULL
     dw = GetLastError()
     errmsg = ""
 
@@ -97,11 +94,11 @@ cdef inline winerror(so) with gil:
                        NULL,
                        dw,
                        MAKELANGID(LANG_USER_DEFAULT, SUBLANG_DEFAULT),
-                       <LPWSTR>&msgbuffer,
+                       <LPSTR>&msgbuffer,
                        0,
                        NULL)
 
-        errmsg = <str>msgbuffer # C to python string copy
+        errmsg = <LPSTR>msgbuffer # C to python string copy
         LocalFree(msgbuffer)
         
     return errmsg.replace('%1', so)
