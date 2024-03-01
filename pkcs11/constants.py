@@ -54,6 +54,7 @@ class ObjectClass(IntEnum):
     """See :class:`pkcs11.DomainParameters`."""
     MECHANISM = 0x00000007
     OTP_KEY = 0x00000008
+    PROFILE = 0x00000009
 
     _VENDOR_DEFINED = 0x80000000
 
