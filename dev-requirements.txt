@@ -5,13 +5,13 @@
 #    pip-compile dev-requirements.in
 #
 alabaster==0.7.12         # via sphinx
-asn1crypto==1.3.0         # via oscrypto
+asn1crypto==1.5.0         # via oscrypto
 babel==2.8.0              # via sphinx
 certifi==2019.11.28       # via requests
 cffi==1.14.0              # via cryptography
 chardet==3.0.4            # via requests
 cryptography==3.2         # via -r dev-requirements.in
-cython==0.29.15           # via -r dev-requirements.in
+cython==3.0.9             # via -r dev-requirements.in
 docutils==0.16            # via sphinx
 entrypoints==0.3          # via flake8
 flake8==3.7.9             # via -r dev-requirements.in

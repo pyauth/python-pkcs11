@@ -28,21 +28,26 @@
 Definitions to support compilation on Windows platform
 """
 
+from cpython cimport unicode, wchar_t
+
 cdef extern from "Windows.h":
     ctypedef unsigned long DWORD
-    ctypedef Py_UNICODE wchar_t
+
     ctypedef wchar_t *LPWSTR
     ctypedef const wchar_t *LPCWSTR
-    ctypedef char *LPSTR
-    ctypedef const char *LPCSTR
-    ctypedef void *PVOID
-    ctypedef const void *LPCVOID
+    
+    ctypedef void* PVOID
+    ctypedef const void* LPCVOID
+
     ctypedef PVOID HANDLE
     ctypedef HANDLE HLOCAL
     ctypedef HANDLE HINSTANCE
-    ctypedef HINSTANCE HMODULE
+    ctypedef HANDLE HMODULE
+
     ctypedef bint BOOL
     ctypedef short INT16
+
+    ctypedef unsigned long DWORD
 
     ctypedef enum LANG_ID:
         LANG_NEUTRAL
@@ -56,7 +61,7 @@ cdef extern from "Windows.h":
 
     HMODULE LoadLibraryW(LPCWSTR lpLibFileName)
     BOOL FreeLibrary(HMODULE hLinModule)
-    PVOID GetProcAddress(HMODULE hModule, LPCSTR lpProcName)
+    PVOID GetProcAddress(HMODULE hModule, const char* lpProcName)
     DWORD GetLastError()
 
     DWORD MAKELANGID(INT16 p, INT16 s)
@@ -80,20 +85,16 @@ cdef inline winerror(so) with gil:
     #
     # inspired from https://docs.microsoft.com/en-us/windows/desktop/debug/retrieving-the-last-error-code
     #
-    cdef LPWSTR msgbuffer = NULL
+
     dw = GetLastError()
     errmsg = ""
 
     if dw != 0:
-        # from https://docs.microsoft.com/en-us/windows/desktop/api/WinBase/nf-winbase-formatmessage
-        # at 'Security Remarks':
-        # In particular, it is unsafe to take an arbitrary system error code returned from an API
-        # and use FORMAT_MESSAGE_FROM_SYSTEM without FORMAT_MESSAGE_IGNORE_INSERTS.
-        #
-        # Given that remark, we are not attempting to parse inserts with a va_list.
-        # Instead, we only substitute '%1' with the value of so argument, on the returned string.
-        
-        FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+        # use FormatMessageW with FORMAT_MESSAGE_IGNORE_INSERTS
+        flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS
+
+        msgbuffer = NULL
+        FormatMessageW(flags,
                        NULL,
                        dw,
                        MAKELANGID(LANG_USER_DEFAULT, SUBLANG_DEFAULT),
@@ -101,9 +102,19 @@ cdef inline winerror(so) with gil:
                        0,
                        NULL)
 
-        errmsg = <str>msgbuffer # C to python string copy
-        LocalFree(msgbuffer)
-        
-    return errmsg.replace('%1', so)
+        try:
+            # decode to unicode string, assuming UTF-16 LE encoding
+            errmsg = <unicode>msgbuffer
+        finally:
+            # free memory even if decoding fails
+            LocalFree(msgbuffer)
+
+        if so is not None:
+            # encode so to a unicode string before substitution
+            so_bytes = so.encode("utf-8")
+            # substitute '%1'
+            errmsg = errmsg.replace(u"%1", so_bytes.decode("utf-8"))
+
+    return errmsg
 
 #EOF
