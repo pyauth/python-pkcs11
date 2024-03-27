@@ -175,7 +175,7 @@ Smartcard-HSM can generate a shared key via ECDH key exchange.
 
     # Bob generates a keypair, with their public key encoded for
     # interchange
-    bob_priv = ec.generate_private_key(ec.SECP256R1,
+    bob_priv = ec.generate_private_key(ec.SECP256R1(),
                                         default_backend())
     bob_pub = bob_priv.public_key().public_bytes(
         Encoding.DER,
