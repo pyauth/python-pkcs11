@@ -7,7 +7,10 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 from threading import RLock
 from binascii import hexlify
 
-from cached_property import cached_property
+try:
+    from functools import cached_property
+except ImportError:
+    from cached_property import cached_property
 
 from .constants import (
     Attribute,
