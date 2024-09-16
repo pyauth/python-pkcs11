@@ -26,7 +26,7 @@ entrypoints==0.3
     # via flake8
 flake8==3.7.9
     # via -r dev-requirements.in
-idna==2.9
+idna==3.7
     # via requests
 imagesize==1.2.0
     # via sphinx
