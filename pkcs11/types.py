@@ -6,6 +6,7 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 
 from threading import RLock
 from binascii import hexlify
+import chardet
 
 try:
     from functools import cached_property
@@ -35,9 +36,21 @@ PROTECTED_AUTH = object()
 
 def _CK_UTF8CHAR_to_str(data):
     """Convert CK_UTF8CHAR to string."""
-    return data.rstrip(b'\0').decode('utf-8').rstrip()
-
-
+    try:
+        decoded_data = data.rstrip(b'\0').decode('utf-8').rstrip()
+        return decoded_data
+    except UnicodeDecodeError as exc:
+        print(f"Decoding error: {exc}")
+        encoding_info = chardet.detect(data)
+        detected_encoding = encoding_info['encoding']
+        try:
+            decoded_data = data.rstrip(b'\0').decode(detected_encoding).rstrip()
+            print(f"Decoded using {detected_encoding}: {decoded_data}")
+            return decoded_data
+        except UnicodeDecodeError:
+            print("Unable to determine the encoding.")
+            return "FallbackValue"
+            
 def _CK_VERSION_to_tuple(data):
     """Convert CK_VERSION to tuple."""
     return (data['major'], data['minor'])
@@ -532,8 +545,8 @@ class Session:
         :param int nbits: Number of bits to generate.
         :rtype: bytes
         """
-        raise NotImplementedError()
-
+        raise NotImplementedError() 
+        
     def digest(self, data, **kwargs):
         """
         Digest `data` using `mechanism`.
@@ -562,7 +575,19 @@ class Session:
             data = (data,)
 
         return self._digest_generator(data, **kwargs)
-
+    
+    def set_pin(self, old_pin, new_pin):
+        raise NotImplementedError()
+    
+    def init_pin(self, user_pin):
+        raise NotImplementedError()
+    
+    def login(self, user_pin, user_type=None):
+        raise NotImplementedError()
+    
+    def logout(self):
+        raise NotImplementedError()
+        
 
 class Object:
     """
