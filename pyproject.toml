@@ -36,5 +36,21 @@ Documentation = "http://python-pkcs11.readthedocs.io/en/latest/"
 Issues = "https://github.com/pyauth/python-pkcs11/issues"
 Repository = "https://github.com/pyauth/python-pkcs11"
 
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = [
+    "B",  # flake8-bugbear
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+    "G",  # flake8-logging-format
+    "RUF",  # ruff specific checks
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
 [tool.setuptools.packages.find]
 include = ["pkcs11*"]
