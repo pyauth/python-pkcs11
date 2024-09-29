@@ -10,6 +10,7 @@ class KeyType(IntEnum):
 
     Key types beginning with an underscore are historic and are best avoided.
     """
+
     RSA = 0x00000000
     """
     See the `RSA section
@@ -101,7 +102,7 @@ class KeyType(IntEnum):
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
-        return '<KeyType.%s>' % self.name
+        return "<KeyType.%s>" % self.name
 
 
 class Mechanism(IntEnum):
@@ -538,7 +539,7 @@ class Mechanism(IntEnum):
     _SKIPJACK_CFB8 = 0x00001007
     _SKIPJACK_WRAP = 0x00001008
     _SKIPJACK_PRIVATE_WRAP = 0x00001009
-    _SKIPJACK_RELAYX = 0x0000100a
+    _SKIPJACK_RELAYX = 0x0000100A
 
     _KEA_KEY_PAIR_GEN = 0x00001010
     _KEA_KEY_DERIVE = 0x00001011
@@ -709,13 +710,14 @@ class Mechanism(IntEnum):
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
-        return '<Mechanism.%s>' % self.name
+        return "<Mechanism.%s>" % self.name
 
 
 class KDF(IntEnum):
     """
     Key Derivation Functions.
     """
+
     NULL = 0x00000001
     SHA1 = 0x00000002
 
@@ -728,13 +730,14 @@ class KDF(IntEnum):
     CPDIVERSIFY = 0x00000009
 
     def __repr__(self):
-        return '<KDF.%s>' % self.name
+        return "<KDF.%s>" % self.name
 
 
 class MGF(IntEnum):
     """
     RSA PKCS #1 Mask Generation Functions.
     """
+
     SHA1 = 0x00000001
     SHA256 = 0x00000002
     SHA384 = 0x00000003
@@ -742,4 +745,4 @@ class MGF(IntEnum):
     SHA224 = 0x00000005
 
     def __repr__(self):
-        return '<MGF.%s>' % self.name
+        return "<MGF.%s>" % self.name

@@ -24,12 +24,12 @@ def decode_x509_public_key(der):
     """
     x509 = Certificate.load(der)
     key_info = x509.public_key
-    key = bytes(key_info['public_key'])
+    key = bytes(key_info["public_key"])
 
     key_type = {
-        'rsa': KeyType.RSA,
-        'dsa': KeyType.DSA,
-        'ec': KeyType.EC,
+        "rsa": KeyType.RSA,
+        "dsa": KeyType.DSA,
+        "ec": KeyType.EC,
     }[key_info.algorithm]
 
     attrs = {
@@ -39,22 +39,28 @@ def decode_x509_public_key(der):
 
     if key_type is KeyType.RSA:
         from .rsa import decode_rsa_public_key
+
         attrs.update(decode_rsa_public_key(key))
     elif key_type is KeyType.DSA:
         from .dsa import decode_dsa_domain_parameters, decode_dsa_public_key
-        params = key_info['algorithm']['parameters'].dump()
+
+        params = key_info["algorithm"]["parameters"].dump()
 
         attrs.update(decode_dsa_domain_parameters(params))
-        attrs.update({
-            Attribute.VALUE: decode_dsa_public_key(key),
-        })
+        attrs.update(
+            {
+                Attribute.VALUE: decode_dsa_public_key(key),
+            }
+        )
     elif key_type is KeyType.EC:
-        params = key_info['algorithm']['parameters'].dump()
+        params = key_info["algorithm"]["parameters"].dump()
 
-        attrs.update({
-            Attribute.EC_PARAMS: params,
-            Attribute.EC_POINT: key,
-        })
+        attrs.update(
+            {
+                Attribute.EC_PARAMS: params,
+                Attribute.EC_POINT: key,
+            }
+        )
     else:
         raise AssertionError("Should not be reached")
 
@@ -82,7 +88,7 @@ def decode_x509_certificate(der, extended_set=False):
     x509 = Certificate.load(der)
     subject = x509.subject
     issuer = x509.issuer
-    serial = x509['tbs_certificate']['serial_number']
+    serial = x509["tbs_certificate"]["serial_number"]
 
     template = {
         Attribute.CLASS: ObjectClass.CERTIFICATE,
@@ -94,26 +100,24 @@ def decode_x509_certificate(der, extended_set=False):
     }
 
     if extended_set:
-        start_date = \
-            x509['tbs_certificate']['validity']['not_before'].native.date()
-        end_date = \
-            x509['tbs_certificate']['validity']['not_after'].native.date()
+        start_date = x509["tbs_certificate"]["validity"]["not_before"].native.date()
+        end_date = x509["tbs_certificate"]["validity"]["not_after"].native.date()
 
-        template.update({
-            Attribute.START_DATE: start_date,
-            Attribute.END_DATE: end_date,
-        })
+        template.update(
+            {
+                Attribute.START_DATE: start_date,
+                Attribute.END_DATE: end_date,
+            }
+        )
 
         # FIXME: is this correct?
         try:
-            template[Attribute.HASH_OF_SUBJECT_PUBLIC_KEY] = \
-                x509.key_identifier
+            template[Attribute.HASH_OF_SUBJECT_PUBLIC_KEY] = x509.key_identifier
         except KeyError:
             pass
 
         try:
-            template[Attribute.HASH_OF_ISSUER_PUBLIC_KEY] = \
-                x509.authority_key_identifier
+            template[Attribute.HASH_OF_ISSUER_PUBLIC_KEY] = x509.authority_key_identifier
         except KeyError:
             pass
 

@@ -33,14 +33,15 @@ from .exceptions import (
 PROTECTED_AUTH = object()
 """Indicate the pin should be supplied via an external mechanism (e.g. pin pad)"""
 
+
 def _CK_UTF8CHAR_to_str(data):
     """Convert CK_UTF8CHAR to string."""
-    return data.rstrip(b'\0').decode('utf-8').rstrip()
+    return data.rstrip(b"\0").decode("utf-8").rstrip()
 
 
 def _CK_VERSION_to_tuple(data):
     """Convert CK_VERSION to tuple."""
-    return (data['major'], data['minor'])
+    return (data["major"], data["minor"])
 
 
 def _CK_MECHANISM_TYPE_to_enum(mechanism):
@@ -58,14 +59,7 @@ class MechanismInfo:
     See :meth:`pkcs11.Slot.get_mechanism_info`.
     """
 
-    def __init__(self,
-                 slot,
-                 mechanism,
-                 ulMinKeySize=None,
-                 ulMaxKeySize=None,
-                 flags=None,
-                 **kwargs):
-
+    def __init__(self, slot, mechanism, ulMinKeySize=None, ulMaxKeySize=None, flags=None, **kwargs):
         self.slot = slot
         """:class:`pkcs11.Slot` this information is for."""
         self.mechanism = mechanism
@@ -78,17 +72,17 @@ class MechanismInfo:
         """Mechanism capabilities (:class:`pkcs11.constants.MechanismFlag`)."""
 
     def __str__(self):
-        return '\n'.join((
-            "Supported key lengths: [%s, %s]" % (self.min_key_length,
-                                                 self.max_key_length),
-            "Flags: %s" % self.flags,
-        ))
+        return "\n".join(
+            (
+                "Supported key lengths: [%s, %s]" % (self.min_key_length, self.max_key_length),
+                "Flags: %s" % self.flags,
+            )
+        )
 
     def __repr__(self):
-        return '<{klass} (mechanism={mechanism}, flags={flags})>'.format(
-            klass=type(self).__name__,
-            mechanism=str(self.mechanism),
-            flags=str(self.flags))
+        return "<{klass} (mechanism={mechanism}, flags={flags})>".format(
+            klass=type(self).__name__, mechanism=str(self.mechanism), flags=str(self.flags)
+        )
 
 
 class Slot:
@@ -100,14 +94,17 @@ class Slot:
     a physical or software :class:`Token` installed.
     """
 
-    def __init__(self, lib, slot_id,
-                 slotDescription=None,
-                 manufacturerID=None,
-                 hardwareVersion=None,
-                 firmwareVersion=None,
-                 flags=None,
-                 **kwargs):
-
+    def __init__(
+        self,
+        lib,
+        slot_id,
+        slotDescription=None,
+        manufacturerID=None,
+        hardwareVersion=None,
+        firmwareVersion=None,
+        flags=None,
+        **kwargs,
+    ):
         self._lib = lib  # Hold a reference to the lib to prevent gc
 
         self.slot_id = slot_id
@@ -152,19 +149,20 @@ class Slot:
         return self.slot_id == other.slot_id
 
     def __str__(self):
-        return '\n'.join((
-            "Slot Description: %s" % self.slot_description,
-            "Manufacturer ID: %s" % self.manufacturer_id,
-            "Hardware Version: %s.%s" % self.hardware_version,
-            "Firmware Version: %s.%s" % self.firmware_version,
-            "Flags: %s" % self.flags,
-        ))
+        return "\n".join(
+            (
+                "Slot Description: %s" % self.slot_description,
+                "Manufacturer ID: %s" % self.manufacturer_id,
+                "Hardware Version: %s.%s" % self.hardware_version,
+                "Firmware Version: %s.%s" % self.firmware_version,
+                "Flags: %s" % self.flags,
+            )
+        )
 
     def __repr__(self):
-        return '<{klass} (slotID={slot_id} flags={flags})>'.format(
-            klass=type(self).__name__,
-            slot_id=self.slot_id,
-            flags=str(self.flags))
+        return "<{klass} (slotID={slot_id} flags={flags})>".format(
+            klass=type(self).__name__, slot_id=self.slot_id, flags=str(self.flags)
+        )
 
 
 class Token:
@@ -175,16 +173,18 @@ class Token:
     token, depending on your PKCS#11 library.
     """
 
-    def __init__(self, slot,
-                 label=None,
-                 serialNumber=None,
-                 model=None,
-                 manufacturerID=None,
-                 hardwareVersion=None,
-                 firmwareVersion=None,
-                 flags=None,
-                 **kwargs):
-
+    def __init__(
+        self,
+        slot,
+        label=None,
+        serialNumber=None,
+        model=None,
+        manufacturerID=None,
+        hardwareVersion=None,
+        firmwareVersion=None,
+        flags=None,
+        **kwargs,
+    ):
         self.slot = slot
         """The :class:`Slot` this token is installed in."""
         self.label = _CK_UTF8CHAR_to_str(label)
@@ -235,11 +235,9 @@ class Token:
         return self.label
 
     def __repr__(self):
-        return "<{klass} (label='{label}' serial={serial} flags={flags})>"\
-            .format(klass=type(self).__name__,
-                    label=self.label,
-                    serial=self.serial,
-                    flags=str(self.flags))
+        return "<{klass} (label='{label}' serial={serial} flags={flags})>".format(
+            klass=type(self).__name__, label=self.label, serial=self.serial, flags=str(self.flags)
+        )
 
 
 class Session:
@@ -269,8 +267,7 @@ class Session:
         """User type for this session (:class:`pkcs11.constants.UserType`)."""
 
     def __eq__(self, other):
-        return self.token == other.token and \
-            self._handle == other._handle
+        return self.token == other.token and self._handle == other._handle
 
     def __hash__(self):
         return hash(self._handle)
@@ -303,10 +300,7 @@ class Session:
         :rtype: Key
         """
 
-        if object_class is None and \
-                key_type is None and \
-                label is None \
-                and id is None:
+        if object_class is None and key_type is None and label is None and id is None:
             raise ArgumentsBad("Must specify at least one search parameter.")
 
         attrs = {}
@@ -333,8 +327,7 @@ class Session:
 
             try:
                 next(iterator)
-                raise MultipleObjectsReturned("More than 1 key matches %s" %
-                                              attrs)
+                raise MultipleObjectsReturned("More than 1 key matches %s" % attrs)
             except StopIteration:
                 return key
         finally:
@@ -390,8 +383,7 @@ class Session:
         """
         raise NotImplementedError()
 
-    def create_domain_parameters(self, key_type, attrs,
-                                 local=False, store=False):
+    def create_domain_parameters(self, key_type, attrs, local=False, store=False):
         """
         Create a domain parameters object from known parameters.
 
@@ -421,9 +413,15 @@ class Session:
 
         raise NotImplementedError()
 
-    def generate_domain_parameters(self, key_type, param_length, store=False,
-                                   mechanism=None, mechanism_param=None,
-                                   template=None):
+    def generate_domain_parameters(
+        self,
+        key_type,
+        param_length,
+        store=False,
+        mechanism=None,
+        mechanism_param=None,
+        template=None,
+    ):
         """
         Generate domain parameters.
 
@@ -449,11 +447,18 @@ class Session:
 
         raise NotImplementedError()
 
-    def generate_key(self, key_type, key_length=None,
-                     id=None, label=None,
-                     store=False, capabilities=None,
-                     mechanism=None, mechanism_param=None,
-                     template=None):
+    def generate_key(
+        self,
+        key_type,
+        key_length=None,
+        id=None,
+        label=None,
+        store=False,
+        capabilities=None,
+        mechanism=None,
+        mechanism_param=None,
+        template=None,
+    ):
         """
         Generate a single key (e.g. AES, DES).
 
@@ -514,8 +519,7 @@ class Session:
 
             return params.generate_keypair(**kwargs)
         else:
-            return self._generate_keypair(key_type, key_length=key_length,
-                                          **kwargs)
+            return self._generate_keypair(key_type, key_length=key_length, **kwargs)
 
     def seed_random(self, seed):
         """
@@ -553,7 +557,7 @@ class Session:
 
         # If data is a string, encode it now as UTF-8.
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
 
         if isinstance(data, bytes):
             return self._digest(data, **kwargs)
@@ -585,8 +589,7 @@ class Object:
         self._handle = handle
 
     def __eq__(self, other):
-        return self.session == other.session and \
-            self._handle == other._handle
+        return self.session == other.session and self._handle == other._handle
 
     def __hash__(self):
         return hash((self.session, self._handle))
@@ -661,10 +664,17 @@ class DomainParameters(Object):
         """
         return self[Attribute.KEY_TYPE]
 
-    def generate_keypair(self, id=None, label=None,
-                         store=False, capabilities=None,
-                         mechanism=None, mechanism_param=None,
-                         public_template=None, private_template=None):
+    def generate_keypair(
+        self,
+        id=None,
+        label=None,
+        store=False,
+        capabilities=None,
+        mechanism=None,
+        mechanism_param=None,
+        public_template=None,
+        private_template=None,
+    ):
         """
         Generate a key pair from these domain parameters (e.g. for
         Diffie-Hellman.
@@ -706,7 +716,7 @@ class Key(Object):
     def _key_description(self):
         """A description of the key."""
         try:
-            return '%s-bit %s' % (self.key_length, self.key_type.name)
+            return "%s-bit %s" % (self.key_length, self.key_type.name)
         except AttributeTypeInvalid:
             return self.key_type.name
 
@@ -714,8 +724,9 @@ class Key(Object):
         return "<%s label='%s' id='%s' %s>" % (
             type(self).__name__,
             self.label,
-            hexlify(self.id).decode('ascii'),
-            self._key_description)
+            hexlify(self.id).decode("ascii"),
+            self._key_description,
+        )
 
 
 class SecretKey(Key):
@@ -784,6 +795,7 @@ class Certificate(Object):
     :func:`pkcs11.util.x509.decode_x509_certificate` will extract attributes
     from a certificate to create the object.
     """
+
     object_class = ObjectClass.CERTIFICATE
 
     @cached_property
@@ -872,14 +884,13 @@ class EncryptMixin(Object):
 
         # If data is a string, encode it now as UTF-8.
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
 
         if isinstance(data, bytes):
             return self._encrypt(data, **kwargs)
 
         else:
-            return self._encrypt_generator(data,
-                                           buffer_size=buffer_size, **kwargs)
+            return self._encrypt_generator(data, buffer_size=buffer_size, **kwargs)
 
 
 class DecryptMixin(Object):
@@ -911,8 +922,7 @@ class DecryptMixin(Object):
             return self._decrypt(data, **kwargs)
 
         else:
-            return self._decrypt_generator(data,
-                                           buffer_size=buffer_size, **kwargs)
+            return self._decrypt_generator(data, buffer_size=buffer_size, **kwargs)
 
 
 class SignMixin(Object):
@@ -943,7 +953,7 @@ class SignMixin(Object):
 
         # If data is a string, encode it now as UTF-8.
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
 
         if isinstance(data, bytes):
             return self._sign(data, **kwargs)
@@ -982,7 +992,7 @@ class VerifyMixin(Object):
 
         # If data is a string, encode it now as UTF-8.
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
 
         try:
             if isinstance(data, bytes):
@@ -1001,8 +1011,7 @@ class WrapMixin(Object):
     This :class:`Object` supports the wrap capability.
     """
 
-    def wrap_key(self, key,
-                 mechanism=None, mechanism_param=None):
+    def wrap_key(self, key, mechanism=None, mechanism_param=None):
         """
         Use this key to wrap (i.e. encrypt) `key` for export. Returns
         an encrypted version of `key`.
@@ -1023,11 +1032,19 @@ class UnwrapMixin(Object):
     This :class:`Object` supports the unwrap capability.
     """
 
-    def unwrap_key(self, object_class, key_type, key_data,
-                   id=None, label=None,
-                   mechanism=None, mechanism_param=None,
-                   store=False, capabilities=None,
-                   template=None):
+    def unwrap_key(
+        self,
+        object_class,
+        key_type,
+        key_data,
+        id=None,
+        label=None,
+        mechanism=None,
+        mechanism_param=None,
+        store=False,
+        capabilities=None,
+        template=None,
+    ):
         """
         Use this key to unwrap (i.e. decrypt) and import `key_data`.
 
@@ -1054,11 +1071,18 @@ class DeriveMixin(Object):
     This :class:`Object` supports the derive capability.
     """
 
-    def derive_key(self, key_type, key_length,
-                   id=None, label=None,
-                   store=False, capabilities=None,
-                   mechanism=None, mechanism_param=None,
-                   template=None):
+    def derive_key(
+        self,
+        key_type,
+        key_length,
+        id=None,
+        label=None,
+        store=False,
+        capabilities=None,
+        mechanism=None,
+        mechanism_param=None,
+        template=None,
+    ):
         """
         Derive a new key from this key. Used to create session
         keys from a PKCS key exchange.

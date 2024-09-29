@@ -20,14 +20,16 @@ from . import TestCase, requires
 class ECCTests(TestCase):
     @requires(Mechanism.EC_KEY_PAIR_GEN, Mechanism.ECDSA)
     def test_sign_ecdsa(self):
-        parameters = self.session.create_domain_parameters(KeyType.EC, {
-            Attribute.EC_PARAMS: encode_named_curve_parameters('secp256r1')
-        }, local=True)
+        parameters = self.session.create_domain_parameters(
+            KeyType.EC,
+            {Attribute.EC_PARAMS: encode_named_curve_parameters("secp256r1")},
+            local=True,
+        )
 
         pub, priv = parameters.generate_keypair()
 
         mechanism = Mechanism.ECDSA
-        data = b'HI BOB!'
+        data = b"HI BOB!"
         ecdsa = priv.sign(data, mechanism=mechanism)
         self.assertTrue(pub.verify(data, ecdsa, mechanism=mechanism))
 
@@ -35,11 +37,15 @@ class ECCTests(TestCase):
     def test_derive_key(self):
         # DER encoded EC params from OpenSSL
         # openssl ecparam -out ec_param.der -name prime192v1
-        ecparams = base64.b64decode(b'BggqhkjOPQMBAQ==')
+        ecparams = base64.b64decode(b"BggqhkjOPQMBAQ==")
 
-        parameters = self.session.create_domain_parameters(KeyType.EC, {
-            Attribute.EC_PARAMS: ecparams,
-        }, local=True)
+        parameters = self.session.create_domain_parameters(
+            KeyType.EC,
+            {
+                Attribute.EC_PARAMS: ecparams,
+            },
+            local=True,
+        )
         alice_pub, alice_priv = parameters.generate_keypair()
         alice_value = alice_pub[Attribute.EC_POINT]
 
@@ -49,17 +55,17 @@ class ECCTests(TestCase):
         self.assertNotEqual(alice_value, bob_value)
 
         alice_session = alice_priv.derive_key(
-            KeyType.AES, 128,
-            mechanism_param=(KDF.NULL, None, bob_value))
+            KeyType.AES, 128, mechanism_param=(KDF.NULL, None, bob_value)
+        )
 
         bob_session = bob_priv.derive_key(
-            KeyType.AES, 128,
-            mechanism_param=(KDF.NULL, None, alice_value))
+            KeyType.AES, 128, mechanism_param=(KDF.NULL, None, alice_value)
+        )
 
         iv = self.session.generate_random(128)
-        crypttext = alice_session.encrypt('HI BOB!', mechanism_param=iv)
+        crypttext = alice_session.encrypt("HI BOB!", mechanism_param=iv)
         plaintext = bob_session.decrypt(crypttext, mechanism_param=iv)
-        self.assertEqual(plaintext, b'HI BOB!')
+        self.assertEqual(plaintext, b"HI BOB!")
 
     @requires(Mechanism.ECDSA)
     def test_import_key_params(self):
@@ -100,8 +106,7 @@ class ECCTests(TestCase):
         """)
         signature = decode_ecdsa_signature(signature)
 
-        self.assertTrue(key.verify(b'Data to sign', signature,
-                                   mechanism=Mechanism.ECDSA_SHA1))
+        self.assertTrue(key.verify(b"Data to sign", signature, mechanism=Mechanism.ECDSA_SHA1))
 
         # We should get back to identity
         self.assertEqual(encode_ec_public_key(key), der)
@@ -143,21 +148,24 @@ class ECCTests(TestCase):
         """)
         pub = self.session.create_object(decode_ec_public_key(pub))
 
-        signature = priv.sign(b'Example', mechanism=Mechanism.ECDSA)
-        self.assertTrue(pub.verify(b'Example', signature,
-                                   mechanism=Mechanism.ECDSA))
+        signature = priv.sign(b"Example", mechanism=Mechanism.ECDSA)
+        self.assertTrue(pub.verify(b"Example", signature, mechanism=Mechanism.ECDSA))
 
     @requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN, Mechanism.EDDSA)
     def test_sign_eddsa(self):
-        parameters = self.session.create_domain_parameters(KeyType.EC, {
-            # use "Ed25519" once https://github.com/wbond/asn1crypto/pull/134
-            # is merged
-            Attribute.EC_PARAMS: encode_named_curve_parameters('1.3.101.112')
-        }, local=True)
+        parameters = self.session.create_domain_parameters(
+            KeyType.EC,
+            {
+                # use "Ed25519" once https://github.com/wbond/asn1crypto/pull/134
+                # is merged
+                Attribute.EC_PARAMS: encode_named_curve_parameters("1.3.101.112")
+            },
+            local=True,
+        )
 
         pub, priv = parameters.generate_keypair()
 
         mechanism = Mechanism.EDDSA
-        data = b'HI BOB!'
+        data = b"HI BOB!"
         eddsa = priv.sign(data, mechanism=mechanism)
         self.assertTrue(pub.verify(data, eddsa, mechanism=mechanism))
