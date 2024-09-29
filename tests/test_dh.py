@@ -4,14 +4,14 @@ PKCS#11 Diffie-Hellman tests
 
 import base64
 
-from pkcs11 import Attribute, KeyType, DomainParameters, Mechanism
+from pkcs11 import Attribute, DomainParameters, KeyType, Mechanism
 from pkcs11.util.dh import (
     decode_dh_domain_parameters,
     encode_dh_domain_parameters,
     encode_dh_public_key,
 )
 
-from . import TestCase, requires, FIXME
+from . import FIXME, TestCase, requires
 
 
 class DHTests(TestCase):
@@ -34,7 +34,7 @@ class DHTests(TestCase):
             0xC6,
             0xAB,
             0xE6,
-            0x04,  # noqa
+            0x04,
             0xE4,
             0x20,
             0x89,
@@ -46,7 +46,7 @@ class DHTests(TestCase):
             0x4A,
             0x95,
             0x57,
-            0xA1,  # noqa
+            0xA1,
             0x06,
             0xE7,
             0x30,
@@ -58,7 +58,7 @@ class DHTests(TestCase):
             0x11,
             0xED,
             0x42,
-            0x45,  # noqa
+            0x45,
             0xAC,
             0x49,
             0xD3,
@@ -70,7 +70,7 @@ class DHTests(TestCase):
             0x7D,
             0x00,
             0x3C,
-            0x86,  # noqa
+            0x86,
             0x63,
             0x74,
             0xE0,
@@ -82,7 +82,7 @@ class DHTests(TestCase):
             0x11,
             0xDA,
             0x04,
-            0xD0,  # noqa
+            0xD0,
             0xFE,
             0x4F,
             0xB0,
@@ -94,7 +94,7 @@ class DHTests(TestCase):
             0x96,
             0x42,
             0xE0,
-            0x7C,  # noqa
+            0x7C,
             0xD7,
             0x5E,
             0x46,
@@ -106,7 +106,7 @@ class DHTests(TestCase):
             0xAF,
             0xFC,
             0x9A,
-            0xEF,  # noqa
+            0xEF,
             0xFA,
             0x89,
             0x9E,
@@ -118,7 +118,7 @@ class DHTests(TestCase):
             0x01,
             0xA2,
             0xC8,
-            0xDD,  # noqa
+            0xDD,
             0xB4,
             0x47,
             0x12,
@@ -130,7 +130,7 @@ class DHTests(TestCase):
             0x9D,
             0xA8,
             0xF9,
-            0x5D,  # noqa
+            0x5D,
             0x08,
             0x00,
             0x3A,
@@ -142,7 +142,7 @@ class DHTests(TestCase):
             0xE3,
             0x7C,
             0x3B,
-            0x6B,  # noqa
+            0x6B,
             0xB4,
             0x26,
             0xCC,
@@ -154,7 +154,7 @@ class DHTests(TestCase):
             0xA8,
             0x55,
             0x3E,
-            0x5B,  # noqa
+            0x5B,
             0x77,
             0x25,
             0x8F,
@@ -166,7 +166,7 @@ class DHTests(TestCase):
             0x73,
             0x1F,
             0x85,
-            0x96,  # noqa
+            0x96,
             0x0C,
             0x45,
             0x14,
@@ -178,7 +178,7 @@ class DHTests(TestCase):
             0xAA,
             0x10,
             0xBC,
-            0x86,  # noqa
+            0x86,
             0x98,
             0x75,
             0x44,
@@ -190,7 +190,7 @@ class DHTests(TestCase):
             0xAC,
             0x4C,
             0xB3,
-            0x88,  # noqa
+            0x88,
             0x16,
             0x1C,
             0x7E,
@@ -202,7 +202,7 @@ class DHTests(TestCase):
             0xA1,
             0x85,
             0x4F,
-            0x1A,  # noqa
+            0x1A,
             0x22,
             0x0D,
             0x05,
@@ -214,7 +214,7 @@ class DHTests(TestCase):
             0x2F,
             0xF7,
             0xC2,
-            0x48,  # noqa
+            0x48,
             0xE3,
             0xCE,
             0x9D,
@@ -226,7 +226,7 @@ class DHTests(TestCase):
             0x82,
             0x18,
             0xD9,
-            0x3D,  # noqa
+            0x3D,
             0xAF,
             0xAB,
             0x40,
@@ -238,7 +238,7 @@ class DHTests(TestCase):
             0xC3,
             0x24,
             0x2D,
-            0xDB,  # noqa
+            0xDB,
             0x12,
             0xA9,
             0x54,
@@ -250,7 +250,7 @@ class DHTests(TestCase):
             0xFE,
             0xE8,
             0x3D,
-            0x0B,  # noqa
+            0x0B,
             0x56,
             0xED,
             0x9C,
@@ -262,7 +262,7 @@ class DHTests(TestCase):
             0xBF,
             0x62,
             0x32,
-            0x42,  # noqa
+            0x42,
             0x08,
             0xAE,
             0x6A,
@@ -274,7 +274,7 @@ class DHTests(TestCase):
             0x4C,
             0xD3,
             0x08,
-            0xE4,  # noqa
+            0xE4,
             0xC4,
             0xAA,
             0x2C,
@@ -286,7 +286,7 @@ class DHTests(TestCase):
             0xA9,
             0x64,
             0x7E,
-            0xEB,  # noqa
+            0xEB,
             0xF9,
             0xD3,
             0xF5,
@@ -298,11 +298,11 @@ class DHTests(TestCase):
             0x7F,
             0xFE,
             0xD9,
-            0xB9,  # noqa
+            0xB9,
             0x38,
             0x42,
             0x57,
-            0x03,  # noqa
+            0x03,
         ]
         parameters = self.session.create_domain_parameters(
             KeyType.DH,

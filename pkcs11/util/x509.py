@@ -4,7 +4,7 @@ Certificate handling utilities for X.509 (SSL) certificates.
 
 from asn1crypto.x509 import Certificate
 
-from ..constants import Attribute, ObjectClass, CertificateType
+from ..constants import Attribute, CertificateType, ObjectClass
 from ..mechanisms import KeyType
 
 

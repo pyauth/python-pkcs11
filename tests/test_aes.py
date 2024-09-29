@@ -2,12 +2,12 @@
 PKCS#11 AES Secret Keys
 """
 
+from parameterized import parameterized
+
 import pkcs11
 from pkcs11 import Mechanism
 
-from . import TestCase, requires, FIXME
-
-from parameterized import parameterized
+from . import FIXME, TestCase, requires
 
 
 class AESTests(TestCase):
@@ -178,7 +178,7 @@ class AESTests(TestCase):
                     pkcs11.Attribute.SENSITIVE: False,
                 },
             )
-        except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed) as e:
+        except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed):
             derived_key = None
 
         assert_fn(self, derived_key, "{}-bit Key Derivation Failure".format(test_key_length))
@@ -234,7 +234,7 @@ class AESTests(TestCase):
                     pkcs11.Attribute.SENSITIVE: False,
                 },
             )
-        except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed) as e:
+        except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed):
             derived_key = None
 
         self.assertTrue(
@@ -310,7 +310,7 @@ class AESTests(TestCase):
             pkcs11.exceptions.MechanismParamInvalid,
             pkcs11.exceptions.FunctionFailed,
             IndexError,
-        ) as e:
+        ):
             derived_key = None
 
         assert_fn(self, derived_key, "{}-bit Key Derivation Failure".format(test_key_length))
@@ -372,7 +372,7 @@ class AESTests(TestCase):
             pkcs11.exceptions.MechanismParamInvalid,
             pkcs11.exceptions.FunctionFailed,
             IndexError,
-        ) as e:
+        ):
             derived_key = None
 
         self.assertTrue(

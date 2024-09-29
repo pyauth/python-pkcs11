@@ -4,7 +4,7 @@ PKCS#11 Sessions
 
 import pkcs11
 
-from . import TestCase, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, requires, FIXME
+from . import FIXME, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
 
 
 class SessionTests(TestCase):

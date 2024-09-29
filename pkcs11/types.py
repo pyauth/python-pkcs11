@@ -4,8 +4,8 @@ Types for high level PKCS#11 wrapper.
 This module provides stubs that are overrideen in pkcs11._pkcs11.
 """
 
-from threading import RLock
 from binascii import hexlify
+from threading import RLock
 
 try:
     from functools import cached_property
@@ -20,15 +20,15 @@ from .constants import (
     TokenFlag,
     UserType,
 )
-from .mechanisms import KeyType, Mechanism
 from .exceptions import (
     ArgumentsBad,
     AttributeTypeInvalid,
-    NoSuchKey,
     MultipleObjectsReturned,
+    NoSuchKey,
     SignatureInvalid,
     SignatureLenRange,
 )
+from .mechanisms import KeyType, Mechanism
 
 PROTECTED_AUTH = object()
 """Indicate the pin should be supplied via an external mechanism (e.g. pin pad)"""

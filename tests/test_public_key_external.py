@@ -1,13 +1,13 @@
-from pkcs11 import KeyType, ObjectClass, Mechanism, Attribute, KDF
-from pkcs11.util.rsa import encode_rsa_public_key
+from pkcs11 import KDF, Attribute, KeyType, Mechanism, ObjectClass
 from pkcs11.util.ec import (
     decode_ec_public_key,
     encode_ec_public_key,
     encode_ecdsa_signature,
     encode_named_curve_parameters,
 )
+from pkcs11.util.rsa import encode_rsa_public_key
 
-from . import TestCase, requires, Is
+from . import Is, TestCase, requires
 
 
 class ExternalPublicKeyTests(TestCase):
@@ -48,7 +48,7 @@ class ExternalPublicKeyTests(TestCase):
         # Encode as ASN.1 for OpenSSL
         signature = encode_ecdsa_signature(signature)
 
-        from oscrypto.asymmetric import load_public_key, ecdsa_verify
+        from oscrypto.asymmetric import ecdsa_verify, load_public_key
 
         pub = self.session.get_key(key_type=KeyType.EC, object_class=ObjectClass.PUBLIC_KEY)
         pub = load_public_key(encode_ec_public_key(pub))
@@ -118,10 +118,11 @@ class ExternalPublicKeyTests(TestCase):
     def test_terrible_hybrid_file_encryption_app(self):
         # Proof of concept code only!
         import io
+
         from oscrypto.asymmetric import load_public_key, rsa_pkcs1v15_encrypt
         from oscrypto.symmetric import (
-            aes_cbc_pkcs7_encrypt,
             aes_cbc_pkcs7_decrypt,
+            aes_cbc_pkcs7_encrypt,
         )
 
         # A key we generated earlier

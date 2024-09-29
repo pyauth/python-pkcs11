@@ -9,7 +9,7 @@ import threading
 
 import pkcs11
 
-from . import TestCase, Not, requires
+from . import Not, TestCase, requires
 
 
 @Not.nfast  # Deadlocks nfast ... something wrong with threading?
