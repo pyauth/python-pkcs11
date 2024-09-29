@@ -5,14 +5,13 @@ PKCS#11 DSA Tests
 import base64
 
 import pkcs11
-from pkcs11 import KeyType, Attribute, Mechanism
+from pkcs11 import Attribute, KeyType, Mechanism
 from pkcs11.util.dsa import (
-    encode_dsa_domain_parameters,
     decode_dsa_domain_parameters,
+    encode_dsa_domain_parameters,
 )
 
-from . import TestCase, requires, FIXME
-
+from . import FIXME, TestCase, requires
 
 DHPARAMS = base64.b64decode("""
 MIIBHwKBgQD8jXSat2sk+j0plaMn51AVYBWEyWee3ui3llRUckVceDILsjVdBs1tXCDhU7WC+VZZ
@@ -25,7 +24,6 @@ ouQbj2Vq
 
 
 class DSATests(TestCase):
-
     @requires(Mechanism.DSA_PARAMETER_GEN)
     @FIXME.nfast  # returns Function Failed
     def test_generate_params(self):
@@ -38,19 +36,17 @@ class DSATests(TestCase):
     @requires(Mechanism.DSA_KEY_PAIR_GEN, Mechanism.DSA_SHA1)
     def test_generate_keypair_and_sign(self):
         dhparams = self.session.create_domain_parameters(
-            KeyType.DSA,
-            decode_dsa_domain_parameters(DHPARAMS),
-            local=True)
+            KeyType.DSA, decode_dsa_domain_parameters(DHPARAMS), local=True
+        )
 
         public, private = dhparams.generate_keypair()
         self.assertIsInstance(public, pkcs11.PublicKey)
         self.assertIsInstance(private, pkcs11.PrivateKey)
         self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)
 
-        data = 'Message to sign'
+        data = "Message to sign"
         signature = private.sign(data, mechanism=Mechanism.DSA_SHA1)
-        self.assertTrue(public.verify(data, signature,
-                                      mechanism=Mechanism.DSA_SHA1))
+        self.assertTrue(public.verify(data, signature, mechanism=Mechanism.DSA_SHA1))
 
     @requires(Mechanism.DSA_PARAMETER_GEN, Mechanism.DSA_KEY_PAIR_GEN)
     @FIXME.nfast  # returns Function Failed

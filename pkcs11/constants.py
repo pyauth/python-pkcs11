@@ -40,6 +40,7 @@ class ObjectClass(IntEnum):
 
     This is the type of object we have.
     """
+
     DATA = 0x00000000
     CERTIFICATE = 0x00000001
     """See :class:`pkcs11.Certificate`."""
@@ -58,7 +59,7 @@ class ObjectClass(IntEnum):
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
-        return '<ObjectClass.%s>' % self.name
+        return "<ObjectClass.%s>" % self.name
 
 
 _ARRAY_ATTRIBUTE = 0x40000000
@@ -298,9 +299,9 @@ class Attribute(IntEnum):
 
     WRAP_WITH_TRUSTED = 0x00000210
     """Key can only be wrapped with a `TRUSTED` key."""
-    WRAP_TEMPLATE = (_ARRAY_ATTRIBUTE | 0x00000211)
-    UNWRAP_TEMPLATE = (_ARRAY_ATTRIBUTE | 0x00000212)
-    DERIVE_TEMPLATE = (_ARRAY_ATTRIBUTE | 0x00000213)
+    WRAP_TEMPLATE = _ARRAY_ATTRIBUTE | 0x00000211
+    UNWRAP_TEMPLATE = _ARRAY_ATTRIBUTE | 0x00000212
+    DERIVE_TEMPLATE = _ARRAY_ATTRIBUTE | 0x00000213
 
     OTP_FORMAT = 0x00000220
     OTP_LENGTH = 0x00000221
@@ -339,18 +340,19 @@ class Attribute(IntEnum):
     REQUIRED_CMS_ATTRIBUTES = 0x00000501
     DEFAULT_CMS_ATTRIBUTES = 0x00000502
     SUPPORTED_CMS_ATTRIBUTES = 0x00000503
-    ALLOWED_MECHANISMS = (_ARRAY_ATTRIBUTE | 0x00000600)
+    ALLOWED_MECHANISMS = _ARRAY_ATTRIBUTE | 0x00000600
 
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self):
-        return '<Attribute.%s>' % self.name
+        return "<Attribute.%s>" % self.name
 
 
 class CertificateType(IntEnum):
     """
     Certificate type of a :class:`pkcs11.Certificate`.
     """
+
     X_509 = 0x00000000
     X_509_ATTR_CERT = 0x00000001
     WTLS = 0x00000002
@@ -366,6 +368,7 @@ class MechanismFlag(IntFlag):
     Some objects and mechanisms are symmetric (i.e. can be used for encryption
     and decryption), some are asymmetric (e.g. public key cryptography).
     """
+
     HW = 0x00000001
     """Mechanism is performed in hardware."""
 

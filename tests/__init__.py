@@ -18,30 +18,32 @@ from warnings import warn
 
 import pkcs11
 
+try:
+    LIB = os.environ["PKCS11_MODULE"]
+except KeyError as ex:
+    raise RuntimeError("Must define `PKCS11_MODULE' to run tests.") from ex
+
 
 try:
-    LIB = os.environ['PKCS11_MODULE']
-except KeyError:
-    raise RuntimeError("Must define `PKCS11_MODULE' to run tests.")
+    TOKEN = os.environ["PKCS11_TOKEN_LABEL"]
+except KeyError as ex:
+    raise RuntimeError("Must define `PKCS11_TOKEN_LABEL' to run tests.") from ex
 
-
-try:
-    TOKEN = os.environ['PKCS11_TOKEN_LABEL']
-except KeyError:
-    raise RuntimeError("Must define `PKCS11_TOKEN_LABEL' to run tests.")
-
-TOKEN_PIN = os.environ.get('PKCS11_TOKEN_PIN')  # Can be None
+TOKEN_PIN = os.environ.get("PKCS11_TOKEN_PIN")  # Can be None
 if TOKEN_PIN is None:
-    warn("`PKCS11_TOKEN_PIN' env variable is unset.")
+    warn("`PKCS11_TOKEN_PIN' env variable is unset.", stacklevel=2)
 
-TOKEN_SO_PIN = os.environ.get('PKCS11_TOKEN_SO_PIN')
+TOKEN_SO_PIN = os.environ.get("PKCS11_TOKEN_SO_PIN")
 if TOKEN_SO_PIN is None:
     TOKEN_SO_PIN = TOKEN_PIN
-    warn("`PKCS11_TOKEN_SO_PIN' env variable is unset. Using value from `PKCS11_TOKEN_PIN'")
+    warn(
+        "`PKCS11_TOKEN_SO_PIN' env variable is unset. Using value from `PKCS11_TOKEN_PIN'",
+        stacklevel=2,
+    )
 
-OPENSSL = shutil.which('openssl', path=os.environ.get('OPENSSL_PATH'))
+OPENSSL = shutil.which("openssl", path=os.environ.get("OPENSSL_PATH"))
 if OPENSSL is None:
-    warn("Path to OpenSSL not found. Please adjust `PATH' or define `OPENSSL_PATH'")
+    warn("Path to OpenSSL not found. Please adjust `PATH' or define `OPENSSL_PATH'", stacklevel=2)
 
 
 class TestCase(unittest.TestCase):
@@ -84,8 +86,7 @@ def requires(*mechanisms):
         unavailable = set(mechanisms) - self.token.slot.get_mechanisms()
 
         if unavailable:
-            raise unittest.SkipTest("Requires %s"
-                                    % ', '.join(map(str, unavailable)))
+            raise unittest.SkipTest("Requires %s" % ", ".join(map(str, unavailable)))
 
     def inner(func):
         @wraps(func)
@@ -116,28 +117,35 @@ class Is:
     """
     Test what device we're using.
     """
+
     # trick: str.endswith() can accept tuples,
     # see https://stackoverflow.com/questions/18351951/check-if-string-ends-with-one-of-the-strings-from-a-list
-    softhsm2 = LIB.lower().endswith(('libsofthsm2.so', 'libsofthsm2.dylib', 'softhsm2.dll', 'softhsm2-x64.dll')) 
-    nfast = LIB.lower().endswith(('libcknfast.so', 'cknfast.dll'))
-    opencryptoki = LIB.endswith('libopencryptoki.so')
-    travis = os.environ.get('TRAVIS') == 'true'
+    softhsm2 = LIB.lower().endswith(
+        ("libsofthsm2.so", "libsofthsm2.dylib", "softhsm2.dll", "softhsm2-x64.dll")
+    )
+    nfast = LIB.lower().endswith(("libcknfast.so", "cknfast.dll"))
+    opencryptoki = LIB.endswith("libopencryptoki.so")
+    travis = os.environ.get("TRAVIS") == "true"
 
 
 class Avail:
     """
     Test if a resource is available
     """
+
     # openssl is searched across the exec path. Optionally, OPENSSL_PATH env variable can be defined
     # in case there is no direct path to it (i.e. PATH does not point to it)
     openssl = OPENSSL is not None
+
 
 class Only:
     """
     Limit tests to given conditions
     """
+
     softhsm2 = unittest.skipUnless(Is.softhsm2, "SoftHSMv2 only")
     openssl = unittest.skipUnless(Avail.openssl, "openssl not found in the path")
+
 
 class Not:
     """
@@ -146,8 +154,7 @@ class Not:
 
     softhsm2 = unittest.skipIf(Is.softhsm2, "Not supported by SoftHSMv2")
     nfast = unittest.skipIf(Is.nfast, "Not supported by nFast")
-    opencryptoki = unittest.skipIf(Is.opencryptoki,
-                                   "Not supported by OpenCryptoki")
+    opencryptoki = unittest.skipIf(Is.opencryptoki, "Not supported by OpenCryptoki")
 
 
 class FIXME:

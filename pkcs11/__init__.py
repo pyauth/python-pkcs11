@@ -7,7 +7,6 @@ from .exceptions import *  # noqa: F403
 from .mechanisms import *  # noqa: F403
 from .types import *  # noqa: F403
 
-
 _so = None
 _lib = None
 
@@ -23,7 +22,8 @@ def lib(so):
     if _lib:
         if _so != so:
             raise AlreadyInitialized(  # noqa: F405
-                "Already initialized with %s" % so)
+                "Already initialized with %s" % so
+            )
         else:
             return _lib
 

@@ -2,8 +2,9 @@
 #
 # See also: https://setuptools.pypa.io/en/latest/userguide/ext_modules.html
 
-from setuptools import Extension, setup
 import platform
+
+from setuptools import Extension, setup
 
 libraries = []
 

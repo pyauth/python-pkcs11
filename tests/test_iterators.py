@@ -10,16 +10,14 @@ from . import TestCase, requires
 
 
 class IteratorTests(TestCase):
-
     @requires(pkcs11.Mechanism.AES_KEY_GEN, pkcs11.Mechanism.AES_CBC_PAD)
     def test_partial_decrypt(self):
-        self.session.generate_key(pkcs11.KeyType.AES, 128,
-                                  label='LOOK ME UP')
+        self.session.generate_key(pkcs11.KeyType.AES, 128, label="LOOK ME UP")
 
-        key = self.session.get_key(label='LOOK ME UP')
+        key = self.session.get_key(label="LOOK ME UP")
         data = (
-            b'1234',
-            b'1234',
+            b"1234",
+            b"1234",
         )
 
         iv = self.session.generate_random(128)
@@ -37,13 +35,12 @@ class IteratorTests(TestCase):
     # currently does not.
     @unittest.expectedFailure
     def test_close_iterators(self):
-        self.session.generate_key(pkcs11.KeyType.AES, 128,
-                                  label='LOOK ME UP')
+        self.session.generate_key(pkcs11.KeyType.AES, 128, label="LOOK ME UP")
 
-        key = self.session.get_key(label='LOOK ME UP')
+        key = self.session.get_key(label="LOOK ME UP")
         data = (
-            b'1234',
-            b'1234',
+            b"1234",
+            b"1234",
         )
 
         iv = self.session.generate_random(128)
