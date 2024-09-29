@@ -20,27 +20,30 @@ import pkcs11
 
 try:
     LIB = os.environ["PKCS11_MODULE"]
-except KeyError:
-    raise RuntimeError("Must define `PKCS11_MODULE' to run tests.")
+except KeyError as ex:
+    raise RuntimeError("Must define `PKCS11_MODULE' to run tests.") from ex
 
 
 try:
     TOKEN = os.environ["PKCS11_TOKEN_LABEL"]
-except KeyError:
-    raise RuntimeError("Must define `PKCS11_TOKEN_LABEL' to run tests.")
+except KeyError as ex:
+    raise RuntimeError("Must define `PKCS11_TOKEN_LABEL' to run tests.") from ex
 
 TOKEN_PIN = os.environ.get("PKCS11_TOKEN_PIN")  # Can be None
 if TOKEN_PIN is None:
-    warn("`PKCS11_TOKEN_PIN' env variable is unset.")
+    warn("`PKCS11_TOKEN_PIN' env variable is unset.", stacklevel=2)
 
 TOKEN_SO_PIN = os.environ.get("PKCS11_TOKEN_SO_PIN")
 if TOKEN_SO_PIN is None:
     TOKEN_SO_PIN = TOKEN_PIN
-    warn("`PKCS11_TOKEN_SO_PIN' env variable is unset. Using value from `PKCS11_TOKEN_PIN'")
+    warn(
+        "`PKCS11_TOKEN_SO_PIN' env variable is unset. Using value from `PKCS11_TOKEN_PIN'",
+        stacklevel=2,
+    )
 
 OPENSSL = shutil.which("openssl", path=os.environ.get("OPENSSL_PATH"))
 if OPENSSL is None:
-    warn("Path to OpenSSL not found. Please adjust `PATH' or define `OPENSSL_PATH'")
+    warn("Path to OpenSSL not found. Please adjust `PATH' or define `OPENSSL_PATH'", stacklevel=2)
 
 
 class TestCase(unittest.TestCase):

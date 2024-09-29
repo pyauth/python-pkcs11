@@ -61,7 +61,7 @@ class DataInvalid(PKCS11Error):
 class DataLenRange(PKCS11Error):
     """
     The plaintext input data to a cryptographic operation has a bad length.
-    Depending on the operation’s mechanism, this could mean that the plaintext
+    Depending on the operation's mechanism, this could mean that the plaintext
     data is too short, too long, or is not a multiple of some particular block
     size.
     """
@@ -103,7 +103,7 @@ class EncryptedDataLenRange(PKCS11Error):
     """
     The ciphertext input to a decryption operation has been determined to be
     invalid ciphertext solely on the basis of its length.  Depending on the
-    operation’s mechanism, this could mean that the ciphertext is too short,
+    operation's mechanism, this could mean that the ciphertext is too short,
     too long, or is not a multiple of some particular block size.
     """
 
@@ -232,7 +232,7 @@ class OperationActive(PKCS11Error):
     activating an encryption operation with C_EncryptInit.  Or, an active
     digesting operation and an active encryption operation would prevent
     Cryptoki from activating a signature operation.  Or, on a token which
-    doesn’t support simultaneous dual cryptographic operations in a session
+    doesn't support simultaneous dual cryptographic operations in a session
     (see the description of the CKF_DUAL_CRYPTO_OPERATIONS flag in the
     CK_TOKEN_INFO structure), an active signature operation would prevent
     Cryptoki from activating an encryption operation.

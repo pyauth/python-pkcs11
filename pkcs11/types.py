@@ -322,8 +322,8 @@ class Session:
         try:
             try:
                 key = next(iterator)
-            except StopIteration:
-                raise NoSuchKey("No key matching %s" % attrs)
+            except StopIteration as ex:
+                raise NoSuchKey("No key matching %s" % attrs) from ex
 
             try:
                 next(iterator)
@@ -645,8 +645,8 @@ class DomainParameters(Object):
         if self._handle is None:
             try:
                 return self.params[key]
-            except KeyError:
-                raise AttributeTypeInvalid
+            except KeyError as ex:
+                raise AttributeTypeInvalid from ex
         else:
             return super().__getitem__(key)
 
