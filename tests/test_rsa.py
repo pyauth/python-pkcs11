@@ -3,9 +3,9 @@ PKCS#11 RSA Public Key Cryptography
 """
 
 import pkcs11
-from pkcs11 import Attribute, KeyType, ObjectClass, Mechanism, MGF
+from pkcs11 import MGF, Attribute, KeyType, Mechanism, ObjectClass
 
-from . import TestCase, requires, FIXME
+from . import FIXME, TestCase, requires
 
 
 class RSATests(TestCase):

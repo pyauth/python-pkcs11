@@ -6,7 +6,7 @@ import unittest
 
 import pkcs11
 
-from . import LIB, TOKEN, Only, Not
+from . import LIB, TOKEN, Not, Only
 
 
 class SlotsAndTokensTests(unittest.TestCase):

@@ -18,7 +18,6 @@ from warnings import warn
 
 import pkcs11
 
-
 try:
     LIB = os.environ["PKCS11_MODULE"]
 except KeyError:

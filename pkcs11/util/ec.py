@@ -3,14 +3,15 @@ Key handling utilities for EC keys (ANSI X.62/RFC3279), domain parameter and
 signatures.
 """
 
+from asn1crypto.algos import DSASignature
+from asn1crypto.core import OctetString
 from asn1crypto.keys import (
     ECDomainParameters,
     ECPrivateKey,
     NamedCurve,
     PublicKeyInfo,
 )
-from asn1crypto.algos import DSASignature
-from asn1crypto.core import OctetString
+
 from ..constants import Attribute, ObjectClass
 from ..mechanisms import KeyType
 

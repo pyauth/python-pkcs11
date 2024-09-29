@@ -4,9 +4,9 @@ PKCS#11 Digests
 
 import hashlib
 
-from pkcs11 import Mechanism, KeyType, Attribute
+from pkcs11 import Attribute, KeyType, Mechanism
 
-from . import TestCase, Not, requires
+from . import Not, TestCase, requires
 
 
 class DigestTests(TestCase):

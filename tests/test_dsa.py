@@ -5,14 +5,13 @@ PKCS#11 DSA Tests
 import base64
 
 import pkcs11
-from pkcs11 import KeyType, Attribute, Mechanism
+from pkcs11 import Attribute, KeyType, Mechanism
 from pkcs11.util.dsa import (
-    encode_dsa_domain_parameters,
     decode_dsa_domain_parameters,
+    encode_dsa_domain_parameters,
 )
 
-from . import TestCase, requires, FIXME
-
+from . import FIXME, TestCase, requires
 
 DHPARAMS = base64.b64decode("""
 MIIBHwKBgQD8jXSat2sk+j0plaMn51AVYBWEyWee3ui3llRUckVceDILsjVdBs1tXCDhU7WC+VZZ

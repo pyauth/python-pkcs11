@@ -5,13 +5,13 @@ PKCS#11 Elliptic Curve Cryptography.
 import base64
 
 import pkcs11
-from pkcs11 import Attribute, KeyType, KDF, Mechanism
+from pkcs11 import KDF, Attribute, KeyType, Mechanism
 from pkcs11.util.ec import (
-    encode_named_curve_parameters,
-    decode_ec_public_key,
     decode_ec_private_key,
-    encode_ec_public_key,
+    decode_ec_public_key,
     decode_ecdsa_signature,
+    encode_ec_public_key,
+    encode_named_curve_parameters,
 )
 
 from . import TestCase, requires

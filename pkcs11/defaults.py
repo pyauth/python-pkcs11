@@ -14,8 +14,7 @@ from .constants import (
     MechanismFlag,
     ObjectClass,
 )
-from .mechanisms import Mechanism, KeyType, MGF
-
+from .mechanisms import MGF, KeyType, Mechanism
 
 DEFAULT_GENERATE_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_GEN,

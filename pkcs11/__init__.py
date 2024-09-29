@@ -7,7 +7,6 @@ from .exceptions import *  # noqa: F403
 from .mechanisms import *  # noqa: F403
 from .types import *  # noqa: F403
 
-
 _so = None
 _lib = None
 

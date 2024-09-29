@@ -3,27 +3,26 @@ X.509 Certificate Tests
 """
 
 import base64
-import subprocess
 import datetime
+import subprocess
 
 from asn1crypto import pem
-from asn1crypto.x509 import Certificate, TbsCertificate, Time, Name
-from asn1crypto.keys import RSAPublicKey
 from asn1crypto.csr import CertificationRequest, CertificationRequestInfo
+from asn1crypto.keys import RSAPublicKey
+from asn1crypto.x509 import Certificate, Name, TbsCertificate, Time
 
 import pkcs11
-from pkcs11.util.rsa import encode_rsa_public_key
-from pkcs11.util.dsa import decode_dsa_signature
-from pkcs11.util.ec import decode_ecdsa_signature
-from pkcs11.util.x509 import decode_x509_certificate, decode_x509_public_key
 from pkcs11 import (
     Attribute,
     KeyType,
     Mechanism,
 )
+from pkcs11.util.dsa import decode_dsa_signature
+from pkcs11.util.ec import decode_ecdsa_signature
+from pkcs11.util.rsa import encode_rsa_public_key
+from pkcs11.util.x509 import decode_x509_certificate, decode_x509_public_key
 
-from . import TestCase, Not, Only, requires, OPENSSL
-
+from . import OPENSSL, Not, Only, TestCase, requires
 
 # X.509 self-signed certificate (generated with OpenSSL)
 # openssl req -x509 \
