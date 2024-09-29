@@ -166,11 +166,11 @@ class KeyUnextractable(PKCS11Error):
 
 class GeneralError(PKCS11Error):
     """
-     In unusual (and extremely unpleasant!) circumstances, a function can fail
-     with the return value CKR_GENERAL_ERROR.  When this happens, the token
-     and/or host computer may be in an inconsistent state, and the goals of the
-     function may have been partially achieved.
-     """
+    In unusual (and extremely unpleasant!) circumstances, a function can fail
+    with the return value CKR_GENERAL_ERROR.  When this happens, the token
+    and/or host computer may be in an inconsistent state, and the goals of the
+    function may have been partially achieved.
+    """
 
 
 class HostMemory(PKCS11Error):

@@ -24,17 +24,17 @@ class DESTests(TestCase):
         key = self.session.generate_key(KeyType.DES2)
 
         iv = self.session.generate_random(64)
-        crypttext = key.encrypt('PLAIN TEXT_', mechanism_param=iv)
+        crypttext = key.encrypt("PLAIN TEXT_", mechanism_param=iv)
         plaintext = key.decrypt(crypttext, mechanism_param=iv)
 
-        self.assertEqual(plaintext, b'PLAIN TEXT_')
+        self.assertEqual(plaintext, b"PLAIN TEXT_")
 
     @requires(Mechanism.DES3_KEY_GEN, Mechanism.DES3_CBC_PAD)
     def test_encrypt_des3(self):
         key = self.session.generate_key(KeyType.DES3)
 
         iv = self.session.generate_random(64)
-        crypttext = key.encrypt('PLAIN TEXT_', mechanism_param=iv)
+        crypttext = key.encrypt("PLAIN TEXT_", mechanism_param=iv)
         plaintext = key.decrypt(crypttext, mechanism_param=iv)
 
-        self.assertEqual(plaintext, b'PLAIN TEXT_')
+        self.assertEqual(plaintext, b"PLAIN TEXT_")

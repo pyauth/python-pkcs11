@@ -27,7 +27,7 @@ def encode_named_curve_parameters(oid):
     :rtype: bytes
     """
     return ECDomainParameters(
-        name='named',
+        name="named",
         value=NamedCurve.unmap(oid),
     ).dump()
 
@@ -51,10 +51,9 @@ def decode_ec_public_key(der, encode_ec_point=True):
     """
     asn1 = PublicKeyInfo.load(der)
 
-    assert asn1.algorithm == 'ec', \
-        "Wrong algorithm, not an EC key!"
+    assert asn1.algorithm == "ec", "Wrong algorithm, not an EC key!"
 
-    ecpoint = bytes(asn1['public_key'])
+    ecpoint = bytes(asn1["public_key"])
 
     if encode_ec_point:
         ecpoint = OctetString(ecpoint).dump()
@@ -62,7 +61,7 @@ def decode_ec_public_key(der, encode_ec_point=True):
     return {
         Attribute.KEY_TYPE: KeyType.EC,
         Attribute.CLASS: ObjectClass.PUBLIC_KEY,
-        Attribute.EC_PARAMS: asn1['algorithm']['parameters'].dump(),
+        Attribute.EC_PARAMS: asn1["algorithm"]["parameters"].dump(),
         Attribute.EC_POINT: ecpoint,
     }
 
@@ -81,8 +80,8 @@ def decode_ec_private_key(der):
     return {
         Attribute.KEY_TYPE: KeyType.EC,
         Attribute.CLASS: ObjectClass.PRIVATE_KEY,
-        Attribute.EC_PARAMS: asn1['parameters'].chosen.dump(),
-        Attribute.VALUE: asn1['private_key'].contents,
+        Attribute.EC_PARAMS: asn1["parameters"].chosen.dump(),
+        Attribute.VALUE: asn1["private_key"].contents,
     }
 
 
@@ -97,13 +96,15 @@ def encode_ec_public_key(key):
     ecparams = ECDomainParameters.load(key[Attribute.EC_PARAMS])
     ecpoint = bytes(OctetString.load(key[Attribute.EC_POINT]))
 
-    return PublicKeyInfo({
-        'algorithm': {
-            'algorithm': 'ec',
-            'parameters': ecparams,
-        },
-        'public_key': ecpoint,
-    }).dump()
+    return PublicKeyInfo(
+        {
+            "algorithm": {
+                "algorithm": "ec",
+                "parameters": ecparams,
+            },
+            "public_key": ecpoint,
+        }
+    ).dump()
 
 
 def encode_ecdsa_signature(signature):

@@ -25,7 +25,6 @@ ouQbj2Vq
 
 
 class DSATests(TestCase):
-
     @requires(Mechanism.DSA_PARAMETER_GEN)
     @FIXME.nfast  # returns Function Failed
     def test_generate_params(self):
@@ -38,19 +37,17 @@ class DSATests(TestCase):
     @requires(Mechanism.DSA_KEY_PAIR_GEN, Mechanism.DSA_SHA1)
     def test_generate_keypair_and_sign(self):
         dhparams = self.session.create_domain_parameters(
-            KeyType.DSA,
-            decode_dsa_domain_parameters(DHPARAMS),
-            local=True)
+            KeyType.DSA, decode_dsa_domain_parameters(DHPARAMS), local=True
+        )
 
         public, private = dhparams.generate_keypair()
         self.assertIsInstance(public, pkcs11.PublicKey)
         self.assertIsInstance(private, pkcs11.PrivateKey)
         self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)
 
-        data = 'Message to sign'
+        data = "Message to sign"
         signature = private.sign(data, mechanism=Mechanism.DSA_SHA1)
-        self.assertTrue(public.verify(data, signature,
-                                      mechanism=Mechanism.DSA_SHA1))
+        self.assertTrue(public.verify(data, signature, mechanism=Mechanism.DSA_SHA1))
 
     @requires(Mechanism.DSA_PARAMETER_GEN, Mechanism.DSA_KEY_PAIR_GEN)
     @FIXME.nfast  # returns Function Failed

@@ -113,11 +113,13 @@ Default mechanism parameters
 
 
 # (Pack Function, Unpack Function) functions
-_bool = (Struct('?').pack, lambda v: Struct('?').unpack(v)[0])
-_ulong = (Struct('L').pack, lambda v: Struct('L').unpack(v)[0])
-_str = (lambda s: s.encode('utf-8'), lambda b: b.decode('utf-8'))
-_date = (lambda s: s.strftime('%Y%m%d').encode('ascii'),
-         lambda s: datetime.strptime(s.decode('ascii'), '%Y%m%d').date())
+_bool = (Struct("?").pack, lambda v: Struct("?").unpack(v)[0])
+_ulong = (Struct("L").pack, lambda v: Struct("L").unpack(v)[0])
+_str = (lambda s: s.encode("utf-8"), lambda b: b.decode("utf-8"))
+_date = (
+    lambda s: s.strftime("%Y%m%d").encode("ascii"),
+    lambda s: datetime.strptime(s.decode("ascii"), "%Y%m%d").date(),
+)
 _bytes = (bytes, bytes)
 # The PKCS#11 biginteger type is an array of bytes in network byte order.
 # If you have an int type, wrap it in biginteger()
@@ -128,8 +130,7 @@ def _enum(type_):
     """Factory to pack/unpack intos into IntEnums."""
     pack, unpack = _ulong
 
-    return (lambda v: pack(int(v)),
-            lambda v: type_(unpack(v)))
+    return (lambda v: pack(int(v)), lambda v: type_(unpack(v)))
 
 
 ATTRIBUTE_TYPES = {
