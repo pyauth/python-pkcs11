@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "python-pkcs11"
-version = "0.7.0"
+version = "0.8.0"
 description = "PKCS#11 support for Python"
-readme = "README.md"
+readme = "README.rst"
 authors = [
     {name = "Andrey Kislyuk", email = "kislyuk@gmail.com"},
     {name = "Danielle Madeley", email = "danielle@madeley.id.au"},
@@ -14,15 +14,20 @@ authors = [
 maintainers = [
     {name = "Andrey Kislyuk", email = "kislyuk@gmail.com"},
 ]
-classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Security :: Cryptography",
+classifiers = ["License :: OSI Approved :: MIT License",
+               "Programming Language :: Python :: 3",
+               "Programming Language :: Python :: 3.9",
+               "Programming Language :: Python :: 3.10",
+               "Programming Language :: Python :: 3.11",
+               "Programming Language :: Python :: 3.12",
+               "Development Status :: 5 - Production/Stable",
+               "Intended Audience :: Developers",
+               "Operating System :: OS Independent",
+               "Topic :: Security :: Cryptography",
+               "Topic :: Software Development :: Libraries :: Python Modules",
+               "Topic :: System :: Hardware :: Hardware Drivers",
+               "Topic :: System :: Hardware :: Hardware Drivers :: Smartcard",
+               "Topic :: System :: Hardware :: Hardware Drivers :: Token"
 ]
 dependencies = [
     "asn1crypto>=1.4.0",
