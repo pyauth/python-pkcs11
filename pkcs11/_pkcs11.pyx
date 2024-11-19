@@ -1435,6 +1435,8 @@ cdef class lib:
     pkcs11.types.
     """
 
+    cdef bint _finalized
+
     cdef public str so
     cdef public str manufacturer_id
     cdef public str library_description
@@ -1509,6 +1511,7 @@ cdef class lib:
             assertRV(_funclist.C_Initialize(NULL))
 
     def __init__(self, so):
+        self._finalized = False
         self.so = so
         cdef CK_INFO info
 
@@ -1648,14 +1651,22 @@ cdef class lib:
         return Slot(self, slot_id, slotDescription, manufacturerID,
                  info.hardwareVersion, info.firmwareVersion, info.flags)
 
+    def finalize(self):
+        if _funclist != NULL and not self._finalized:
+            with nogil:
+                assertRV(_funclist.C_Finalize(NULL))
+            self._finalized = True
+
     def reinitialize(self):
         if _funclist != NULL:
             with nogil:
-                assertRV(_funclist.C_Finalize(NULL))
+                if not self._finalized:
+                    assertRV(_funclist.C_Finalize(NULL))
                 assertRV(_funclist.C_Initialize(NULL))
+                self._finalized = False
 
     def __dealloc__(self):
-        if _funclist != NULL:
+        if _funclist != NULL and not self._finalized:
             with nogil:
                 assertRV(_funclist.C_Finalize(NULL))
 
