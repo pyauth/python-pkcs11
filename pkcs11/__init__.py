@@ -23,7 +23,7 @@ def lib(so):
     if _lib:
         if _so != so:
             raise AlreadyInitialized(  # noqa: F405
-                "Already initialized with %s" % so
+                "Already initialized with %s" % _so
             )
         else:
             return _lib
