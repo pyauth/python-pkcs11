@@ -16,6 +16,7 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 IF UNAME_SYSNAME == "Windows":
     from . cimport _mswin as mswin
+    from cpython cimport PyUnicode_GetLength, PyUnicode_AsWideCharString, wchar_t
 ELSE:
     from posix cimport dlfcn
 
@@ -1465,7 +1466,9 @@ cdef class lib:
         cdef C_GetFunctionList_ptr C_GetFunctionList
 
         IF UNAME_SYSNAME == "Windows":
-            self._handle = mswin.LoadLibraryW(so)
+            so_length = PyUnicode_GetLength(so)
+            cdef const wchar_t* so_as_wchar_str = PyUnicode_AsWideCharString(so, &so_length)
+            self._handle = mswin.LoadLibraryW(so_as_wchar_str)
             if self._handle == NULL:
                 raise RuntimeError("Cannot open library at {}: {}".format(so, mswin.winerror(so)))
 
@@ -1586,7 +1589,7 @@ cdef class lib:
             try:
                 token = slot.get_token()
                 token_mechanisms = slot.get_mechanisms()
-            
+
                 if token_label is not None and \
                         token.label != token_label:
                     continue
