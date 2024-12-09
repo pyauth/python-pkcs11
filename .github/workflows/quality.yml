@@ -1,7 +1,8 @@
 name: Code quality
 on:
   push:
-  pull_request:
+env:
+  UV_SYSTEM_PYTHON: 1
 
 jobs:
 
@@ -12,6 +13,11 @@ jobs:
 
       - name: Acquire sources
         uses: actions/checkout@v4.1.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
 
       - name: Setup Python
         uses: actions/setup-python@v5.0.0
@@ -25,10 +31,8 @@ jobs:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('**/requirements-*.txt') }}
 
-      - name: Install dependencies
-        run: |
-          pip install -U pip setuptools wheel
-          pip install -r requirements.txt -r dev-requirements.txt
+      - name: Install dev dependencies
+        run: uv pip install -r dev-requirements.txt
 
       - name: Run ruff
         run: |

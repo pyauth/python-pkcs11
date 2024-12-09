@@ -1,8 +1,8 @@
 *.so
 *.c
 __pycache__
-
-/build
+/.idea/
+/build/
 /dist/
 /docs/_build
 /python_pkcs11.egg-info/
