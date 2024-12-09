@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Acquire sources
         uses: actions/checkout@v4.1.1
 
@@ -24,12 +23,6 @@ jobs:
         with:
           python-version: "3.12"
           architecture: x64
-
-      - name: Apply caching of dependencies
-        uses: actions/cache@v4.0.0
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('**/requirements-*.txt') }}
 
       - name: Install dev dependencies
         run: uv pip install -r dev-requirements.txt
