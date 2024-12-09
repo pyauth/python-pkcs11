@@ -2,6 +2,7 @@
 *.c
 __pycache__
 .idea/
+/.idea/
 /build
 /dist/
 /docs/_build
