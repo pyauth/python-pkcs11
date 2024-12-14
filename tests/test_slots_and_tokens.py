@@ -24,7 +24,6 @@ def test_double_initialise_different_libs() -> None:
 def test_get_slots() -> None:
     lib = pkcs11.lib(LIB_PATH)
     slots = lib.get_slots()
-    print(slots)
 
     assert len(slots) == 2
     slot1, slot2 = slots
@@ -61,7 +60,6 @@ def test_get_tokens(softhsm_token: pkcs11.Token) -> None:
     lib = pkcs11.lib(LIB_PATH)
 
     tokens = list(lib.get_tokens(token_flags=pkcs11.TokenFlag.RNG))
-    print(tokens)
     assert len(list(tokens)) == 2
 
     tokens = lib.get_tokens(token_label=softhsm_token.label)

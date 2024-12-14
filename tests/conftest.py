@@ -67,7 +67,6 @@ def softhsm_setup(tmp_path: Path) -> Iterator[Path]:  # pragma: hsm
     token_dir.mkdir(exist_ok=True, parents=True)
 
     softhsm2_conf = tmp_path / "softhsm2.conf"
-    print("# SoftHSMv2 conf:", softhsm2_conf)
 
     with open(softhsm2_conf, "w", encoding="utf-8") as stream:
         stream.write(f"""# SoftHSM v2 configuration file
@@ -118,7 +117,6 @@ def softhsm_token(request: "SubRequest", lib, so_pin: str, pin: str) -> pkcs11.T
         "--pin",
         pin,
     )
-    print("+", " ".join(args))
     subprocess.run(args, check=True)
 
     # Reinitialize library if already loaded (tokens are only seen after (re-)initialization).
