@@ -8,9 +8,6 @@ for Sphinx/Jedi/etc, as this module is not importable without having the
 library loaded.
 """
 
-from __future__ import (absolute_import, unicode_literals,
-                        print_function, division)
-
 from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
@@ -19,16 +16,25 @@ IF UNAME_SYSNAME == "Windows":
 ELSE:
     from posix cimport dlfcn
 
-from ._pkcs11_defn cimport *
+from pkcs11._pkcs11_defn cimport *
 include '_errors.pyx'
 include '_utils.pyx'
 
-from . import types
-from .defaults import *
-from .exceptions import *
-from .constants import *
-from .mechanisms import *
-from .types import (
+from pkcs11 import types
+from pkcs11.defaults import (
+    DEFAULT_DERIVE_MECHANISMS,
+    DEFAULT_ENCRYPT_MECHANISMS,
+    DEFAULT_GENERATE_MECHANISMS,
+    DEFAULT_KEY_CAPABILITIES,
+    DEFAULT_MECHANISM_PARAMS,
+    DEFAULT_PARAM_GENERATE_MECHANISMS,
+    DEFAULT_SIGN_MECHANISMS,
+    DEFAULT_WRAP_MECHANISMS,
+)
+from pkcs11.exceptions import ArgumentsBad
+from pkcs11.constants import DEFAULT, Attribute, MechanismFlag, ObjectClass, UserType,  TokenFlag
+from pkcs11.mechanisms import KeyType, Mechanism
+from pkcs11.types import (
     _CK_UTF8CHAR_to_str,
     _CK_VERSION_to_tuple,
     _CK_MECHANISM_TYPE_to_enum,

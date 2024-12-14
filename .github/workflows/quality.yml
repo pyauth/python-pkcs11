@@ -27,3 +27,6 @@ jobs:
 
       - name: ruff check
         run: uv run ruff check --diff .
+
+      - name: mypy
+        run: uv run mypy .

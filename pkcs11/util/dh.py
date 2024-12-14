@@ -5,11 +5,13 @@ Key handling utilities for Diffie-Hellman keys.
 from asn1crypto.algos import DHParameters
 from asn1crypto.core import Integer
 
-from ..constants import Attribute
-from . import biginteger
+from pkcs11 import DomainParameters, PublicKey
+from pkcs11.constants import Attribute
+from pkcs11.types import AttributeDict
+from pkcs11.util import biginteger
 
 
-def decode_dh_domain_parameters(der):
+def decode_dh_domain_parameters(der: bytes) -> AttributeDict:
     """
     Decode DER-encoded Diffie-Hellman domain parameters.
 
@@ -25,7 +27,7 @@ def decode_dh_domain_parameters(der):
     }
 
 
-def encode_dh_domain_parameters(obj):
+def encode_dh_domain_parameters(obj: DomainParameters) -> bytes:
     """
     Encode DH domain parameters into DER-encoded format.
 
@@ -42,23 +44,25 @@ def encode_dh_domain_parameters(obj):
         }
     )
 
-    return asn1.dump()
+    encoded = asn1.dump()
+    assert isinstance(encoded, bytes)
+    return encoded
 
 
-def encode_dh_public_key(key):
+def encode_dh_public_key(key: PublicKey) -> bytes:
     """
     Encode DH public key into RFC 3279 DER-encoded format.
 
     :param PublicKey key: public key
     :rtype: bytes
     """
-
     asn1 = Integer(int.from_bytes(key[Attribute.VALUE], byteorder="big"))
+    encoded = asn1.dump()
+    assert isinstance(encoded, bytes)
+    return encoded
 
-    return asn1.dump()
 
-
-def decode_dh_public_key(der):
+def decode_dh_public_key(der: bytes) -> bytes:
     """
     Decode a DH public key from RFC 3279 DER-encoded format.
 

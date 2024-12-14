@@ -5,11 +5,7 @@ See the Python :mod:`enum` documentation for more information on how to
 use these classes.
 """
 
-try:
-    from enum import IntEnum, IntFlag, unique
-except ImportError:
-    from aenum import IntEnum, IntFlag, unique
-
+from enum import IntEnum, IntFlag, unique
 
 DEFAULT = object()
 """Sentinel value used in templates.
@@ -58,7 +54,7 @@ class ObjectClass(IntEnum):
 
     _VENDOR_DEFINED = 0x80000000
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<ObjectClass.%s>" % self.name
 
 
@@ -344,7 +340,7 @@ class Attribute(IntEnum):
 
     _VENDOR_DEFINED = 0x80000000
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Attribute.%s>" % self.name
 
 

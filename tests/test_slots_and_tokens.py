@@ -59,7 +59,7 @@ def test_get_mechanism_info_ec() -> None:
 def test_get_tokens(softhsm_token: pkcs11.Token) -> None:
     lib = pkcs11.lib(LIB_PATH)
 
-    tokens = list(lib.get_tokens(token_flags=pkcs11.TokenFlag.RNG))
+    tokens = lib.get_tokens(token_flags=pkcs11.TokenFlag.RNG)
     assert len(list(tokens)) == 2
 
     tokens = lib.get_tokens(token_label=softhsm_token.label)

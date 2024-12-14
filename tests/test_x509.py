@@ -49,6 +49,7 @@ n28DytHEdAoltksfJ2Ds3XAjQqcpI5eBbhIoN9Ckxg==
 def test_import_ca_certificate_easy(session: pkcs11.Session) -> None:
     cert = session.create_object(decode_x509_certificate(CERT))
     assert isinstance(cert, pkcs11.Certificate)
+    assert cert.certificate_type == KeyType.RSA
 
 
 @pytest.mark.skipif(IS_NFAST or IS_OPENCRYPTOKI, reason="Unknown reason.")
@@ -163,6 +164,7 @@ def test_verify_certificate_ecdsa(session: pkcs11.Session) -> None:
 @pytest.mark.requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN)
 @pytest.mark.requires(Mechanism.SHA1_RSA_PKCS)
 def test_self_sign_certificate(tmpdir: Path, session: pkcs11.Session) -> None:
+    assert OPENSSL is not None
     # Warning: proof of concept code only!
     pub, priv = session.generate_keypair(KeyType.RSA, 1024)
 
@@ -235,8 +237,8 @@ def test_self_sign_certificate(tmpdir: Path, session: pkcs11.Session) -> None:
         stdin=subprocess.PIPE,
         stdout=subprocess.DEVNULL,
     ) as proc:
-        proc.stdin.write(pem_cert)
-        proc.stdin.close()
+        proc.stdin.write(pem_cert)  # type: ignore[union-attr]
+        proc.stdin.close()  # type: ignore[union-attr]
         assert proc.wait() == 0
 
 
@@ -245,6 +247,7 @@ def test_self_sign_certificate(tmpdir: Path, session: pkcs11.Session) -> None:
 @pytest.mark.requires(Mechanism.SHA1_RSA_PKCS)
 def test_sign_csr(session: pkcs11.Session) -> None:
     # Warning: proof of concept code only!
+    assert OPENSSL is not None
     pub, priv = session.generate_keypair(KeyType.RSA, 1024)
 
     info = CertificationRequestInfo(
@@ -285,7 +288,7 @@ def test_sign_csr(session: pkcs11.Session) -> None:
         stdin=subprocess.PIPE,
         stdout=subprocess.DEVNULL,
     ) as proc:
-        proc.stdin.write(csr.dump())
-        proc.stdin.close()
+        proc.stdin.write(csr.dump())  # type: ignore[union-attr]
+        proc.stdin.close()  # type: ignore[union-attr]
 
         assert proc.wait() == 0

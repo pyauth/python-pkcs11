@@ -2,7 +2,7 @@
 Map from CKR return codes to Python exceptions.
 """
 
-from .exceptions import *
+from pkcs11.exceptions import *
 
 cdef ERROR_MAP = {
     CKR_ATTRIBUTE_TYPE_INVALID: AttributeTypeInvalid,

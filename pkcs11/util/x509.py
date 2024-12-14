@@ -2,13 +2,16 @@
 Certificate handling utilities for X.509 (SSL) certificates.
 """
 
+from typing import Any
+
 from asn1crypto.x509 import Certificate
 
-from ..constants import Attribute, CertificateType, ObjectClass
-from ..mechanisms import KeyType
+from pkcs11.constants import Attribute, CertificateType, ObjectClass
+from pkcs11.mechanisms import KeyType
+from pkcs11.types import AttributeDict
 
 
-def decode_x509_public_key(der):
+def decode_x509_public_key(der: bytes) -> AttributeDict:
     """
     Decode a DER-encoded X.509 certificate's public key into a set of
     attributes able to be passed to :meth:`pkcs11.Session.create_object`.
@@ -22,7 +25,7 @@ def decode_x509_public_key(der):
     :param bytes der: DER-encoded certificate
     :rtype: dict(Attribute,*)
     """
-    x509 = Certificate.load(der)
+    x509: Certificate = Certificate.load(der)
     key_info = x509.public_key
     key = bytes(key_info["public_key"])
 
@@ -32,17 +35,17 @@ def decode_x509_public_key(der):
         "ec": KeyType.EC,
     }[key_info.algorithm]
 
-    attrs = {
+    attrs: dict[Attribute, Any] = {
         Attribute.CLASS: ObjectClass.PUBLIC_KEY,
         Attribute.KEY_TYPE: key_type,
     }
 
     if key_type is KeyType.RSA:
-        from .rsa import decode_rsa_public_key
+        from pkcs11.util.rsa import decode_rsa_public_key
 
         attrs.update(decode_rsa_public_key(key))
     elif key_type is KeyType.DSA:
-        from .dsa import decode_dsa_domain_parameters, decode_dsa_public_key
+        from pkcs11.util.dsa import decode_dsa_domain_parameters, decode_dsa_public_key
 
         params = key_info["algorithm"]["parameters"].dump()
 
@@ -67,7 +70,7 @@ def decode_x509_public_key(der):
     return attrs
 
 
-def decode_x509_certificate(der, extended_set=False):
+def decode_x509_certificate(der: bytes, extended_set: bool = False) -> AttributeDict:
     """
     Decode a DER-encoded X.509 certificate into a dictionary of
     attributes able to be passed to :meth:`pkcs11.Session.create_object`.

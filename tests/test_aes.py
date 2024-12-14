@@ -26,14 +26,14 @@ def test_encrypt(key: pkcs11.SecretKey) -> None:
     # We should be aligned to the block size
     assert len(crypttext) == 16
     # Ensure we didn't just get 16 nulls
-    assert all(c == "\0" for c in crypttext) is False
+    assert all(c == 0 for c in crypttext) is False
 
     text = key.decrypt(crypttext, mechanism_param=iv)
     assert data == text
 
 
 @pytest.mark.requires(Mechanism.AES_CBC_PAD)
-def test_encrypt_stream(key: pkcs11.SecretKey):
+def test_encrypt_stream(key: pkcs11.SecretKey) -> None:
     data = (
         b"I" * 16,
         b"N" * 16,
@@ -53,14 +53,14 @@ def test_encrypt_stream(key: pkcs11.SecretKey):
     # We should be aligned to the block size
     assert len(crypttext) % 16 == 0
     # Ensure we didn't just get 16 nulls
-    assert all(c == "\0" for c in crypttext) is False
+    assert all(c == 0 for c in crypttext) is False
 
     text = b"".join(key.decrypt(cryptblocks, mechanism_param=iv))
     assert b"".join(data) == text
 
 
 @pytest.mark.requires(Mechanism.AES_CBC_PAD)
-def test_encrypt_whacky_sizes(key: pkcs11.SecretKey):
+def test_encrypt_whacky_sizes(key: pkcs11.SecretKey) -> None:
     data = [(char * ord(char)).encode("utf-8") for char in "HELLO WORLD"]
     iv = b"0" * 16
 
@@ -71,7 +71,7 @@ def test_encrypt_whacky_sizes(key: pkcs11.SecretKey):
 
 
 @pytest.mark.requires(Mechanism.AES_CBC_PAD)
-def test_encrypt_big_string(session: pkcs11.Session, key: pkcs11.SecretKey):
+def test_encrypt_big_string(session: pkcs11.Session, key: pkcs11.SecretKey) -> None:
     data = b"HELLO WORLD" * 1024
 
     iv = session.generate_random(128)
@@ -82,7 +82,7 @@ def test_encrypt_big_string(session: pkcs11.Session, key: pkcs11.SecretKey):
 
 
 @pytest.mark.requires(Mechanism.AES_MAC)
-def test_sign(key: pkcs11.SecretKey):
+def test_sign(key: pkcs11.SecretKey) -> None:
     data = b"HELLO WORLD"
 
     signature = key.sign(data)
@@ -92,7 +92,7 @@ def test_sign(key: pkcs11.SecretKey):
 
 
 @pytest.mark.requires(Mechanism.AES_MAC)
-def test_sign_stream(key: pkcs11.SecretKey):
+def test_sign_stream(key: pkcs11.SecretKey) -> None:
     data = (
         b"I" * 16,
         b"N" * 16,
@@ -108,7 +108,7 @@ def test_sign_stream(key: pkcs11.SecretKey):
 
 @pytest.mark.requires(Mechanism.AES_KEY_WRAP)
 @pytest.mark.xfail_opencryptoki  # can't set key attributes
-def test_wrap(session: pkcs11.Session, key: pkcs11.SecretKey):
+def test_wrap(session: pkcs11.Session, key: pkcs11.SecretKey) -> None:
     key = session.generate_key(
         pkcs11.KeyType.AES,
         128,
@@ -151,7 +151,7 @@ def test_derive_using_ecb_encrypt(
     test_key_length: int,
     iv_length: int,
     is_none: bool,
-):
+) -> None:
     """Function to test AES Key Derivation using the ECB_ENCRYPT Mechanism.
 
     Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
@@ -278,7 +278,7 @@ def test_derive_using_cbc_encrypt(
     iv_length: int,
     data_length: int,
     is_none: bool,
-):
+) -> None:
     """Function to test AES Key Derivation using the CBC_ENCRYPT Mechanism.
 
     Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
@@ -339,7 +339,7 @@ def test_encrypt_with_key_derived_using_cbc_encrypt(
     test_key_length: int,
     iv_length: int,
     data_length: int,
-):
+) -> None:
     """Function to test Data Encryption/Decryption using a Derived AES Key.
 
     Function to test Data Encryption/Decryption using an AES Key

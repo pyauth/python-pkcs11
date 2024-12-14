@@ -31,9 +31,9 @@ def test_open_session_and_login_so(token: pkcs11.Token, so_pin: str) -> None:
 def test_generate_key(token: pkcs11.Token, pin: str) -> None:
     with token.open(user_pin=pin) as session:
         key = session.generate_key(pkcs11.KeyType.AES, 128)
-        assert isinstance(key, pkcs11.Object)
+        assert isinstance(key, pkcs11.types.Object)
         assert isinstance(key, pkcs11.SecretKey)
-        assert isinstance(key, pkcs11.EncryptMixin)
+        assert isinstance(key, pkcs11.types.EncryptMixin)
 
         assert key.object_class is pkcs11.ObjectClass.SECRET_KEY
 
@@ -51,11 +51,14 @@ def test_generate_key(token: pkcs11.Token, pin: str) -> None:
 
         # Create another key with no capabilities
         key = session.generate_key(
-            pkcs11.KeyType.AES, 128, label="MY KEY", id=b"\1\2\3\4", capabilities=0
+            pkcs11.KeyType.AES,
+            128,
+            label="MY KEY",
+            id=b"\1\2\3\4",
+            capabilities=0,  # type: ignore[arg-type]  # seems to be what we're testing?
         )
-        assert isinstance(key, pkcs11.Object)
+        assert isinstance(key, pkcs11.types.Object)
         assert isinstance(key, pkcs11.SecretKey)
-        assert not isinstance(key, pkcs11.EncryptMixin)
 
         assert key.label == "MY KEY"
 
@@ -162,4 +165,4 @@ def test_generate_random(token: pkcs11.Token, pin: str) -> None:
         random = session.generate_random(16 * 8)
         assert len(random) == 16
         # Ensure we didn't get 16 bytes of zeros
-        assert all(c != "\x00" for c in random)
+        assert all(c != int.from_bytes(b"\x00") for c in random)

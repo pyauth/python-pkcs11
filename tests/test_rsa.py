@@ -129,6 +129,12 @@ def test_encrypt_too_much_data(keypair: tuple[pkcs11.PublicKey, pkcs11.PrivateKe
     public_key, private_key = keypair
     data = b"1234" * 128
 
+    assert public_key.key_type == KeyType.RSA
+    assert private_key.key_type == KeyType.RSA
+    assert public_key.label == ""
+    assert private_key.label == ""
+    assert private_key.id == b""
+
     # You can't encrypt lots of data with RSA
     # This should ideally throw DataLen but you can't trust it
     with pytest.raises(pkcs11.PKCS11Error):

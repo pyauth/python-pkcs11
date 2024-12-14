@@ -3,11 +3,12 @@ PKCS#11 Elliptic Curve Cryptography.
 """
 
 import base64
+import typing
 
 import pytest
 
 import pkcs11
-from pkcs11 import KDF, Attribute, KeyType, Mechanism
+from pkcs11 import KDF, Attribute, KeyType, Mechanism, PrivateKey, PublicKey
 from pkcs11.util.ec import (
     decode_ec_private_key,
     decode_ec_public_key,
@@ -130,7 +131,7 @@ def test_import_key_pair(session: pkcs11.Session) -> None:
     MQ2PssJ5huE/vhFWYSR0z3iDp1UXB114r5EXvmDEAWx/32cqnwnuNbyJd/W8IapY
     vN/QAI/1qMV2bopaSmlwabxm8dt/NFCIa3nNYxYyLTjoP16fXTnnI0GSu2dMFatV
     """)
-    priv = session.create_object(decode_ec_private_key(priv))
+    priv_obj = typing.cast(PrivateKey, session.create_object(decode_ec_private_key(priv)))
 
     pub = base64.b64decode("""
     MIICXDCCAc8GByqGSM49AgEwggHCAgEBME0GByqGSM49AQECQgH/////////////
@@ -147,10 +148,10 @@ def test_import_key_pair(session: pkcs11.Session) -> None:
     eIOnVRcHXXivkRe+YMQBbH/fZyqfCe41vIl39bwhqli839AAj/WoxXZuilpKaXBp
     vGbx2380UIhrec1jFjItOOg/Xp9dOecjQZK7Z0wVq1U=
     """)
-    pub = session.create_object(decode_ec_public_key(pub))
+    pub_obj = typing.cast(PublicKey, session.create_object(decode_ec_public_key(pub)))
 
-    signature = priv.sign(b"Example", mechanism=Mechanism.ECDSA)
-    assert pub.verify(b"Example", signature, mechanism=Mechanism.ECDSA)
+    signature = priv_obj.sign(b"Example", mechanism=Mechanism.ECDSA)
+    assert pub_obj.verify(b"Example", signature, mechanism=Mechanism.ECDSA)
 
 
 @pytest.mark.requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN)
