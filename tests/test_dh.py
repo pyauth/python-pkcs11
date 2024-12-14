@@ -15,7 +15,8 @@ from pkcs11.util.dh import (
 )
 
 
-@pytest.mark.requires(Mechanism.DH_PKCS_KEY_PAIR_GEN, Mechanism.DH_PKCS_DERIVE)
+@pytest.mark.requires(Mechanism.DH_PKCS_KEY_PAIR_GEN)
+@pytest.mark.requires(Mechanism.DH_PKCS_DERIVE)
 @pytest.mark.xfail_opencryptoki  # AttributeValueInvalid when generating keypair
 def test_derive_key(session: pkcs11.Session) -> None:
     # Alice and Bob each create a Diffie-Hellman keypair from the
@@ -371,7 +372,8 @@ def test_load_params(session: pkcs11.Session) -> None:
     assert params[Attribute.PRIME][:4] == b"\xad\x10\x7e\x1e"
 
 
-@pytest.mark.requires(Mechanism.DH_PKCS_PARAMETER_GEN, Mechanism.DH_PKCS_KEY_PAIR_GEN)
+@pytest.mark.requires(Mechanism.DH_PKCS_PARAMETER_GEN)
+@pytest.mark.requires(Mechanism.DH_PKCS_KEY_PAIR_GEN)
 def test_generate_params(session: pkcs11.Session) -> None:
     params = session.generate_domain_parameters(KeyType.DH, 512)
     assert isinstance(params, DomainParameters)

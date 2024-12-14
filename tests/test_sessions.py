@@ -60,7 +60,8 @@ def test_generate_key(token: pkcs11.Token, pin: str) -> None:
         assert key.label == "MY KEY"
 
 
-@pytest.mark.requires(pkcs11.Mechanism.RSA_PKCS_KEY_PAIR_GEN, pkcs11.Mechanism.RSA_PKCS)
+@pytest.mark.requires(pkcs11.Mechanism.RSA_PKCS_KEY_PAIR_GEN)
+@pytest.mark.requires(pkcs11.Mechanism.RSA_PKCS)
 def test_generate_keypair(token: pkcs11.Token, pin: str) -> None:
     with token.open(user_pin=pin) as session:
         pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 1024)
