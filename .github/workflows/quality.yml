@@ -1,0 +1,36 @@
+name: Code quality
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Acquire sources
+        uses: actions/checkout@v4.1.1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: "3.12"
+          architecture: x64
+
+      - name: Apply caching of dependencies
+        uses: actions/cache@v4.0.0
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('**/requirements-*.txt') }}
+
+      - name: Install dependencies
+        run: |
+          pip install -U pip setuptools wheel
+          pip install -r requirements.txt -r dev-requirements.txt
+
+      - name: Run ruff
+        run: |
+          ruff format --diff .
+          ruff check --diff .

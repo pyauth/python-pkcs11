@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68.1", "wheel", "cython"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-pkcs11"
+version = "0.7.0"
+description = "PKCS#11 support for Python"
+readme = "README.md"
+authors = [
+    {name = "Andrey Kislyuk", email = "kislyuk@gmail.com"},
+    {name = "Danielle Madeley", email = "danielle@madeley.id.au"},
+]
+maintainers = [
+    {name = "Andrey Kislyuk", email = "kislyuk@gmail.com"},
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security :: Cryptography",
+]
+dependencies = [
+    "asn1crypto>=1.4.0",
+]
+license = {text = "MIT License"}
+requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "http://python-pkcs11.readthedocs.io/en/latest/"
+Documentation = "http://python-pkcs11.readthedocs.io/en/latest/"
+Issues = "https://github.com/pyauth/python-pkcs11/issues"
+Repository = "https://github.com/pyauth/python-pkcs11"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = [
+    "B",  # flake8-bugbear
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+    "G",  # flake8-logging-format
+    "RUF",  # ruff specific checks
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.setuptools.packages.find]
+include = ["pkcs11*"]

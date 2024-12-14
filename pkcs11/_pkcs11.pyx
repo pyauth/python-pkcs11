@@ -377,7 +377,7 @@ class Session(types.Session):
     """Extend Session with implementation."""
 
     def close(self):
-        cdef CK_OBJECT_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self._handle
 
         if self.user_type != UserType.NOBODY:
             with nogil:
