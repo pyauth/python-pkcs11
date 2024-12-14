@@ -241,7 +241,8 @@ def test_self_sign_certificate(tmpdir: Path, session: pkcs11.Session) -> None:
 
 
 @pytest.mark.skipif(OPENSSL is None, reason="openssl command not found.")
-@pytest.mark.requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
+@pytest.mark.requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN)
+@pytest.mark.requires(Mechanism.SHA1_RSA_PKCS)
 def test_sign_csr(session: pkcs11.Session) -> None:
     # Warning: proof of concept code only!
     pub, priv = session.generate_keypair(KeyType.RSA, 1024)

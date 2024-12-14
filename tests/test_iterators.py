@@ -7,7 +7,8 @@ import pytest
 import pkcs11
 
 
-@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN, pkcs11.Mechanism.AES_CBC_PAD)
+@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN)
+@pytest.mark.requires(pkcs11.Mechanism.AES_CBC_PAD)
 def test_partial_decrypt(session: pkcs11.Session) -> None:
     session.generate_key(pkcs11.KeyType.AES, 128, label="LOOK ME UP")
 
@@ -25,7 +26,8 @@ def test_partial_decrypt(session: pkcs11.Session) -> None:
         next(iter2)
 
 
-@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN, pkcs11.Mechanism.AES_CBC_PAD)
+@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN)
+@pytest.mark.requires(pkcs11.Mechanism.AES_CBC_PAD)
 # Ideally deleting iterator #1 would terminate the operation, but it
 # currently does not.
 @pytest.mark.xfail

@@ -32,7 +32,8 @@ def test_digest_generator(session: pkcs11.Session) -> None:
     assert digest == m.digest()
 
 
-@pytest.mark.requires(Mechanism.AES_KEY_GEN, Mechanism.SHA256)
+@pytest.mark.requires(Mechanism.AES_KEY_GEN)
+@pytest.mark.requires(Mechanism.SHA256)
 @pytest.mark.skipif(IS_NFAST, reason="nFast can't digest keys")
 def test_digest_key(session: pkcs11.Session) -> None:
     key = session.generate_key(
@@ -44,7 +45,8 @@ def test_digest_key(session: pkcs11.Session) -> None:
     assert digest == hashlib.sha256(key[Attribute.VALUE]).digest()
 
 
-@pytest.mark.requires(Mechanism.AES_KEY_GEN, Mechanism.SHA256)
+@pytest.mark.requires(Mechanism.AES_KEY_GEN)
+@pytest.mark.requires(Mechanism.SHA256)
 @pytest.mark.skipif(IS_NFAST, reason="nFast can't digest keys")
 def test_digest_key_data(session: pkcs11.Session) -> None:
     key = session.generate_key(

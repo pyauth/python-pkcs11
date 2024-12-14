@@ -17,7 +17,8 @@ from pkcs11.util.ec import (
 )
 
 
-@pytest.mark.requires(Mechanism.EC_KEY_PAIR_GEN, Mechanism.ECDSA)
+@pytest.mark.requires(Mechanism.EC_KEY_PAIR_GEN)
+@pytest.mark.requires(Mechanism.ECDSA)
 def test_sign_ecdsa(session: pkcs11.Session) -> None:
     parameters = session.create_domain_parameters(
         KeyType.EC,
@@ -33,7 +34,8 @@ def test_sign_ecdsa(session: pkcs11.Session) -> None:
     assert pub.verify(data, ecdsa, mechanism=mechanism)
 
 
-@pytest.mark.requires(Mechanism.EC_KEY_PAIR_GEN, Mechanism.ECDH1_DERIVE)
+@pytest.mark.requires(Mechanism.EC_KEY_PAIR_GEN)
+@pytest.mark.requires(Mechanism.ECDH1_DERIVE)
 def test_derive_key(session: pkcs11.Session) -> None:
     # DER encoded EC params from OpenSSL
     # openssl ecparam -out ec_param.der -name prime192v1
@@ -151,7 +153,8 @@ def test_import_key_pair(session: pkcs11.Session) -> None:
     assert pub.verify(b"Example", signature, mechanism=Mechanism.ECDSA)
 
 
-@pytest.mark.requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN, Mechanism.EDDSA)
+@pytest.mark.requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN)
+@pytest.mark.requires(Mechanism.EDDSA)
 def test_sign_eddsa(session: pkcs11.Session) -> None:
     parameters = session.create_domain_parameters(
         KeyType.EC_EDWARDS,
