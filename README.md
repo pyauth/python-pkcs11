@@ -1,8 +1,11 @@
-.. image:: https://travis-ci.org/danni/python-pkcs11.svg?branch=master
-    :target: https://travis-ci.org/danni/python-pkcs11
+# Python PKCS#11 - High Level Wrapper API
 
-Python PKCS#11 - High Level Wrapper API
-=======================================
+![image](https://github.com/pyauth/python-pkcs11/workflows/Tests/badge.svg)
+![image](https://github.com/pyauth/python-pkcs11/workflows/Code%20quality/badge.svg)
+![image](https://img.shields.io/pypi/v/python-pkcs11.svg)
+![image](https://img.shields.io/pypi/dm/python-pkcs11.svg)
+![image](https://img.shields.io/pypi/pyversions/python-pkcs11.svg)
+![image](https://img.shields.io/pypi/status/python-pkcs11.svg)
 
 A high level, "more Pythonic" interface to the PKCS#11 (Cryptoki) standard
 to support HSM and Smartcard devices in Python.
@@ -26,198 +29,187 @@ Source: https://github.com/danni/python-pkcs11
 
 Documentation: http://python-pkcs11.readthedocs.io/en/latest/
 
-Getting Started
----------------
+## Getting Started
 
 Install from Pip:
 
-::
-
-    pip install python-pkcs11
-
+```
+pip install python-pkcs11
+```
 
 Or build from source:
 
-::
+```
+python setup.py build
+```
 
-    python setup.py build
+Assuming your PKCS#11 library is set as `PKCS11_MODULE` and contains a token named `DEMO`:
 
-Assuming your PKCS#11 library is set as `PKCS11_MODULE` and contains a
-token named `DEMO`:
+### AES
 
-AES
-~~~
+```python
+import os, pkcs11
 
-::
+# Initialise our PKCS#11 library
+lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+token = lib.get_token(token_label='DEMO')
 
-    import pkcs11
+data = b'INPUT DATA'
 
-    # Initialise our PKCS#11 library
-    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
-    token = lib.get_token(token_label='DEMO')
+# Open a session on our token
+with token.open(user_pin='1234') as session:
+    # Generate an AES key in this session
+    key = session.generate_key(pkcs11.KeyType.AES, 256)
 
-    data = b'INPUT DATA'
+    # Get an initialisation vector
+    iv = session.generate_random(128)  # AES blocks are fixed at 128 bits
+    # Encrypt our data
+    crypttext = key.encrypt(data, mechanism_param=iv)
+```
 
-    # Open a session on our token
-    with token.open(user_pin='1234') as session:
-        # Generate an AES key in this session
-        key = session.generate_key(pkcs11.KeyType.AES, 256)
+### 3DES
 
-        # Get an initialisation vector
-        iv = session.generate_random(128)  # AES blocks are fixed at 128 bits
-        # Encrypt our data
-        crypttext = key.encrypt(data, mechanism_param=iv)
+```python
+import os, pkcs11
 
-3DES
-~~~~
+# Initialise our PKCS#11 library
+lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+token = lib.get_token(token_label='DEMO')
 
-::
+data = b'INPUT DATA'
 
-    import pkcs11
+# Open a session on our token
+with token.open(user_pin='1234') as session:
+    # Generate a DES key in this session
+    key = session.generate_key(pkcs11.KeyType.DES3)
 
-    # Initialise our PKCS#11 library
-    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
-    token = lib.get_token(token_label='DEMO')
+    # Get an initialisation vector
+    iv = session.generate_random(64)  # DES blocks are fixed at 64 bits
+    # Encrypt our data
+    crypttext = key.encrypt(data, mechanism_param=iv)
+```
 
-    data = b'INPUT DATA'
+### RSA
 
-    # Open a session on our token
-    with token.open(user_pin='1234') as session:
-        # Generate a DES key in this session
-        key = session.generate_key(pkcs11.KeyType.DES3)
+```python
+import os, pkcs11
 
-        # Get an initialisation vector
-        iv = session.generate_random(64)  # DES blocks are fixed at 64 bits
-        # Encrypt our data
-        crypttext = key.encrypt(data, mechanism_param=iv)
+lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+token = lib.get_token(token_label='DEMO')
 
-RSA
-~~~
+data = b'INPUT DATA'
 
-::
+# Open a session on our token
+with token.open(user_pin='1234') as session:
+    # Generate an RSA keypair in this session
+    pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 2048)
 
-    import pkcs11
+    # Encrypt as one block
+    crypttext = pub.encrypt(data)
+```
 
-    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
-    token = lib.get_token(token_label='DEMO')
+### DSA
 
-    data = b'INPUT DATA'
+```python
+import os, pkcs11
 
-    # Open a session on our token
-    with token.open(user_pin='1234') as session:
-        # Generate an RSA keypair in this session
-        pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 2048)
+lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+token = lib.get_token(token_label='DEMO')
 
-        # Encrypt as one block
-        crypttext = pub.encrypt(data)
+data = b'INPUT DATA'
 
-DSA
-~~~
+# Open a session on our token
+with token.open(user_pin='1234') as session:
+    # Generate an DSA keypair in this session
+    pub, priv = session.generate_keypair(pkcs11.KeyType.DSA, 1024)
 
-::
+    # Sign
+    signature = priv.sign(data)
+```
 
-    import pkcs11
+### ECDSA
 
-    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
-    token = lib.get_token(token_label='DEMO')
+```python
+import pkcs11
 
-    data = b'INPUT DATA'
+lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+token = lib.get_token(token_label='DEMO')
 
-    # Open a session on our token
-    with token.open(user_pin='1234') as session:
-        # Generate an DSA keypair in this session
-        pub, priv = session.generate_keypair(pkcs11.KeyType.DSA, 1024)
+data = b'INPUT DATA'
 
-        # Sign
-        signature = priv.sign(data)
+# Open a session on our token
+with token.open(user_pin='1234') as session:
+    # Generate an EC keypair in this session from a named curve
+    ecparams = session.create_domain_parameters(
+        pkcs11.KeyType.EC, {
+            pkcs11.Attribute.EC_PARAMS: pkcs11.util.ec.encode_named_curve_parameters('secp256r1'),
+        }, local=True)
+    pub, priv = ecparams.generate_keypair()
 
-ECDSA
-~~~~~
+    # Sign
+    signature = priv.sign(data)
+```
 
-::
+### Diffie-Hellman
 
-    import pkcs11
+```python
+import os, pkcs11
 
-    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
-    token = lib.get_token(token_label='DEMO')
+lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+token = lib.get_token(token_label='DEMO')
 
-    data = b'INPUT DATA'
+with token.open() as session:
+    # Given shared Diffie-Hellman parameters
+    parameters = session.create_domain_parameters(pkcs11.KeyType.DH, {
+        pkcs11.Attribute.PRIME: prime,  # Diffie-Hellman parameters
+        pkcs11.Attribute.BASE: base,
+    })
 
-    # Open a session on our token
-    with token.open(user_pin='1234') as session:
-        # Generate an EC keypair in this session from a named curve
-        ecparams = session.create_domain_parameters(
-            pkcs11.KeyType.EC, {
-                pkcs11.Attribute.EC_PARAMS: pkcs11.util.ec.encode_named_curve_parameters('secp256r1'),
-            }, local=True)
-        pub, priv = ecparams.generate_keypair()
+    # Generate a DH key pair from the public parameters
+    public, private = parameters.generate_keypair()
 
-        # Sign
-        signature = priv.sign(data)
+    # Share the public half of it with our other party.
+    _network_.write(public[Attribute.VALUE])
+    # And get their shared value
+    other_value = _network_.read()
 
-Diffie-Hellman
-~~~~~~~~~~~~~~
-
-::
-
-    import pkcs11
-
-    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
-    token = lib.get_token(token_label='DEMO')
-
-    with token.open() as session:
-        # Given shared Diffie-Hellman parameters
-        parameters = session.create_domain_parameters(pkcs11.KeyType.DH, {
-            pkcs11.Attribute.PRIME: prime,  # Diffie-Hellman parameters
-            pkcs11.Attribute.BASE: base,
-        })
-
-        # Generate a DH key pair from the public parameters
-        public, private = parameters.generate_keypair()
-
-        # Share the public half of it with our other party.
-        _network_.write(public[Attribute.VALUE])
-        # And get their shared value
-        other_value = _network_.read()
-
-        # Derive a shared session key with perfect forward secrecy
-        session_key = private.derive_key(
-            pkcs11.KeyType.AES, 128,
-            mechanism_param=other_value)
+    # Derive a shared session key with perfect forward secrecy
+    session_key = private.derive_key(
+        pkcs11.KeyType.AES, 128,
+        mechanism_param=other_value)
+```
 
 
-Elliptic-Curve Diffie-Hellman
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### Elliptic-Curve Diffie-Hellman
 
-::
+```python
+import os, pkcs11
 
-    import pkcs11
+lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+token = lib.get_token(token_label='DEMO')
 
-    lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
-    token = lib.get_token(token_label='DEMO')
+with token.open() as session:
+    # Given DER encocded EC parameters, e.g. from
+    #    openssl ecparam -outform der -name <named curve>
+    parameters = session.create_domain_parameters(pkcs11.KeyType.EC, {
+        pkcs11.Attribute.EC_PARAMS: ecparams,
+    })
 
-    with token.open() as session:
-        # Given DER encocded EC parameters, e.g. from
-        #    openssl ecparam -outform der -name <named curve>
-        parameters = session.create_domain_parameters(pkcs11.KeyType.EC, {
-            pkcs11.Attribute.EC_PARAMS: ecparams,
-        })
+    # Generate a DH key pair from the public parameters
+    public, private = parameters.generate_keypair()
 
-        # Generate a DH key pair from the public parameters
-        public, private = parameters.generate_keypair()
+    # Share the public half of it with our other party.
+    _network_.write(public[pkcs11.Attribute.EC_POINT])
+    # And get their shared value
+    other_value = _network_.read()
 
-        # Share the public half of it with our other party.
-        _network_.write(public[pkcs11.Attribute.EC_POINT])
-        # And get their shared value
-        other_value = _network_.read()
+    # Derive a shared session key
+    session_key = private.derive_key(
+        pkcs11.KeyType.AES, 128,
+        mechanism_param=(pkcs11.KDF.NULL, None, other_value))
+```
 
-        # Derive a shared session key
-        session_key = private.derive_key(
-            pkcs11.KeyType.AES, 128,
-            mechanism_param=(pkcs11.KDF.NULL, None, other_value))
-
-Tested Compatibility
---------------------
+## Tested Compatibility
 
 +------------------------------+--------------+-----------------+--------------+-------------------+
 | Functionality                | SoftHSMv2    | Thales nCipher  | Opencryptoki | OpenSC (Nitrokey) |
@@ -304,12 +296,6 @@ Tested Compatibility
 .. [8] `store` parameter is ignored, all keys are stored.
 .. [9] Encryption/verify not supported, extract the public key
 
-Python version:
-
-* 3.4 (with `aenum`)
-* 3.5 (with `aenum`)
-* 3.6
-
 PKCS#11 versions:
 
 * 2.11
@@ -322,8 +308,7 @@ straight-forward way.
 
 If you want your device supported, get in touch!
 
-More info on PKCS #11
----------------------
+## More info on PKCS #11
 
 The latest version of the PKCS #11 spec is available from OASIS:
 
@@ -334,8 +319,7 @@ Many implementations expose additional vendor options configurable in your
 environment, including alternative features, modes and debugging
 information.
 
-License
--------
+## License
 
 MIT License
 

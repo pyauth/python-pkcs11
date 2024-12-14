@@ -2,158 +2,164 @@
 PKCS#11 Sessions
 """
 
+import pytest
+
 import pkcs11
+from tests.conftest import IS_NFAST, IS_OPENCRYPTOKI, IS_SOFTHSM
 
-from . import FIXME, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
+
+@pytest.mark.skipif(IS_NFAST or IS_OPENCRYPTOKI, reason="Login is required.")
+def test_open_session(token: pkcs11.Token) -> None:
+    with token.open() as session:
+        assert isinstance(session, pkcs11.Session)
 
 
-class SessionTests(TestCase):
-    with_session = False
+def test_open_session_and_login_user(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        assert isinstance(session, pkcs11.Session)
 
-    @Not.nfast  # Login is required
-    @Not.opencryptoki
-    def test_open_session(self):
-        with self.token.open() as session:
-            self.assertIsInstance(session, pkcs11.Session)
 
-    def test_open_session_and_login_user(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            self.assertIsInstance(session, pkcs11.Session)
+@pytest.mark.skipif(
+    not IS_SOFTHSM, reason="We don't have credentials to do this for other platforms."
+)
+def test_open_session_and_login_so(token: pkcs11.Token, so_pin: str) -> None:
+    with token.open(rw=True, so_pin=so_pin) as session:
+        assert isinstance(session, pkcs11.Session)
 
-    @Only.softhsm2  # We don't have credentials to do this for other platforms
-    def test_open_session_and_login_so(self):
-        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
-            self.assertIsInstance(session, pkcs11.Session)
 
-    @requires(pkcs11.Mechanism.AES_KEY_GEN)
-    def test_generate_key(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128)
-            self.assertIsInstance(key, pkcs11.Object)
-            self.assertIsInstance(key, pkcs11.SecretKey)
-            self.assertIsInstance(key, pkcs11.EncryptMixin)
+@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN)
+def test_generate_key(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        key = session.generate_key(pkcs11.KeyType.AES, 128)
+        assert isinstance(key, pkcs11.Object)
+        assert isinstance(key, pkcs11.SecretKey)
+        assert isinstance(key, pkcs11.EncryptMixin)
 
-            self.assertIs(key.object_class, pkcs11.ObjectClass.SECRET_KEY)
+        assert key.object_class is pkcs11.ObjectClass.SECRET_KEY
 
-            # Test GetAttribute
-            self.assertIs(key[pkcs11.Attribute.CLASS], pkcs11.ObjectClass.SECRET_KEY)
-            self.assertEqual(key[pkcs11.Attribute.TOKEN], False)
-            self.assertEqual(key[pkcs11.Attribute.LOCAL], True)
-            self.assertEqual(key[pkcs11.Attribute.MODIFIABLE], True)
-            self.assertEqual(key[pkcs11.Attribute.LABEL], "")
+        # Test GetAttribute
+        assert key[pkcs11.Attribute.CLASS] is pkcs11.ObjectClass.SECRET_KEY
+        assert key[pkcs11.Attribute.TOKEN] is False
+        assert key[pkcs11.Attribute.LOCAL] is True
+        assert key[pkcs11.Attribute.MODIFIABLE] is True
+        assert key[pkcs11.Attribute.LABEL] == ""
 
-            # Test SetAttribute
-            key[pkcs11.Attribute.LABEL] = "DEMO"
+        # Test SetAttribute
+        key[pkcs11.Attribute.LABEL] = "DEMO"
 
-            self.assertEqual(key[pkcs11.Attribute.LABEL], "DEMO")
+        assert key[pkcs11.Attribute.LABEL] == "DEMO"
 
-            # Create another key with no capabilities
-            key = session.generate_key(
-                pkcs11.KeyType.AES, 128, label="MY KEY", id=b"\1\2\3\4", capabilities=0
-            )
-            self.assertIsInstance(key, pkcs11.Object)
-            self.assertIsInstance(key, pkcs11.SecretKey)
-            self.assertNotIsInstance(key, pkcs11.EncryptMixin)
+        # Create another key with no capabilities
+        key = session.generate_key(
+            pkcs11.KeyType.AES, 128, label="MY KEY", id=b"\1\2\3\4", capabilities=0
+        )
+        assert isinstance(key, pkcs11.Object)
+        assert isinstance(key, pkcs11.SecretKey)
+        assert not isinstance(key, pkcs11.EncryptMixin)
 
-            self.assertEqual(key.label, "MY KEY")
+        assert key.label == "MY KEY"
 
-    @requires(pkcs11.Mechanism.RSA_PKCS_KEY_PAIR_GEN, pkcs11.Mechanism.RSA_PKCS)
-    def test_generate_keypair(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 1024)
-            self.assertIsInstance(pub, pkcs11.PublicKey)
-            self.assertIsInstance(priv, pkcs11.PrivateKey)
 
-            data = b"HELLO WORLD"
-            crypttext = pub.encrypt(data, mechanism=pkcs11.Mechanism.RSA_PKCS)
-            self.assertNotEqual(data, crypttext)
-            text = priv.decrypt(crypttext, mechanism=pkcs11.Mechanism.RSA_PKCS)
-            self.assertEqual(data, text)
+@pytest.mark.requires(pkcs11.Mechanism.RSA_PKCS_KEY_PAIR_GEN)
+@pytest.mark.requires(pkcs11.Mechanism.RSA_PKCS)
+def test_generate_keypair(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 1024)
+        assert isinstance(pub, pkcs11.PublicKey)
+        assert isinstance(priv, pkcs11.PrivateKey)
 
-    @requires(pkcs11.Mechanism.AES_KEY_GEN)
-    def test_get_objects(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+        data = b"HELLO WORLD"
+        crypttext = pub.encrypt(data, mechanism=pkcs11.Mechanism.RSA_PKCS)
+        assert data != crypttext
+        text = priv.decrypt(crypttext, mechanism=pkcs11.Mechanism.RSA_PKCS)
+        assert data == text
 
-            search = list(
-                session.get_objects(
-                    {
-                        pkcs11.Attribute.LABEL: "SAMPLE KEY",
-                    }
-                )
-            )
 
-            self.assertEqual(len(search), 1)
-            self.assertEqual(key, search[0])
+@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN)
+def test_get_objects(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
 
-    @FIXME.opencryptoki
-    def test_create_object(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            key = session.create_object(
-                {
-                    pkcs11.Attribute.CLASS: pkcs11.ObjectClass.SECRET_KEY,
-                    pkcs11.Attribute.KEY_TYPE: pkcs11.KeyType.AES,
-                    pkcs11.Attribute.VALUE: b"1" * 16,
-                }
-            )
+        search = list(session.get_objects({pkcs11.Attribute.LABEL: "SAMPLE KEY"}))
 
-            self.assertIsInstance(key, pkcs11.SecretKey)
-            self.assertEqual(key.key_length, 128)
+        assert len(search) == 1
+        assert key == search[0]
 
-    @Not.nfast  # nFast won't destroy objects
-    def test_destroy_object(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
-            key.destroy()
 
-            self.assertEqual(list(session.get_objects()), [])
+@pytest.mark.xfail_opencryptoki
+def test_create_object(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        key = session.create_object(
+            {
+                pkcs11.Attribute.CLASS: pkcs11.ObjectClass.SECRET_KEY,
+                pkcs11.Attribute.KEY_TYPE: pkcs11.KeyType.AES,
+                pkcs11.Attribute.VALUE: b"1" * 16,
+            }
+        )
 
-    @Only.softhsm2
-    def test_copy_object(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
-            new = key.copy(
-                {
-                    pkcs11.Attribute.LABEL: "SOMETHING ELSE",
-                }
-            )
+        assert isinstance(key, pkcs11.SecretKey)
+        assert key.key_length == 128
 
-            self.assertEqual(set(session.get_objects()), {key, new})
 
-    @requires(pkcs11.Mechanism.AES_KEY_GEN)
-    def test_get_key(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+@pytest.mark.skipif(IS_NFAST, reason="nFast won't destroy objects.")
+def test_destroy_object(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+        key.destroy()
 
-            key = session.get_key(
-                label="SAMPLE KEY",
-            )
-            self.assertIsInstance(key, pkcs11.SecretKey)
-            key.encrypt(b"test", mechanism_param=b"IV" * 8)
+        assert list(session.get_objects()) == []
 
-    def test_get_key_not_found(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            with self.assertRaises(pkcs11.NoSuchKey):
-                session.get_key(label="SAMPLE KEY")
 
-    @requires(pkcs11.Mechanism.AES_KEY_GEN)
-    def test_get_key_vague(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
-            session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY 2")
+@pytest.mark.skipif(not IS_SOFTHSM, reason="Unknown reason.")
+def test_copy_object(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+        new = key.copy(
+            {
+                pkcs11.Attribute.LABEL: "SOMETHING ELSE",
+            }
+        )
 
-            with self.assertRaises(pkcs11.MultipleObjectsReturned):
-                session.get_key(key_type=pkcs11.KeyType.AES)
+        assert set(session.get_objects()) == {key, new}
 
-    @Not.nfast  # Not supported
-    @Not.opencryptoki  # Not supported
-    def test_seed_random(self):
-        with self.token.open() as session:
-            session.seed_random(b"12345678")
 
-    def test_generate_random(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            random = session.generate_random(16 * 8)
-            self.assertEqual(len(random), 16)
-            # Ensure we didn't get 16 bytes of zeros
-            self.assertTrue(all(c != "\0" for c in random))
+@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN)
+def test_get_key(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+
+        key = session.get_key(
+            label="SAMPLE KEY",
+        )
+        assert isinstance(key, pkcs11.SecretKey)
+        key.encrypt(b"test", mechanism_param=b"IV" * 8)
+
+
+def test_get_key_not_found(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        with pytest.raises(pkcs11.NoSuchKey):
+            session.get_key(label="SAMPLE KEY")
+
+
+@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN)
+def test_get_key_vague(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+        session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY 2")
+
+        with pytest.raises(pkcs11.MultipleObjectsReturned):
+            session.get_key(key_type=pkcs11.KeyType.AES)
+
+
+@pytest.mark.skipif(IS_NFAST or IS_OPENCRYPTOKI, reason="Not supported.")
+def test_seed_random(token: pkcs11.Token) -> None:
+    with token.open() as session:
+        session.seed_random(b"12345678")
+
+
+def test_generate_random(token: pkcs11.Token, pin: str) -> None:
+    with token.open(user_pin=pin) as session:
+        random = session.generate_random(16 * 8)
+        assert len(random) == 16
+        # Ensure we didn't get 16 bytes of zeros
+        assert all(c != "\x00" for c in random)

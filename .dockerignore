@@ -1,0 +1,6 @@
+**/__pycache__
+**/*.egg-info
+/pkcs11/*.c
+/pkcs11/*.so
+/build/
+/dist/
