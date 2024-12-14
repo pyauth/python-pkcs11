@@ -7,37 +7,42 @@ PKCS#11 is that you have a single session per process.
 
 import threading
 
+import pytest
+
 import pkcs11
 
-from . import Not, TestCase, requires
+from .conftest import IS_NFAST
+
+pytestmark = [
+    pytest.mark.skipif(IS_NFAST, reason="Deadlocks nfast ... something wrong with threading?")
+]
 
 
-@Not.nfast  # Deadlocks nfast ... something wrong with threading?
-class ThreadingTests(TestCase):
-    @requires(pkcs11.Mechanism.AES_KEY_GEN, pkcs11.Mechanism.AES_CBC_PAD)
-    def test_concurrency(self):
-        # Multiplexing a session between processes
-        self.session.generate_key(pkcs11.KeyType.AES, 128, label="LOOK ME UP")
+@pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN)
+@pytest.mark.requires(pkcs11.Mechanism.AES_CBC_PAD)
+def test_concurrency(session: pkcs11.Session) -> None:
+    # Multiplexing a session between processes
+    session.generate_key(pkcs11.KeyType.AES, 128, label="LOOK ME UP")
 
-        test_passed = [True]
+    test_passed = [True]
 
-        def thread_work():
-            try:
-                data = b"1234" * 1024 * 1024  # Multichunk files
-                iv = self.session.generate_random(128)
-                key = self.session.get_key(label="LOOK ME UP")
-                self.assertIsNotNone(key.encrypt(data, mechanism_param=iv))
-            except pkcs11.PKCS11Error:
-                test_passed[0] = False
-                raise
+    def thread_work():
+        try:
+            data = b"1234" * 1024 * 1024  # Multichunk files
+            iv = session.generate_random(128)
+            key = session.get_key(label="LOOK ME UP")
+            assert key.encrypt(data, mechanism_param=iv) is not None
+        except pkcs11.PKCS11Error:
+            test_passed[0] = False
+            raise
 
-        threads = [threading.Thread(target=thread_work) for _ in range(10)]
+    threads = [threading.Thread(target=thread_work) for _ in range(10)]
 
-        for thread in threads:
-            thread.start()
+    for thread in threads:
+        thread.start()
 
-        # join each thread
-        for thread in threads:
-            thread.join()
+    # join each thread
+    for thread in threads:
+        thread.join()
 
-        self.assertTrue(test_passed[0])
+    assert test_passed[0]

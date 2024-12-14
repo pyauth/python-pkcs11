@@ -36,6 +36,14 @@ Documentation = "http://python-pkcs11.readthedocs.io/en/latest/"
 Issues = "https://github.com/pyauth/python-pkcs11/issues"
 Repository = "https://github.com/pyauth/python-pkcs11"
 
+[tool.pytest.ini_options]
+markers = [
+    "requires: marks tests require support for a certain PKCS11 mechanism.",
+    "xfail_nfast: Expected failure on nFast.",
+    "xfail_softhsm: Expected failure on SoftHSMv2.",
+    "xfail_opencryptoki: Expected failure on OpenCryptoki.",
+]
+
 [tool.ruff]
 line-length = 100
 
@@ -46,6 +54,7 @@ extend-select = [
     "F",  # pyflakes
     "I",  # isort
     "G",  # flake8-logging-format
+    "PT",  # flake8-pytest-style
     "RUF",  # ruff specific checks
 ]
 
