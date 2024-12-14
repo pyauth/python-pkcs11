@@ -1,12 +1,7 @@
 name: Tests
 on:
   push:
-env:
-  UV_SYSTEM_PYTHON: 1
-  SOFTHSM2_CONF: /tmp/softhsm2.conf
-
 jobs:
-
   run:
     runs-on: ubuntu-latest
     strategy:
@@ -17,19 +12,11 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.12"
+          - "3.13"
 
     steps:
       - name: Install APT dependencies
         run: sudo apt-get install -y softhsm2
-
-      - name: env
-        run: env
-
-      - name: id
-        run: id
-
-      - name: Create SoftHSM token
-        run: softhsm2-util --init-token --free --label TEST --pin 1234 --so-pin 5678
 
       - name: Acquire sources
         uses: actions/checkout@v4.1.1
@@ -46,10 +33,10 @@ jobs:
           architecture: x64
 
       - name: Install the project
-        run: uv sync --all-extras --dev
+        run: uv sync --all-extras --python-preference only-system --python ${{ matrix.python-version }}
 
-      - name: Install dev dependencies
-        run: uv pip install -r dev-requirements.txt
+      - name: ls
+        run: ls /usr/lib/softhsm/libsofthsm2.so
 
       - name: Run tests
-        run: uv run pytest -v
+        run: uv run --python ${{ matrix.python-version }} pytest -v  tests/test_slots_and_tokens.py::test_get_mechanisms

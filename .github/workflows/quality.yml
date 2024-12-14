@@ -1,14 +1,9 @@
 name: Code quality
 on:
   push:
-env:
-  UV_SYSTEM_PYTHON: 1
-
 jobs:
-
   run:
     runs-on: ubuntu-latest
-
     steps:
       - name: Acquire sources
         uses: actions/checkout@v4.1.1
@@ -21,13 +16,14 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5.0.0
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           architecture: x64
 
       - name: Install dev dependencies
-        run: uv pip install -r dev-requirements.txt
+        run: uv sync --python-preference only-system
 
-      - name: Run ruff
-        run: |
-          ruff format --diff .
-          ruff check --diff .
+      - name: ruff format
+        run: uv run ruff format --diff .
+
+      - name: ruff check
+        run: uv run ruff check --diff .
