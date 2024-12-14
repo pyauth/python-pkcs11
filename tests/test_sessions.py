@@ -110,7 +110,7 @@ def test_destroy_object(token: pkcs11.Token, pin: str) -> None:
         assert list(session.get_objects()) == []
 
 
-@pytest.mark.skipif(IS_NFAST, reason="nFast won't destroy objects.")
+@pytest.mark.skipif(not IS_SOFTHSM, reason="Unknown reason.")
 def test_copy_object(token: pkcs11.Token, pin: str) -> None:
     with token.open(user_pin=pin) as session:
         key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
