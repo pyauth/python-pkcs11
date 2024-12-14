@@ -20,7 +20,8 @@ def test_generate_des3_key(session: pkcs11.Session):
     assert isinstance(key, pkcs11.SecretKey)
 
 
-@pytest.mark.requires(Mechanism.DES2_KEY_GEN, Mechanism.DES3_CBC_PAD)
+@pytest.mark.requires(Mechanism.DES2_KEY_GEN)
+@pytest.mark.requires(Mechanism.DES3_CBC_PAD)
 def test_encrypt_des2(session: pkcs11.Session):
     key = session.generate_key(KeyType.DES2)
 
@@ -31,7 +32,8 @@ def test_encrypt_des2(session: pkcs11.Session):
     assert plaintext == b"PLAIN TEXT_"
 
 
-@pytest.mark.requires(Mechanism.DES3_KEY_GEN, Mechanism.DES3_CBC_PAD)
+@pytest.mark.requires(Mechanism.DES3_KEY_GEN)
+@pytest.mark.requires(Mechanism.DES3_CBC_PAD)
 def test_encrypt_des3(session: pkcs11.Session):
     key = session.generate_key(KeyType.DES3)
 

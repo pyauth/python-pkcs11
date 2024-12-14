@@ -30,7 +30,8 @@ def test_generate_params(session: pkcs11.Session) -> None:
     encode_dsa_domain_parameters(parameters)
 
 
-@pytest.mark.requires(Mechanism.DSA_KEY_PAIR_GEN, Mechanism.DSA_SHA1)
+@pytest.mark.requires(Mechanism.DSA_KEY_PAIR_GEN)
+@pytest.mark.requires(Mechanism.DSA_SHA1)
 def test_generate_keypair_and_sign(session: pkcs11.Session):
     dhparams = session.create_domain_parameters(
         KeyType.DSA, decode_dsa_domain_parameters(DHPARAMS), local=True
@@ -47,7 +48,8 @@ def test_generate_keypair_and_sign(session: pkcs11.Session):
 
 
 @pytest.mark.xfail_nfast
-@pytest.mark.requires(Mechanism.DSA_PARAMETER_GEN, Mechanism.DSA_KEY_PAIR_GEN)
+@pytest.mark.requires(Mechanism.DSA_PARAMETER_GEN)
+@pytest.mark.requires(Mechanism.DSA_KEY_PAIR_GEN)
 def test_generate_keypair_directly(session: pkcs11.Session):
     public, private = session.generate_keypair(KeyType.DSA, 1024)
     assert len(public[Attribute.VALUE]) == 1024 // 8
