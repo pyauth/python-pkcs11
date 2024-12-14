@@ -42,7 +42,7 @@ def pytest_collection_modifyitems(items) -> None:
                     IS_SOFTHSM, reason="Expected failure with SoftHSMvs.", strict=True
                 )
             )
-        if "xfail_opencryptoki" in markers:
+        if "xfail_opencryptoki" in markers and IS_OPENCRYPTOKI:
             item.add_marker(
                 pytest.mark.xfail(
                     IS_OPENCRYPTOKI, reason="Expected failure with OpenCryptoki.", strict=True
