@@ -1,4 +1,7 @@
+import typing
+
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 
 import pkcs11
 from pkcs11 import KDF, Attribute, KeyType, Mechanism, ObjectClass
@@ -19,11 +22,11 @@ def test_rsa(session: pkcs11.Session) -> None:
 
     pub = session.get_key(key_type=KeyType.RSA, object_class=ObjectClass.PUBLIC_KEY)
 
-    pub = encode_rsa_public_key(pub)
+    pub_bytes = encode_rsa_public_key(pub)
 
     from oscrypto.asymmetric import load_public_key, rsa_pkcs1v15_encrypt
 
-    pub = load_public_key(pub)
+    pub = load_public_key(pub_bytes)
     crypttext = rsa_pkcs1v15_encrypt(pub, b"Data to encrypt")
 
     priv = session.get_key(key_type=KeyType.RSA, object_class=ObjectClass.PRIVATE_KEY)
@@ -72,7 +75,7 @@ def test_ecdh(session: pkcs11.Session) -> None:
     # Retrieve our keypair, with our public key encoded for interchange
     alice_priv = session.get_key(key_type=KeyType.EC, object_class=ObjectClass.PRIVATE_KEY)
     alice_pub = session.get_key(key_type=KeyType.EC, object_class=ObjectClass.PUBLIC_KEY)
-    alice_pub = encode_ec_public_key(alice_pub)
+    alice_pub_bytes = encode_ec_public_key(alice_pub)
 
     from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives.asymmetric import ec
@@ -92,10 +95,10 @@ def test_ecdh(session: pkcs11.Session) -> None:
 
     # Bob converts Alice's key to internal format and generates their
     # shared key
-    bob_shared_key = bob_priv.exchange(
-        ec.ECDH(),
-        load_der_public_key(alice_pub, default_backend()),
+    alice_loaded_public_key = typing.cast(
+        EllipticCurvePublicKey, load_der_public_key(alice_pub_bytes)
     )
+    bob_shared_key = bob_priv.exchange(ec.ECDH(), alice_loaded_public_key)
 
     key = alice_priv.derive_key(
         KeyType.GENERIC_SECRET,
@@ -124,10 +127,7 @@ def test_terrible_hybrid_file_encryption_app(session: pkcs11.Session) -> None:
     import io
 
     from oscrypto.asymmetric import load_public_key, rsa_pkcs1v15_encrypt
-    from oscrypto.symmetric import (
-        aes_cbc_pkcs7_decrypt,
-        aes_cbc_pkcs7_encrypt,
-    )
+    from oscrypto.symmetric import aes_cbc_pkcs7_decrypt, aes_cbc_pkcs7_encrypt
 
     # A key we generated earlier
     session.generate_keypair(KeyType.RSA, 1024)

@@ -6,10 +6,12 @@ PKCS#11 is that you have a single session per process.
 """
 
 import threading
+import typing
 
 import pytest
 
 import pkcs11
+from pkcs11 import SecretKey
 
 from .conftest import IS_NFAST
 
@@ -26,11 +28,11 @@ def test_concurrency(session: pkcs11.Session) -> None:
 
     test_passed = [True]
 
-    def thread_work():
+    def thread_work() -> None:
         try:
             data = b"1234" * 1024 * 1024  # Multichunk files
             iv = session.generate_random(128)
-            key = session.get_key(label="LOOK ME UP")
+            key = typing.cast(SecretKey, session.get_key(label="LOOK ME UP"))
             assert key.encrypt(data, mechanism_param=iv) is not None
         except pkcs11.PKCS11Error:
             test_passed[0] = False

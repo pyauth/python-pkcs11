@@ -2,8 +2,7 @@
 Type wrangling utility functions.
 """
 
-from .constants import *
-from .mechanisms import *
+from pkcs11.defaults import ATTRIBUTE_TYPES
 
 
 cdef CK_BYTE_buffer(length):

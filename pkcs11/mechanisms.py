@@ -101,7 +101,7 @@ class KeyType(IntEnum):
 
     _VENDOR_DEFINED = 0x80000000
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<KeyType.%s>" % self.name
 
 
@@ -709,7 +709,7 @@ class Mechanism(IntEnum):
 
     _VENDOR_DEFINED = 0x80000000
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Mechanism.%s>" % self.name
 
 
@@ -729,7 +729,7 @@ class KDF(IntEnum):
     SHA512 = 0x00000008
     CPDIVERSIFY = 0x00000009
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<KDF.%s>" % self.name
 
 
@@ -744,5 +744,5 @@ class MGF(IntEnum):
     SHA512 = 0x00000004
     SHA224 = 0x00000005
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<MGF.%s>" % self.name

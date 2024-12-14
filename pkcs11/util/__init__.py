@@ -1,4 +1,4 @@
-def biginteger(value):
+def biginteger(value: int) -> bytes:
     """
     Returns a PKCS#11 biginteger bytestream from a Python integer or
     similar type (e.g. :class:`asn1crypto.core.Integer`).

@@ -4,7 +4,7 @@ import shutil
 import string
 import subprocess
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterator
 from unittest import mock
 from warnings import warn
 
@@ -12,6 +12,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import pkcs11
+from pkcs11 import Library
 
 ALLOWED_RANDOM_CHARS = string.ascii_letters + string.digits
 LIB_PATH = os.environ.get("PKCS11_MODULE", "/usr/lib/softhsm/libsofthsm2.so")
@@ -29,7 +30,7 @@ if OPENSSL is None:
     warn("Path to OpenSSL not found. Please adjust `PATH' or define `OPENSSL_PATH'", stacklevel=2)
 
 
-def pytest_collection_modifyitems(items) -> None:
+def pytest_collection_modifyitems(items: list[Any]) -> None:
     for item in items:
         markers = [marker.name for marker in item.iter_markers()]
         if "xfail_nfast" in markers and IS_NFAST:
@@ -50,12 +51,12 @@ def pytest_collection_modifyitems(items) -> None:
             )
 
 
-def get_random_string(length):
+def get_random_string(length: int) -> str:
     return "".join(secrets.choice(ALLOWED_RANDOM_CHARS) for i in range(length))
 
 
 @pytest.fixture(scope="session")
-def lib():
+def lib() -> Library:
     return pkcs11.lib(LIB_PATH)
 
 
@@ -101,7 +102,7 @@ def pin() -> str:
 
 
 @pytest.fixture
-def softhsm_token(request: "SubRequest", lib, so_pin: str, pin: str) -> pkcs11.Token:
+def softhsm_token(request: "SubRequest", lib: Library, so_pin: str, pin: str) -> pkcs11.Token:
     """Get a unique token for the current test."""
     request.getfixturevalue("softhsm_setup")
     token = get_random_string(8)

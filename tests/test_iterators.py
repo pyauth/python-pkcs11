@@ -5,6 +5,7 @@ Iterator tests
 import pytest
 
 import pkcs11
+from pkcs11 import ObjectClass
 
 
 @pytest.mark.requires(pkcs11.Mechanism.AES_KEY_GEN)
@@ -12,7 +13,7 @@ import pkcs11
 def test_partial_decrypt(session: pkcs11.Session) -> None:
     session.generate_key(pkcs11.KeyType.AES, 128, label="LOOK ME UP")
 
-    key = session.get_key(label="LOOK ME UP")
+    key = session.get_key(object_class=ObjectClass.SECRET_KEY, label="LOOK ME UP")
     data = (b"1234", b"1234")
 
     iv = session.generate_random(128)
@@ -34,11 +35,8 @@ def test_partial_decrypt(session: pkcs11.Session) -> None:
 def test_close_iterators(session: pkcs11.Session) -> None:
     session.generate_key(pkcs11.KeyType.AES, 128, label="LOOK ME UP")
 
-    key = session.get_key(label="LOOK ME UP")
-    data = (
-        b"1234",
-        b"1234",
-    )
+    key = session.get_key(object_class=ObjectClass.SECRET_KEY, label="LOOK ME UP")
+    data = (b"1234", b"1234")
 
     iv = session.generate_random(128)
     encrypted_data = list(key.encrypt(data, mechanism_param=iv))

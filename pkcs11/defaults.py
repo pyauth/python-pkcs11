@@ -7,14 +7,15 @@ assumed.
 
 from datetime import datetime
 from struct import Struct
+from typing import Any, Callable
 
-from .constants import (
+from pkcs11.constants import (
     Attribute,
     CertificateType,
     MechanismFlag,
     ObjectClass,
 )
-from .mechanisms import MGF, KeyType, Mechanism
+from pkcs11.mechanisms import MGF, KeyType, Mechanism
 
 DEFAULT_GENERATE_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_GEN,
@@ -35,7 +36,7 @@ _ENCRYPTION = MechanismFlag.ENCRYPT | MechanismFlag.DECRYPT
 _SIGNING = MechanismFlag.SIGN | MechanismFlag.VERIFY
 _WRAPPING = MechanismFlag.WRAP | MechanismFlag.UNWRAP
 
-DEFAULT_KEY_CAPABILITIES = {
+DEFAULT_KEY_CAPABILITIES: dict[KeyType, MechanismFlag] = {
     KeyType.AES: _ENCRYPTION | _SIGNING | _WRAPPING,
     KeyType.DES2: _ENCRYPTION | _SIGNING | _WRAPPING,
     KeyType.DES3: _ENCRYPTION | _SIGNING | _WRAPPING,
@@ -43,9 +44,10 @@ DEFAULT_KEY_CAPABILITIES = {
     KeyType.DSA: _SIGNING,
     KeyType.EC: _SIGNING | MechanismFlag.DERIVE,
     KeyType.RSA: _ENCRYPTION | _SIGNING | _WRAPPING,
-    KeyType.GENERIC_SECRET: 0,
+    KeyType.GENERIC_SECRET: 0,  # type: ignore[dict-item]
     KeyType.EC_EDWARDS: _SIGNING,
 }
+
 """
 Default capabilities for generating keys.
 """
@@ -125,11 +127,11 @@ _bytes = (bytes, bytes)
 _biginteger = _bytes
 
 
-def _enum(type_):
+def _enum(type_: type[Any]) -> tuple[Callable[[Any], bytes], Callable[[Any], Any]]:
     """Factory to pack/unpack intos into IntEnums."""
     pack, unpack = _ulong
 
-    return (lambda v: pack(int(v)), lambda v: type_(unpack(v)))
+    return (lambda v: pack(int(v)), lambda v: type_(unpack(v)))  # type: ignore[no-untyped-call]
 
 
 ATTRIBUTE_TYPES = {
