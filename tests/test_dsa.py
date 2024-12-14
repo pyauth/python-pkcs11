@@ -4,14 +4,11 @@ PKCS#11 DSA Tests
 
 import base64
 
+import pytest
+
 import pkcs11
 from pkcs11 import Attribute, KeyType, Mechanism
-from pkcs11.util.dsa import (
-    decode_dsa_domain_parameters,
-    encode_dsa_domain_parameters,
-)
-
-from . import FIXME, TestCase, requires
+from pkcs11.util.dsa import decode_dsa_domain_parameters, encode_dsa_domain_parameters
 
 DHPARAMS = base64.b64decode("""
 MIIBHwKBgQD8jXSat2sk+j0plaMn51AVYBWEyWee3ui3llRUckVceDILsjVdBs1tXCDhU7WC+VZZ
@@ -23,33 +20,34 @@ ouQbj2Vq
 """)
 
 
-class DSATests(TestCase):
-    @requires(Mechanism.DSA_PARAMETER_GEN)
-    @FIXME.nfast  # returns Function Failed
-    def test_generate_params(self):
-        parameters = self.session.generate_domain_parameters(KeyType.DSA, 1024)
-        self.assertIsInstance(parameters, pkcs11.DomainParameters)
-        self.assertEqual(parameters[Attribute.PRIME_BITS], 1024)
+@pytest.mark.requires(Mechanism.DSA_PARAMETER_GEN)
+@pytest.mark.xfail_nfast
+def test_generate_params(session: pkcs11.Session) -> None:
+    parameters = session.generate_domain_parameters(KeyType.DSA, 1024)
+    assert isinstance(parameters, pkcs11.DomainParameters)
+    assert parameters[Attribute.PRIME_BITS] == 1024
 
-        encode_dsa_domain_parameters(parameters)
+    encode_dsa_domain_parameters(parameters)
 
-    @requires(Mechanism.DSA_KEY_PAIR_GEN, Mechanism.DSA_SHA1)
-    def test_generate_keypair_and_sign(self):
-        dhparams = self.session.create_domain_parameters(
-            KeyType.DSA, decode_dsa_domain_parameters(DHPARAMS), local=True
-        )
 
-        public, private = dhparams.generate_keypair()
-        self.assertIsInstance(public, pkcs11.PublicKey)
-        self.assertIsInstance(private, pkcs11.PrivateKey)
-        self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)
+@pytest.mark.requires(Mechanism.DSA_KEY_PAIR_GEN, Mechanism.DSA_SHA1)
+def test_generate_keypair_and_sign(session: pkcs11.Session):
+    dhparams = session.create_domain_parameters(
+        KeyType.DSA, decode_dsa_domain_parameters(DHPARAMS), local=True
+    )
 
-        data = "Message to sign"
-        signature = private.sign(data, mechanism=Mechanism.DSA_SHA1)
-        self.assertTrue(public.verify(data, signature, mechanism=Mechanism.DSA_SHA1))
+    public, private = dhparams.generate_keypair()
+    assert isinstance(public, pkcs11.PublicKey)
+    assert isinstance(private, pkcs11.PrivateKey)
+    assert len(public[Attribute.VALUE]) == 1024 // 8
 
-    @requires(Mechanism.DSA_PARAMETER_GEN, Mechanism.DSA_KEY_PAIR_GEN)
-    @FIXME.nfast  # returns Function Failed
-    def test_generate_keypair_directly(self):
-        public, private = self.session.generate_keypair(KeyType.DSA, 1024)
-        self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)
+    data = "Message to sign"
+    signature = private.sign(data, mechanism=Mechanism.DSA_SHA1)
+    assert public.verify(data, signature, mechanism=Mechanism.DSA_SHA1) is True
+
+
+@pytest.mark.xfail_nfast
+@pytest.mark.requires(Mechanism.DSA_PARAMETER_GEN, Mechanism.DSA_KEY_PAIR_GEN)
+def test_generate_keypair_directly(session: pkcs11.Session):
+    public, private = session.generate_keypair(KeyType.DSA, 1024)
+    assert len(public[Attribute.VALUE]) == 1024 // 8
