@@ -6,11 +6,7 @@ from .constants import *  # noqa: F403
 from .exceptions import *  # noqa: F403
 from .mechanisms import *  # noqa: F403
 from .types import *  # noqa: F403
-from .util import dh # noqa: F403
-from .util import dsa # noqa: F403
-from .util import ec # noqa: F403
-from .util import rsa # noqa: F403
-from .util import x509 # noqa: F403
+from .util import dh, dsa, ec, rsa, x509  # noqa: F401
 
 _so = None
 _lib = None
