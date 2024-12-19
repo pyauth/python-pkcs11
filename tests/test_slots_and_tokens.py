@@ -2,72 +2,77 @@
 PKCS#11 Slots and Tokens
 """
 
-import unittest
+import pytest
 
 import pkcs11
+from tests.conftest import IS_NFAST, IS_OPENCRYPTOKI, IS_SOFTHSM, LIB_PATH
 
-from . import LIB, TOKEN, Not, Only
+
+def test_double_initialise() -> None:
+    assert pkcs11.lib(LIB_PATH) is not None
+    assert pkcs11.lib(LIB_PATH) is not None
 
 
-class SlotsAndTokensTests(unittest.TestCase):
-    def test_double_initialise(self):
-        self.assertIsNotNone(pkcs11.lib(LIB))
-        self.assertIsNotNone(pkcs11.lib(LIB))
+def test_double_initialise_different_libs() -> None:
+    assert pkcs11.lib(LIB_PATH) is not None
+    with pytest.raises(pkcs11.AlreadyInitialized):
+        pkcs11.lib("somethingelse.so")
 
-    def test_double_initialise_different_libs(self):
-        self.assertIsNotNone(pkcs11.lib(LIB))
-        with self.assertRaises(pkcs11.AlreadyInitialized):
-            pkcs11.lib("somethingelse.so")
 
-    @Only.softhsm2
-    def test_get_slots(self):
-        lib = pkcs11.lib(LIB)
-        slots = lib.get_slots()
+@pytest.mark.skipif(not IS_SOFTHSM, reason="Only supported on SoftHSMv2.")
+@pytest.mark.usefixtures("softhsm_token")
+def test_get_slots() -> None:
+    lib = pkcs11.lib(LIB_PATH)
+    slots = lib.get_slots()
 
-        self.assertEqual(len(slots), 2)
-        slot1, slot2 = slots
+    assert len(slots) == 2
+    slot1, slot2 = slots
 
-        self.assertIsInstance(slot1, pkcs11.Slot)
-        self.assertEqual(slot1.flags, pkcs11.SlotFlag.TOKEN_PRESENT)
+    assert isinstance(slot1, pkcs11.Slot)
+    assert slot1.flags == pkcs11.SlotFlag.TOKEN_PRESENT
 
-    def test_get_mechanisms(self):
-        lib = pkcs11.lib(LIB)
-        slot, *_ = lib.get_slots()
-        mechanisms = slot.get_mechanisms()
-        self.assertIn(pkcs11.Mechanism.RSA_PKCS, mechanisms)
 
-    def test_get_mechanism_info(self):
-        lib = pkcs11.lib(LIB)
-        slot, *_ = lib.get_slots()
-        info = slot.get_mechanism_info(pkcs11.Mechanism.RSA_PKCS_OAEP)
-        self.assertIsInstance(info, pkcs11.MechanismInfo)
+def test_get_mechanisms() -> None:
+    lib = pkcs11.lib(LIB_PATH)
+    slot, *_ = lib.get_slots()
+    mechanisms = slot.get_mechanisms()
+    assert pkcs11.Mechanism.RSA_PKCS in mechanisms
 
-    @Not.nfast  # EC not supported
-    @Not.opencryptoki
-    def test_get_mechanism_info_ec(self):
-        lib = pkcs11.lib(LIB)
-        slot, *_ = lib.get_slots()
-        info = slot.get_mechanism_info(pkcs11.Mechanism.EC_KEY_PAIR_GEN)
-        self.assertIsInstance(info, pkcs11.MechanismInfo)
-        self.assertIn(pkcs11.MechanismFlag.EC_NAMEDCURVE, info.flags)
 
-    @Only.softhsm2
-    def test_get_tokens(self):
-        lib = pkcs11.lib(LIB)
+def test_get_mechanism_info() -> None:
+    lib = pkcs11.lib(LIB_PATH)
+    slot, *_ = lib.get_slots()
+    info = slot.get_mechanism_info(pkcs11.Mechanism.RSA_PKCS_OAEP)
+    assert isinstance(info, pkcs11.MechanismInfo)
 
-        tokens = lib.get_tokens(token_flags=pkcs11.TokenFlag.RNG)
-        self.assertEqual(len(list(tokens)), 2)
 
-        tokens = lib.get_tokens(token_label=TOKEN)
-        self.assertEqual(len(list(tokens)), 1)
+@pytest.mark.skipif(IS_NFAST or IS_OPENCRYPTOKI, reason="EC not supported.")
+def test_get_mechanism_info_ec() -> None:
+    lib = pkcs11.lib(LIB_PATH)
+    slot, *_ = lib.get_slots()
+    info = slot.get_mechanism_info(pkcs11.Mechanism.EC_KEY_PAIR_GEN)
+    assert isinstance(info, pkcs11.MechanismInfo)
+    assert pkcs11.MechanismFlag.EC_NAMEDCURVE in info.flags
 
-    @Only.softhsm2
-    def test_get_token(self):
-        lib = pkcs11.lib(LIB)
-        slot, *_ = lib.get_slots()
-        token = slot.get_token()
 
-        self.assertIsInstance(token, pkcs11.Token)
-        self.assertEqual(token.label, TOKEN)
-        self.assertIn(pkcs11.TokenFlag.TOKEN_INITIALIZED, token.flags)
-        self.assertIn(pkcs11.TokenFlag.LOGIN_REQUIRED, token.flags)
+@pytest.mark.skipif(not IS_SOFTHSM, reason="Only supported on SoftHSMv2.")
+def test_get_tokens(softhsm_token: pkcs11.Token) -> None:
+    lib = pkcs11.lib(LIB_PATH)
+
+    tokens = list(lib.get_tokens(token_flags=pkcs11.TokenFlag.RNG))
+    assert len(list(tokens)) == 2
+
+    tokens = lib.get_tokens(token_label=softhsm_token.label)
+    assert len(list(tokens)) == 1
+
+
+@pytest.mark.skipif(not IS_SOFTHSM, reason="Only supported on SoftHSMv2.")
+def test_get_token(token: pkcs11.Token) -> None:
+    lib = pkcs11.lib(LIB_PATH)
+    slot, *_ = lib.get_slots()
+    actual_token = slot.get_token()
+
+    assert isinstance(actual_token, pkcs11.Token)
+    assert actual_token.label == token.label
+    assert pkcs11.TokenFlag.TOKEN_INITIALIZED in actual_token.flags
+    assert pkcs11.TokenFlag.LOGIN_REQUIRED in actual_token.flags
