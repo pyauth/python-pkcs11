@@ -1,7 +1,7 @@
 *.so
 *.c
 __pycache__
-
+.idea/
 /build
 /dist/
 /docs/_build
