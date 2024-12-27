@@ -4,72 +4,69 @@ PKCS#11 Digests
 
 import hashlib
 
+import pytest
+
+import pkcs11
 from pkcs11 import Attribute, KeyType, Mechanism
+from tests.conftest import IS_NFAST
 
-from . import Not, TestCase, requires
+
+@pytest.mark.requires(Mechanism.SHA256)
+def test_digest(session: pkcs11.Session) -> None:
+    data = "THIS IS SOME DATA TO DIGEST"
+    digest = session.digest(data, mechanism=Mechanism.SHA256)
+
+    assert digest == hashlib.sha256(data.encode("utf-8")).digest()
 
 
-class DigestTests(TestCase):
-    @requires(Mechanism.SHA256)
-    def test_digest(self):
-        data = "THIS IS SOME DATA TO DIGEST"
-        digest = self.session.digest(data, mechanism=Mechanism.SHA256)
+@pytest.mark.requires(Mechanism.SHA256)
+def test_digest_generator(session: pkcs11.Session) -> None:
+    data = (b"This is ", b"some data ", b"to digest.")
 
-        self.assertEqual(digest, hashlib.sha256(data.encode("utf-8")).digest())
+    digest = session.digest(data, mechanism=Mechanism.SHA256)
 
-    @requires(Mechanism.SHA256)
-    def test_digest_generator(self):
-        data = (
-            b"This is ",
-            b"some data ",
-            b"to digest.",
-        )
+    m = hashlib.sha256()
+    for d in data:
+        m.update(d)
 
-        digest = self.session.digest(data, mechanism=Mechanism.SHA256)
+    assert digest == m.digest()
 
-        m = hashlib.sha256()
-        for d in data:
-            m.update(d)
 
-        self.assertEqual(digest, m.digest())
+@pytest.mark.requires(Mechanism.AES_KEY_GEN)
+@pytest.mark.requires(Mechanism.SHA256)
+@pytest.mark.skipif(IS_NFAST, reason="nFast can't digest keys")
+def test_digest_key(session: pkcs11.Session) -> None:
+    key = session.generate_key(
+        KeyType.AES, 128, template={Attribute.SENSITIVE: False, Attribute.EXTRACTABLE: True}
+    )
 
-    @requires(Mechanism.AES_KEY_GEN, Mechanism.SHA256)
-    @Not.nfast  # nFast can't digest keys
-    def test_digest_key(self):
-        key = self.session.generate_key(
-            KeyType.AES,
-            128,
-            template={
-                Attribute.SENSITIVE: False,
-                Attribute.EXTRACTABLE: True,
-            },
-        )
+    digest = session.digest(key, mechanism=Mechanism.SHA256)
 
-        digest = self.session.digest(key, mechanism=Mechanism.SHA256)
+    assert digest == hashlib.sha256(key[Attribute.VALUE]).digest()
 
-        self.assertEqual(digest, hashlib.sha256(key[Attribute.VALUE]).digest())
 
-    @requires(Mechanism.AES_KEY_GEN, Mechanism.SHA256)
-    @Not.nfast  # nFast can't digest keys
-    def test_digest_key_data(self):
-        key = self.session.generate_key(
-            KeyType.AES,
-            128,
-            template={
-                Attribute.SENSITIVE: False,
-                Attribute.EXTRACTABLE: True,
-            },
-        )
+@pytest.mark.requires(Mechanism.AES_KEY_GEN)
+@pytest.mark.requires(Mechanism.SHA256)
+@pytest.mark.skipif(IS_NFAST, reason="nFast can't digest keys")
+def test_digest_key_data(session: pkcs11.Session) -> None:
+    key = session.generate_key(
+        KeyType.AES,
+        128,
+        template={
+            Attribute.SENSITIVE: False,
+            Attribute.EXTRACTABLE: True,
+        },
+    )
 
-        data = (
-            b"Some data",
-            key,
-        )
+    data = (
+        b"Some data",
+        key,
+    )
 
-        digest = self.session.digest(data, mechanism=Mechanism.SHA256)
+    digest = session.digest(data, mechanism=Mechanism.SHA256)
 
-        m = hashlib.sha256()
-        m.update(data[0])
-        m.update(data[1][Attribute.VALUE])
+    m = hashlib.sha256()
+    m.update(data[0])
+    m.update(data[1][Attribute.VALUE])
 
-        self.assertEqual(digest, m.digest())
+    assert digest == m.digest()

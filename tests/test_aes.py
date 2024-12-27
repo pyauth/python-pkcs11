@@ -2,388 +2,397 @@
 PKCS#11 AES Secret Keys
 """
 
-from parameterized import parameterized
+import pytest
 
 import pkcs11
 from pkcs11 import Mechanism
 
-from . import FIXME, TestCase, requires
+pytestmark = [pytest.mark.requires(Mechanism.AES_KEY_GEN)]
 
 
-class AESTests(TestCase):
-    @requires(Mechanism.AES_KEY_GEN)
-    def setUp(self):
-        super().setUp()
-        self.key = self.session.generate_key(pkcs11.KeyType.AES, 128)
+@pytest.fixture
+def key(session: pkcs11.Session) -> pkcs11.SecretKey:
+    return session.generate_key(pkcs11.KeyType.AES, 128)
 
-    @requires(Mechanism.AES_CBC_PAD)
-    def test_encrypt(self):
-        data = b"INPUT DATA"
-        iv = b"0" * 16
 
-        crypttext = self.key.encrypt(data, mechanism_param=iv)
-        self.assertIsInstance(crypttext, bytes)
-        self.assertNotEqual(data, crypttext)
-        # We should be aligned to the block size
-        self.assertEqual(len(crypttext), 16)
-        # Ensure we didn't just get 16 nulls
-        self.assertFalse(all(c == "\0" for c in crypttext))
+@pytest.mark.requires(Mechanism.AES_CBC_PAD)
+def test_encrypt(key: pkcs11.SecretKey) -> None:
+    data = b"INPUT DATA"
+    iv = b"0" * 16
 
-        text = self.key.decrypt(crypttext, mechanism_param=iv)
-        self.assertEqual(data, text)
+    crypttext = key.encrypt(data, mechanism_param=iv)
+    assert isinstance(crypttext, bytes)
+    assert data != crypttext
+    # We should be aligned to the block size
+    assert len(crypttext) == 16
+    # Ensure we didn't just get 16 nulls
+    assert all(c == "\0" for c in crypttext) is False
 
-    @requires(Mechanism.AES_CBC_PAD)
-    def test_encrypt_stream(self):
-        data = (
-            b"I" * 16,
-            b"N" * 16,
-            b"P" * 16,
-            b"U" * 16,
-            b"T" * 10,  # don't align to the blocksize
-        )
-        iv = b"0" * 16
+    text = key.decrypt(crypttext, mechanism_param=iv)
+    assert data == text
 
-        cryptblocks = list(self.key.encrypt(data, mechanism_param=iv))
 
-        self.assertEqual(len(cryptblocks), len(data) + 1)
-
-        crypttext = b"".join(cryptblocks)
-
-        self.assertNotEqual(b"".join(data), crypttext)
-        # We should be aligned to the block size
-        self.assertEqual(len(crypttext) % 16, 0)
-        # Ensure we didn't just get 16 nulls
-        self.assertFalse(all(c == "\0" for c in crypttext))
-
-        text = b"".join(self.key.decrypt(cryptblocks, mechanism_param=iv))
-        self.assertEqual(b"".join(data), text)
-
-    @requires(Mechanism.AES_CBC_PAD)
-    def test_encrypt_whacky_sizes(self):
-        data = [(char * ord(char)).encode("utf-8") for char in "HELLO WORLD"]
-        iv = b"0" * 16
-
-        cryptblocks = list(self.key.encrypt(data, mechanism_param=iv))
-        textblocks = list(self.key.decrypt(cryptblocks, mechanism_param=iv))
-
-        self.assertEqual(b"".join(data), b"".join(textblocks))
-
-    @requires(Mechanism.AES_CBC_PAD)
-    def test_encrypt_big_string(self):
-        data = b"HELLO WORLD" * 1024
-
-        iv = self.session.generate_random(128)
-        crypttext = self.key.encrypt(data, mechanism_param=iv)
-        text = self.key.decrypt(crypttext, mechanism_param=iv)
-
-        self.assertEqual(text, data)
-
-    @requires(Mechanism.AES_MAC)
-    def test_sign(self):
-        data = b"HELLO WORLD"
-
-        signature = self.key.sign(data)
-        self.assertIsNotNone(signature)
-        self.assertIsInstance(signature, bytes)
-        self.assertTrue(self.key.verify(data, signature))
-        self.assertFalse(self.key.verify(data, b"1234"))
-
-    @requires(Mechanism.AES_MAC)
-    def test_sign_stream(self):
-        data = (
-            b"I" * 16,
-            b"N" * 16,
-            b"P" * 16,
-            b"U" * 16,
-            b"T" * 10,  # don't align to the blocksize
-        )
-
-        signature = self.key.sign(data)
-        self.assertIsNotNone(signature)
-        self.assertIsInstance(signature, bytes)
-        self.assertTrue(self.key.verify(data, signature))
-
-    @requires(Mechanism.AES_KEY_WRAP)
-    @FIXME.opencryptoki  # can't set key attributes
-    def test_wrap(self):
-        key = self.session.generate_key(
-            pkcs11.KeyType.AES,
-            128,
-            template={
-                pkcs11.Attribute.EXTRACTABLE: True,
-                pkcs11.Attribute.SENSITIVE: False,
-            },
-        )
-        data = self.key.wrap_key(key)
-
-        key2 = self.key.unwrap_key(
-            pkcs11.ObjectClass.SECRET_KEY,
-            pkcs11.KeyType.AES,
-            data,
-            template={
-                pkcs11.Attribute.EXTRACTABLE: True,
-                pkcs11.Attribute.SENSITIVE: False,
-            },
-        )
-
-        self.assertEqual(key[pkcs11.Attribute.VALUE], key2[pkcs11.Attribute.VALUE])
-
-    @parameterized.expand(
-        [
-            ("POSITIVE_128_BIT", 128, 16, TestCase.assertIsNotNone),
-            ("POSITIVE_128_BIT_LONG_IV", 128, 32, TestCase.assertIsNotNone),
-            ("NEGATIVE_128_BIT_BAD_IV", 128, 15, TestCase.assertIsNone),
-            ("POSITIVE_256_BIT_LONG_IV", 256, 32, TestCase.assertIsNotNone),
-            ("NEGATIVE_256_BIT_SHORT_IV", 256, 16, TestCase.assertIsNone),
-            ("NEGATIVE_256_BIT_BAD_IV", 256, 31, TestCase.assertIsNone),
-        ]
+@pytest.mark.requires(Mechanism.AES_CBC_PAD)
+def test_encrypt_stream(key: pkcs11.SecretKey):
+    data = (
+        b"I" * 16,
+        b"N" * 16,
+        b"P" * 16,
+        b"U" * 16,
+        b"T" * 10,  # don't align to the blocksize
     )
-    @requires(Mechanism.AES_ECB_ENCRYPT_DATA)
-    @FIXME.opencryptoki  # can't set key attributes
-    def test_derive_using_ecb_encrypt(self, test_type, test_key_length, iv_length, assert_fn):
-        """Function to test AES Key Derivation using the ECB_ENCRYPT Mechanism.
+    iv = b"0" * 16
 
-        Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
-        """
+    cryptblocks = list(key.encrypt(data, mechanism_param=iv))
 
-        # Create the Master Key
-        capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
-        capabilities |= pkcs11.MechanismFlag.DERIVE
-        key = self.session.generate_key(
+    assert len(cryptblocks) == len(data) + 1
+
+    crypttext = b"".join(cryptblocks)
+
+    assert b"".join(data) != crypttext
+    # We should be aligned to the block size
+    assert len(crypttext) % 16 == 0
+    # Ensure we didn't just get 16 nulls
+    assert all(c == "\0" for c in crypttext) is False
+
+    text = b"".join(key.decrypt(cryptblocks, mechanism_param=iv))
+    assert b"".join(data) == text
+
+
+@pytest.mark.requires(Mechanism.AES_CBC_PAD)
+def test_encrypt_whacky_sizes(key: pkcs11.SecretKey):
+    data = [(char * ord(char)).encode("utf-8") for char in "HELLO WORLD"]
+    iv = b"0" * 16
+
+    cryptblocks = list(key.encrypt(data, mechanism_param=iv))
+    textblocks = list(key.decrypt(cryptblocks, mechanism_param=iv))
+
+    assert b"".join(data) == b"".join(textblocks)
+
+
+@pytest.mark.requires(Mechanism.AES_CBC_PAD)
+def test_encrypt_big_string(session: pkcs11.Session, key: pkcs11.SecretKey):
+    data = b"HELLO WORLD" * 1024
+
+    iv = session.generate_random(128)
+    crypttext = key.encrypt(data, mechanism_param=iv)
+    text = key.decrypt(crypttext, mechanism_param=iv)
+
+    assert text == data
+
+
+@pytest.mark.requires(Mechanism.AES_MAC)
+def test_sign(key: pkcs11.SecretKey):
+    data = b"HELLO WORLD"
+
+    signature = key.sign(data)
+    assert isinstance(signature, bytes)
+    assert key.verify(data, signature) is True
+    assert key.verify(data, b"1234") is False
+
+
+@pytest.mark.requires(Mechanism.AES_MAC)
+def test_sign_stream(key: pkcs11.SecretKey):
+    data = (
+        b"I" * 16,
+        b"N" * 16,
+        b"P" * 16,
+        b"U" * 16,
+        b"T" * 10,  # don't align to the blocksize
+    )
+
+    signature = key.sign(data)
+    assert isinstance(signature, bytes)
+    assert key.verify(data, signature)
+
+
+@pytest.mark.requires(Mechanism.AES_KEY_WRAP)
+@pytest.mark.xfail_opencryptoki  # can't set key attributes
+def test_wrap(session: pkcs11.Session, key: pkcs11.SecretKey):
+    key = session.generate_key(
+        pkcs11.KeyType.AES,
+        128,
+        template={
+            pkcs11.Attribute.EXTRACTABLE: True,
+            pkcs11.Attribute.SENSITIVE: False,
+        },
+    )
+    data = key.wrap_key(key)
+
+    key2 = key.unwrap_key(
+        pkcs11.ObjectClass.SECRET_KEY,
+        pkcs11.KeyType.AES,
+        data,
+        template={
+            pkcs11.Attribute.EXTRACTABLE: True,
+            pkcs11.Attribute.SENSITIVE: False,
+        },
+    )
+
+    assert key[pkcs11.Attribute.VALUE] == key2[pkcs11.Attribute.VALUE]
+
+
+@pytest.mark.parametrize(
+    ("test_key_length", "iv_length", "is_none"),
+    [
+        (128, 16, False),
+        (128, 32, False),
+        (128, 15, True),
+        (256, 32, False),
+        (256, 16, True),
+        (256, 31, True),
+    ],
+)
+@pytest.mark.requires(Mechanism.AES_ECB_ENCRYPT_DATA)
+@pytest.mark.xfail_opencryptoki  # can't set key attributes
+def test_derive_using_ecb_encrypt(
+    session: pkcs11.Session,
+    key: pkcs11.SecretKey,
+    test_key_length: int,
+    iv_length: int,
+    is_none: bool,
+):
+    """Function to test AES Key Derivation using the ECB_ENCRYPT Mechanism.
+
+    Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
+    """
+
+    # Create the Master Key
+    capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
+    capabilities |= pkcs11.MechanismFlag.DERIVE
+    key = session.generate_key(
+        pkcs11.KeyType.AES,
+        key_length=test_key_length,
+        capabilities=capabilities,
+        template={
+            pkcs11.Attribute.EXTRACTABLE: True,
+            pkcs11.Attribute.DERIVE: True,
+            pkcs11.Attribute.SENSITIVE: False,
+        },
+    )
+
+    assert key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
+
+    # Derive a Key from the Master Key
+    iv = b"0" * iv_length
+    try:
+        derived_key = key.derive_key(
             pkcs11.KeyType.AES,
             key_length=test_key_length,
             capabilities=capabilities,
+            mechanism=Mechanism.AES_ECB_ENCRYPT_DATA,
+            mechanism_param=iv,
             template={
                 pkcs11.Attribute.EXTRACTABLE: True,
-                pkcs11.Attribute.DERIVE: True,
                 pkcs11.Attribute.SENSITIVE: False,
             },
         )
+    except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed):
+        derived_key = None
 
-        self.assertTrue(
-            key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
-        )
+    if is_none:
+        assert derived_key is None, "{}-bit Key Derivation Failure".format(test_key_length)
+    else:
+        assert derived_key is not None, "{}-bit Key Derivation Failure".format(test_key_length)
 
-        # Derive a Key from the Master Key
-        iv = b"0" * iv_length
-        try:
-            derived_key = key.derive_key(
-                pkcs11.KeyType.AES,
-                key_length=test_key_length,
-                capabilities=capabilities,
-                mechanism=Mechanism.AES_ECB_ENCRYPT_DATA,
-                mechanism_param=iv,
-                template={
-                    pkcs11.Attribute.EXTRACTABLE: True,
-                    pkcs11.Attribute.SENSITIVE: False,
-                },
-            )
-        except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed):
-            derived_key = None
 
-        assert_fn(self, derived_key, "{}-bit Key Derivation Failure".format(test_key_length))
+@pytest.mark.parametrize(("test_key_length", "iv_length"), [(128, 16), (256, 32)])
+@pytest.mark.requires(Mechanism.AES_ECB_ENCRYPT_DATA)
+@pytest.mark.xfail_opencryptoki  # can't set key attributes
+def test_encrypt_with_key_derived_using_ecb_encrypt(
+    session: pkcs11.Session, key: pkcs11.SecretKey, test_key_length: int, iv_length: int
+) -> None:
+    """Function to test Data Encryption/Decryption using a Derived AES Key.
 
-    @parameterized.expand(
-        [
-            ("POSITIVE_128_BIT", 128, 16),
-            ("POSITIVE_256_BIT_LONG_IV", 256, 32),
-        ]
+    Function to test Data Encryption/Decryption using an AES Key
+    Derived by the ECB_ENCRYPT Mechanism.
+
+    Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
+    """
+
+    # Create the Master Key
+    capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
+    capabilities |= pkcs11.MechanismFlag.DERIVE
+    key = session.generate_key(
+        pkcs11.KeyType.AES,
+        key_length=test_key_length,
+        capabilities=capabilities,
+        template={
+            pkcs11.Attribute.EXTRACTABLE: True,
+            pkcs11.Attribute.DERIVE: True,
+            pkcs11.Attribute.SENSITIVE: False,
+        },
     )
-    @requires(Mechanism.AES_ECB_ENCRYPT_DATA)
-    @FIXME.opencryptoki  # can't set key attributes
-    def test_encrypt_with_key_derived_using_ecb_encrypt(
-        self, test_type, test_key_length, iv_length
+
+    assert key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
+
+    # Derive a Key from the Master Key
+    iv = b"0" * iv_length
+    try:
+        derived_key = key.derive_key(
+            pkcs11.KeyType.AES,
+            key_length=test_key_length,
+            capabilities=capabilities,
+            mechanism=Mechanism.AES_ECB_ENCRYPT_DATA,
+            mechanism_param=iv,
+            template={
+                pkcs11.Attribute.EXTRACTABLE: True,
+                pkcs11.Attribute.SENSITIVE: False,
+            },
+        )
+    except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed):
+        derived_key = None
+
+    assert derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length)
+
+    # Test capability of Key to Encrypt/Decrypt data
+    data = b"HELLO WORLD" * 1024
+
+    iv = session.generate_random(128)
+    crypttext = key.encrypt(data, mechanism_param=iv)
+    text = key.decrypt(crypttext, mechanism_param=iv)
+
+    assert text == data
+
+
+@pytest.mark.parametrize(
+    ("test_key_length", "iv_length", "data_length", "is_none"),
+    [
+        (128, 16, 16, False),
+        (128, 16, 64, False),
+        (128, 15, 16, True),
+        (128, 16, 31, True),
+        (256, 16, 32, False),
+        (256, 16, 64, False),
+        (256, 15, 16, True),
+        (256, 16, 31, True),
+        (256, 16, 16, True),
+    ],
+)
+@pytest.mark.requires(Mechanism.AES_CBC_ENCRYPT_DATA)
+@pytest.mark.xfail_opencryptoki  # can't set key attributes
+def test_derive_using_cbc_encrypt(
+    session: pkcs11.Session,
+    key: pkcs11.SecretKey,
+    test_key_length: int,
+    iv_length: int,
+    data_length: int,
+    is_none: bool,
+):
+    """Function to test AES Key Derivation using the CBC_ENCRYPT Mechanism.
+
+    Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
+    """
+
+    # Create the Master Key
+    capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
+    capabilities |= pkcs11.MechanismFlag.DERIVE
+    key = session.generate_key(
+        pkcs11.KeyType.AES,
+        key_length=test_key_length,
+        capabilities=capabilities,
+        template={
+            pkcs11.Attribute.EXTRACTABLE: True,
+            pkcs11.Attribute.DERIVE: True,
+            pkcs11.Attribute.SENSITIVE: False,
+        },
+    )
+
+    assert key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
+
+    # Derive a Key from the Master Key
+    iv = b"0" * iv_length
+    data = b"1" * data_length
+    try:
+        derived_key = key.derive_key(
+            pkcs11.KeyType.AES,
+            key_length=test_key_length,
+            capabilities=capabilities,
+            mechanism=Mechanism.AES_CBC_ENCRYPT_DATA,
+            mechanism_param=(iv, data),
+            template={
+                pkcs11.Attribute.EXTRACTABLE: True,
+                pkcs11.Attribute.SENSITIVE: False,
+            },
+        )
+    except (
+        pkcs11.exceptions.MechanismParamInvalid,
+        pkcs11.exceptions.FunctionFailed,
+        IndexError,
     ):
-        """Function to test Data Encryption/Decryption using a Derived AES Key.
+        derived_key = None
 
-        Function to test Data Encryption/Decryption using an AES Key
-        Derived by the ECB_ENCRYPT Mechanism.
+    if is_none:
+        assert derived_key is None, "{}-bit Key Derivation Failure".format(test_key_length)
+    else:
+        assert derived_key is not None
 
-        Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
-        """
 
-        # Create the Master Key
-        capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
-        capabilities |= pkcs11.MechanismFlag.DERIVE
-        key = self.session.generate_key(
-            pkcs11.KeyType.AES,
-            key_length=test_key_length,
-            capabilities=capabilities,
-            template={
-                pkcs11.Attribute.EXTRACTABLE: True,
-                pkcs11.Attribute.DERIVE: True,
-                pkcs11.Attribute.SENSITIVE: False,
-            },
-        )
+@pytest.mark.parametrize(
+    ("test_key_length", "iv_length", "data_length"), [(128, 16, 16), (256, 16, 32), (256, 16, 64)]
+)
+@pytest.mark.requires(Mechanism.AES_CBC_ENCRYPT_DATA)
+@pytest.mark.xfail_opencryptoki  # can't set key attributes
+def test_encrypt_with_key_derived_using_cbc_encrypt(
+    session: pkcs11.Session,
+    key: pkcs11.SecretKey,
+    test_key_length: int,
+    iv_length: int,
+    data_length: int,
+):
+    """Function to test Data Encryption/Decryption using a Derived AES Key.
 
-        self.assertTrue(
-            key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
-        )
+    Function to test Data Encryption/Decryption using an AES Key
+    Derived by the CBC_ENCRYPT Mechanism.
 
-        # Derive a Key from the Master Key
-        iv = b"0" * iv_length
-        try:
-            derived_key = key.derive_key(
-                pkcs11.KeyType.AES,
-                key_length=test_key_length,
-                capabilities=capabilities,
-                mechanism=Mechanism.AES_ECB_ENCRYPT_DATA,
-                mechanism_param=iv,
-                template={
-                    pkcs11.Attribute.EXTRACTABLE: True,
-                    pkcs11.Attribute.SENSITIVE: False,
-                },
-            )
-        except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed):
-            derived_key = None
+    Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
+    """
 
-        self.assertTrue(
-            derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length)
-        )
-
-        # Test capability of Key to Encrypt/Decrypt data
-        data = b"HELLO WORLD" * 1024
-
-        iv = self.session.generate_random(128)
-        crypttext = self.key.encrypt(data, mechanism_param=iv)
-        text = self.key.decrypt(crypttext, mechanism_param=iv)
-
-        self.assertEqual(text, data)
-
-    @parameterized.expand(
-        [
-            ("POSITIVE_128_BIT", 128, 16, 16, TestCase.assertIsNotNone),
-            ("POSITIVE_128_BIT_LONG_DATA", 128, 16, 64, TestCase.assertIsNotNone),
-            ("NEGATIVE_128_BIT_BAD_IV", 128, 15, 16, TestCase.assertIsNone),
-            ("NEGATIVE_128_BIT_BAD_DATA", 128, 16, 31, TestCase.assertIsNone),
-            ("POSITIVE_256_BIT", 256, 16, 32, TestCase.assertIsNotNone),
-            ("POSITIVE_256_BIT_LONG_DATA", 256, 16, 64, TestCase.assertIsNotNone),
-            ("NEGATIVE_256_BIT_BAD_IV", 256, 15, 16, TestCase.assertIsNone),
-            ("NEGATIVE_256_BIT_BAD_DATA", 256, 16, 31, TestCase.assertIsNone),
-            ("NEGATIVE_256_BIT_SHORT_DATA", 256, 16, 16, TestCase.assertIsNone),
-        ]
+    # Create the Master Key
+    capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
+    capabilities |= pkcs11.MechanismFlag.DERIVE
+    key = session.generate_key(
+        pkcs11.KeyType.AES,
+        key_length=test_key_length,
+        capabilities=capabilities,
+        template={
+            pkcs11.Attribute.EXTRACTABLE: True,
+            pkcs11.Attribute.DERIVE: True,
+            pkcs11.Attribute.SENSITIVE: False,
+        },
     )
-    @requires(Mechanism.AES_CBC_ENCRYPT_DATA)
-    @FIXME.opencryptoki  # can't set key attributes
-    def test_derive_using_cbc_encrypt(
-        self, test_type, test_key_length, iv_length, data_length, assert_fn
-    ):
-        """Function to test AES Key Derivation using the CBC_ENCRYPT Mechanism.
 
-        Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
-        """
+    assert key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
 
-        # Create the Master Key
-        capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
-        capabilities |= pkcs11.MechanismFlag.DERIVE
-        key = self.session.generate_key(
+    # Derive a Key from the Master Key
+    iv = b"0" * iv_length
+    data = b"1" * data_length
+    try:
+        derived_key = key.derive_key(
             pkcs11.KeyType.AES,
             key_length=test_key_length,
             capabilities=capabilities,
+            mechanism=Mechanism.AES_CBC_ENCRYPT_DATA,
+            mechanism_param=(iv, data),
             template={
                 pkcs11.Attribute.EXTRACTABLE: True,
-                pkcs11.Attribute.DERIVE: True,
                 pkcs11.Attribute.SENSITIVE: False,
             },
         )
-
-        self.assertTrue(
-            key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
-        )
-
-        # Derive a Key from the Master Key
-        iv = b"0" * iv_length
-        data = b"1" * data_length
-        try:
-            derived_key = key.derive_key(
-                pkcs11.KeyType.AES,
-                key_length=test_key_length,
-                capabilities=capabilities,
-                mechanism=Mechanism.AES_CBC_ENCRYPT_DATA,
-                mechanism_param=(iv, data),
-                template={
-                    pkcs11.Attribute.EXTRACTABLE: True,
-                    pkcs11.Attribute.SENSITIVE: False,
-                },
-            )
-        except (
-            pkcs11.exceptions.MechanismParamInvalid,
-            pkcs11.exceptions.FunctionFailed,
-            IndexError,
-        ):
-            derived_key = None
-
-        assert_fn(self, derived_key, "{}-bit Key Derivation Failure".format(test_key_length))
-
-    @parameterized.expand(
-        [
-            ("POSITIVE_128_BIT", 128, 16, 16),
-            ("POSITIVE_256_BIT", 256, 16, 32),
-            ("POSITIVE_256_BIT_LONG_DATA", 256, 16, 64),
-        ]
-    )
-    @requires(Mechanism.AES_CBC_ENCRYPT_DATA)
-    @FIXME.opencryptoki  # can't set key attributes
-    def test_encrypt_with_key_derived_using_cbc_encrypt(
-        self, test_type, test_key_length, iv_length, data_length
+    except (
+        pkcs11.exceptions.MechanismParamInvalid,
+        pkcs11.exceptions.FunctionFailed,
+        IndexError,
     ):
-        """Function to test Data Encryption/Decryption using a Derived AES Key.
+        derived_key = None
 
-        Function to test Data Encryption/Decryption using an AES Key
-        Derived by the CBC_ENCRYPT Mechanism.
+    assert derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length)
 
-        Refer to Section 2.15 of http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/errata01/os/pkcs11-curr-v2.40-errata01-os-complete.html#_Toc441850521
-        """
+    # Test capability of Key to Encrypt/Decrypt data
+    data = b"HELLO WORLD" * 1024
 
-        # Create the Master Key
-        capabilities = pkcs11.defaults.DEFAULT_KEY_CAPABILITIES[pkcs11.KeyType.AES]
-        capabilities |= pkcs11.MechanismFlag.DERIVE
-        key = self.session.generate_key(
-            pkcs11.KeyType.AES,
-            key_length=test_key_length,
-            capabilities=capabilities,
-            template={
-                pkcs11.Attribute.EXTRACTABLE: True,
-                pkcs11.Attribute.DERIVE: True,
-                pkcs11.Attribute.SENSITIVE: False,
-            },
-        )
+    iv = session.generate_random(128)
+    crypttext = key.encrypt(data, mechanism_param=iv)
+    text = key.decrypt(crypttext, mechanism_param=iv)
 
-        self.assertTrue(
-            key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
-        )
-
-        # Derive a Key from the Master Key
-        iv = b"0" * iv_length
-        data = b"1" * data_length
-        try:
-            derived_key = key.derive_key(
-                pkcs11.KeyType.AES,
-                key_length=test_key_length,
-                capabilities=capabilities,
-                mechanism=Mechanism.AES_CBC_ENCRYPT_DATA,
-                mechanism_param=(iv, data),
-                template={
-                    pkcs11.Attribute.EXTRACTABLE: True,
-                    pkcs11.Attribute.SENSITIVE: False,
-                },
-            )
-        except (
-            pkcs11.exceptions.MechanismParamInvalid,
-            pkcs11.exceptions.FunctionFailed,
-            IndexError,
-        ):
-            derived_key = None
-
-        self.assertTrue(
-            derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length)
-        )
-
-        # Test capability of Key to Encrypt/Decrypt data
-        data = b"HELLO WORLD" * 1024
-
-        iv = self.session.generate_random(128)
-        crypttext = self.key.encrypt(data, mechanism_param=iv)
-        text = self.key.decrypt(crypttext, mechanism_param=iv)
-
-        self.assertEqual(text, data)
+    assert text == data

@@ -1,0 +1,53 @@
+name: Tests
+on:
+  push:
+env:
+  PKCS11_MODULE: /home/runner/lib/softhsm/libsofthsm2.so
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.12"
+          - "3.13"
+
+    steps:
+      - name: Acquire sources
+        uses: actions/checkout@v4.1.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Create venv
+        run: uv venv --python-preference only-system --python ${{ matrix.python-version }}
+
+      - name: Update setuptools
+        run: uv pip install setuptools
+
+      # Locally compile softhsmv2. For unknown reasons, the version installed by Ubuntu fails on
+      # Github Actions (while working e.g. in Docker).
+      - name: Install Softhsm
+        run: |
+          curl https://dist.opendnssec.org/source/softhsm-2.6.1.tar.gz | tar -zxv
+          (cd softhsm-2.6.1 && ./configure --prefix=$HOME --disable-p11-kit --disable-gost && make all install CC="gcc" CXX="g++")
+          openssl version
+          uv pip show --python ${{ matrix.python-version }} oscrypto
+
+      - name: Install the project
+        run: uv sync --all-extras --python-preference only-system --python ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: PATH=/home/runner/bin:$PATH uv run --python ${{ matrix.python-version }} pytest -v
