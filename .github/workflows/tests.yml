@@ -43,9 +43,11 @@ jobs:
         run: |
           curl https://dist.opendnssec.org/source/softhsm-2.6.1.tar.gz | tar -zxv
           (cd softhsm-2.6.1 && ./configure --prefix=$HOME --disable-p11-kit --disable-gost && make all install CC="gcc" CXX="g++")
+          openssl version
+          uv pip show --python ${{ matrix.python-version }} oscrypto
 
       - name: Install the project
         run: uv sync --all-extras --python-preference only-system --python ${{ matrix.python-version }}
 
       - name: Run tests
-        run: PATH=/home/runner/bin:$PATH uv run --python ${{ matrix.python-version }} pytest -v tests/test_aes.py::test_encrypt
+        run: PATH=/home/runner/bin:$PATH uv run --python ${{ matrix.python-version }} pytest -v
