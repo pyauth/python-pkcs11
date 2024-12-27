@@ -1,0 +1,57 @@
+name: Tests
+on:
+  push:
+env:
+  UV_PYTHON_PREFERENCE: only-system
+  PKCS11_TOKEN_LABEL: TEST
+  PKCS11_TOKEN_PIN: 1234
+  PKCS11_TOKEN_SO_PIN: 5678
+jobs:
+  run:
+    # Run in Ubuntu 22.04 right now, as oscrypto fails on OpenSSL versions with a
+    # double-digit patch number (such as provided by Ubuntu 24.04):
+    #   https://community.snowflake.com/s/article/Python-Connector-fails-to-connect-with-LibraryNotFoundError-Error-detecting-the-version-of-libcrypto
+    #   https://github.com/wbond/oscrypto/issues/78
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+
+    steps:
+      - name: Acquire sources
+        uses: actions/checkout@v4.1.1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dev dependencies
+        run: uv sync --all-extras
+
+      # Locally compile softhsmv2. For unknown reasons, the version installed by Ubuntu fails on
+      # Github Actions (while working e.g. in Docker).
+      - name: Install Softhsm
+        run: |
+          curl https://dist.opendnssec.org/source/softhsm-2.6.1.tar.gz | tar -zxv
+          (cd softhsm-2.6.1 && ./configure --prefix=$HOME --disable-p11-kit --disable-gost && make all install CC="gcc" CXX="g++")
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          echo "PKCS11_MODULE=$HOME/lib/softhsm/libsofthsm2.so" >> "$GITHUB_ENV"
+
+      - name: Initialize token
+        run: softhsm2-util --init-token --free --label $PKCS11_TOKEN_LABEL --pin $PKCS11_TOKEN_PIN --so-pin $PKCS11_TOKEN_SO_PIN
+
+      - name: Run tests
+        run: uv run pytest -v
