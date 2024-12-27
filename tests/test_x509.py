@@ -5,6 +5,7 @@ X.509 Certificate Tests
 import base64
 import datetime
 import subprocess
+import tempfile
 
 from asn1crypto import pem
 from asn1crypto.csr import CertificationRequest, CertificationRequestInfo
@@ -223,13 +224,21 @@ class X509Tests(TestCase):
             }
         )
 
-        # Pipe our certificate to OpenSSL to verify it
-        with subprocess.Popen(
-            (OPENSSL, "verify"), stdin=subprocess.PIPE, stdout=subprocess.DEVNULL
-        ) as proc:
-            proc.stdin.write(pem.armor("CERTIFICATE", cert.dump()))
-            proc.stdin.close()
-            self.assertEqual(proc.wait(), 0)
+        pem_cert = pem.armor("CERTIFICATE", cert.dump())
+
+        with tempfile.NamedTemporaryFile() as pem_file:
+            pem_file.write(pem_cert)
+            pem_file.flush()
+
+            # Pipe our certificate to OpenSSL to verify it
+            with subprocess.Popen(
+                (OPENSSL, "verify", "-CAfile", pem_file.name),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+            ) as proc:
+                proc.stdin.write(pem.armor("CERTIFICATE", cert.dump()))
+                proc.stdin.close()
+                self.assertEqual(proc.wait(), 0)
 
     @Only.openssl
     @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
