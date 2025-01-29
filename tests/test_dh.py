@@ -376,10 +376,10 @@ class DHTests(TestCase):
 
     @requires(Mechanism.DH_PKCS_PARAMETER_GEN, Mechanism.DH_PKCS_KEY_PAIR_GEN)
     def test_generate_params(self):
-        params = self.session.generate_domain_parameters(KeyType.DH, 512)
+        params = self.session.generate_domain_parameters(KeyType.DH, 1024)
         self.assertIsInstance(params, DomainParameters)
-        self.assertEqual(params[Attribute.PRIME_BITS], 512)
-        self.assertEqual(len(params[Attribute.PRIME]) * 8, 512)
+        self.assertEqual(params[Attribute.PRIME_BITS], 1024)
+        self.assertEqual(len(params[Attribute.PRIME]) * 8, 1024)
         encode_dh_domain_parameters(params)
 
         # Test encoding the public key
