@@ -1,6 +1,8 @@
 name: Code quality
 on:
   push:
+env:
+  UV_PYTHON_PREFERENCE: only-system
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -20,7 +22,7 @@ jobs:
           architecture: x64
 
       - name: Install dev dependencies
-        run: uv sync --python-preference only-system
+        run: uv sync
 
       - name: ruff format
         run: uv run ruff format --diff .
