@@ -1,0 +1,31 @@
+name: Code quality
+on:
+  push:
+env:
+  UV_PYTHON_PREFERENCE: only-system
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acquire sources
+        uses: actions/checkout@v4.1.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: "3.13"
+          architecture: x64
+
+      - name: Install dev dependencies
+        run: uv sync
+
+      - name: ruff format
+        run: uv run ruff format --diff .
+
+      - name: ruff check
+        run: uv run ruff check --diff .

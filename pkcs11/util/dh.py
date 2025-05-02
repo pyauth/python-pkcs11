@@ -5,9 +5,8 @@ Key handling utilities for Diffie-Hellman keys.
 from asn1crypto.algos import DHParameters
 from asn1crypto.core import Integer
 
-from . import biginteger
 from ..constants import Attribute
-from ..exceptions import AttributeTypeInvalid
+from . import biginteger
 
 
 def decode_dh_domain_parameters(der):
@@ -21,8 +20,8 @@ def decode_dh_domain_parameters(der):
     params = DHParameters.load(der)
 
     return {
-        Attribute.BASE: biginteger(params['g']),
-        Attribute.PRIME: biginteger(params['p']),
+        Attribute.BASE: biginteger(params["g"]),
+        Attribute.PRIME: biginteger(params["p"]),
     }
 
 
@@ -36,10 +35,12 @@ def encode_dh_domain_parameters(obj):
     :rtype: bytes
     """
 
-    asn1 = DHParameters({
-        'g': int.from_bytes(obj[Attribute.BASE], byteorder='big'),
-        'p': int.from_bytes(obj[Attribute.PRIME], byteorder='big'),
-    })
+    asn1 = DHParameters(
+        {
+            "g": int.from_bytes(obj[Attribute.BASE], byteorder="big"),
+            "p": int.from_bytes(obj[Attribute.PRIME], byteorder="big"),
+        }
+    )
 
     return asn1.dump()
 
@@ -52,7 +53,7 @@ def encode_dh_public_key(key):
     :rtype: bytes
     """
 
-    asn1 = Integer(int.from_bytes(key[Attribute.VALUE], byteorder='big'))
+    asn1 = Integer(int.from_bytes(key[Attribute.VALUE], byteorder="big"))
 
     return asn1.dump()
 

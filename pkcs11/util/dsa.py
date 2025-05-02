@@ -2,12 +2,12 @@
 Key handling utilities for DSA keys, domain parameters and signatures..
 """
 
+from asn1crypto.algos import DSASignature
 from asn1crypto.core import Integer
 from asn1crypto.keys import DSAParams
-from asn1crypto.algos import DSASignature
 
-from . import biginteger
 from ..constants import Attribute
+from . import biginteger
 
 
 def decode_dsa_domain_parameters(der):
@@ -21,9 +21,9 @@ def decode_dsa_domain_parameters(der):
     params = DSAParams.load(der)
 
     return {
-        Attribute.BASE: biginteger(params['g']),
-        Attribute.PRIME: biginteger(params['p']),
-        Attribute.SUBPRIME: biginteger(params['q']),
+        Attribute.BASE: biginteger(params["g"]),
+        Attribute.PRIME: biginteger(params["p"]),
+        Attribute.SUBPRIME: biginteger(params["q"]),
     }
 
 
@@ -34,11 +34,13 @@ def encode_dsa_domain_parameters(obj):
     :param DomainParameters obj: domain parameters
     :rtype: bytes
     """
-    asn1 = DSAParams({
-        'g': int.from_bytes(obj[Attribute.BASE], byteorder='big'),
-        'p': int.from_bytes(obj[Attribute.PRIME], byteorder='big'),
-        'q': int.from_bytes(obj[Attribute.SUBPRIME], byteorder='big'),
-    })
+    asn1 = DSAParams(
+        {
+            "g": int.from_bytes(obj[Attribute.BASE], byteorder="big"),
+            "p": int.from_bytes(obj[Attribute.PRIME], byteorder="big"),
+            "q": int.from_bytes(obj[Attribute.SUBPRIME], byteorder="big"),
+        }
+    )
 
     return asn1.dump()
 
@@ -51,7 +53,7 @@ def encode_dsa_public_key(key):
     :rtype: bytes
     """
 
-    asn1 = Integer(int.from_bytes(key[Attribute.VALUE], byteorder='big'))
+    asn1 = Integer(int.from_bytes(key[Attribute.VALUE], byteorder="big"))
 
     return asn1.dump()
 
