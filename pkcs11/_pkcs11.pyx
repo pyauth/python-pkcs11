@@ -731,6 +731,7 @@ class Object(types.Object):
         cdef CK_SESSION_HANDLE handle = self.session._handle
         cdef CK_OBJECT_HANDLE obj = self._handle
         cdef CK_ATTRIBUTE template
+        cdef CK_ULONG CK_UNAVAILABLE_INFORMATION = (<CK_ULONG> (~0))
 
         template.type = key
         template.pValue = NULL
@@ -740,6 +741,8 @@ class Object(types.Object):
         with nogil:
             assertRV(_funclist.C_GetAttributeValue(handle, obj, &template, 1))
 
+        if template.ulValueLen >= CK_UNAVAILABLE_INFORMATION:
+            return _unpack_attributes(key, b'0')
         if template.ulValueLen == 0:
             return _unpack_attributes(key, b'')
 
