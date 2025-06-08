@@ -3,6 +3,7 @@ Map from CKR return codes to Python exceptions.
 """
 
 from .exceptions import *
+from ._pkcs11_defn cimport *
 
 cdef ERROR_MAP = {
     CKR_ATTRIBUTE_TYPE_INVALID: AttributeTypeInvalid,
@@ -81,10 +82,3 @@ cdef ERROR_MAP = {
     CKR_WRAPPING_KEY_SIZE_RANGE: WrappingKeySizeRange,
     CKR_WRAPPING_KEY_TYPE_INCONSISTENT: WrappingKeyTypeInconsistent,
 }
-
-
-cpdef void assertRV(CK_RV rv) nogil except *:
-    """Check for an acceptable RV value or thrown an exception."""
-    if rv != CKR_OK:
-        raise ERROR_MAP.get(rv,
-                            PKCS11Error("Unmapped error code %s" % hex(rv)))

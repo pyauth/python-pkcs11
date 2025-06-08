@@ -11,7 +11,6 @@ library loaded.
 from __future__ import (absolute_import, unicode_literals,
                         print_function, division)
 
-from cython.view cimport array
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 IF UNAME_SYSNAME == "Windows":
@@ -20,8 +19,9 @@ ELSE:
     from posix cimport dlfcn
 
 from ._pkcs11_defn cimport *
-include '_errors.pyx'
-include '_utils.pyx'
+# FIXME rewrite this so this doesn't require a runtime module when using 'cimport'
+include '_errors.pxd'
+from ._utils cimport *
 
 from . import types
 from .defaults import *
@@ -42,6 +42,12 @@ from .types import (
 # to one instance only, or to several instances of the same kind.
 cdef CK_FUNCTION_LIST *_funclist = NULL
 
+
+cpdef void assertRV(CK_RV rv) nogil except *:
+    """Check for an acceptable RV value or thrown an exception."""
+    if rv != CKR_OK:
+        raise ERROR_MAP.get(rv,
+                            PKCS11Error("Unmapped error code %s" % hex(rv)))
 
 cdef class AttributeList:
     """

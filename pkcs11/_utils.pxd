@@ -1,22 +1,23 @@
 """
 Type wrangling utility functions.
 """
+from cython.view cimport array
 
-from .constants import *
-from .mechanisms import *
+from defaults import *
+from ._pkcs11_defn cimport *
 
 
-cdef CK_BYTE_buffer(length):
+cdef inline CK_BYTE_buffer(length):
     """Make a buffer for `length` CK_BYTEs."""
     return array(shape=(length,), itemsize=sizeof(CK_BYTE), format='B')
 
 
-cdef CK_ULONG_buffer(length):
+cdef inline CK_ULONG_buffer(length):
     """Make a buffer for `length` CK_ULONGs."""
     return array(shape=(length,), itemsize=sizeof(CK_ULONG), format='L')
 
 
-cdef bytes _pack_attribute(key, value):
+cdef inline bytes _pack_attribute(key, value):
     """Pack a Attribute value into a bytes array."""
 
     try:
@@ -27,7 +28,7 @@ cdef bytes _pack_attribute(key, value):
                                   "Expand ATTRIBUTE_TYPES!" % key)
 
 
-cdef _unpack_attributes(key, value):
+cdef inline _unpack_attributes(key, value):
     """Unpack a Attribute bytes array into a Python value."""
 
     try:
