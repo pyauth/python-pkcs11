@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools>=68.1", "wheel", "cython"]
+requires = ["setuptools>=80.8", "cython"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "python-pkcs11"
 version = "0.7.0"
 description = "PKCS#11 support for Python"
-readme = "README.md"
+readme = "README.rst"
 authors = [
     {name = "Andrey Kislyuk", email = "kislyuk@gmail.com"},
     {name = "Danielle Madeley", email = "danielle@madeley.id.au"},
@@ -15,7 +15,6 @@ maintainers = [
     {name = "Andrey Kislyuk", email = "kislyuk@gmail.com"},
 ]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -25,10 +24,8 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Security :: Cryptography",
 ]
-dependencies = [
-    "asn1crypto>=1.4.0",
-]
-license = {text = "MIT License"}
+dependencies = ["asn1crypto>=1.4.0"]
+license = "MIT"
 requires-python = ">=3.9"
 
 [project.urls]
@@ -59,12 +56,12 @@ include = ["pkcs11*"]
 [dependency-groups]
 dev = [
     "cryptography>=44.0.0",
-    "oscrypto>=1.3.0",
     "parameterized>=0.9.0",
     "pytest>=8.3.4",
     "ruff>=0.8.3",
-    "setuptools>=75.6.0",
-    "setuptools-scm>=8.1.0",
+    "setuptools>=80.8",
+    "setuptools-scm>=8.3.1",
     "sphinx>=7.4.7",
     "sphinx-rtd-theme>=3.0.2",
+    "cython"
 ]
