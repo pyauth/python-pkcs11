@@ -13,11 +13,6 @@ from __future__ import (absolute_import, unicode_literals,
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
-IF UNAME_SYSNAME == "Windows":
-    from . cimport _mswin as mswin
-ELSE:
-    from posix cimport dlfcn
-
 from ._pkcs11_defn cimport *
 from ._errors cimport *
 from ._utils cimport *
@@ -1488,6 +1483,15 @@ _CLASS_MAP = {
     ObjectClass.CERTIFICATE: Certificate,
 }
 
+cdef extern from "../extern/load_module.c":
+    ctypedef struct P11_HANDLE:
+        void *get_function_list_ptr
+
+    object p11_error()
+    P11_HANDLE* p11_open(object path_str)
+    int p11_close(P11_HANDLE* handle)
+
+
 
 cdef class lib:
     """
@@ -1502,10 +1506,7 @@ cdef class lib:
     cdef public str library_description
     cdef public tuple cryptoki_version
     cdef public tuple library_version
-    IF UNAME_SYSNAME == "Windows":
-        cdef mswin.HMODULE _handle
-    ELSE:
-        cdef void * _handle
+    cdef P11_HANDLE *_p11_handle
 
     cdef _load_pkcs11_lib(self, so) with gil:
         """Load a PKCS#11 library, and extract function calls.
@@ -1524,28 +1525,20 @@ cdef class lib:
         """
 
         # to keep a pointer to the C_GetFunctionList address returned by dlsym()
-        cdef C_GetFunctionList_ptr C_GetFunctionList
+        cdef C_GetFunctionList_ptr populate_function_list
         cdef CK_RV retval
 
-        IF UNAME_SYSNAME == "Windows":
-            self._handle = mswin.LoadLibraryW(so)
-            if self._handle == NULL:
-                raise RuntimeError("Cannot open library at {}: {}".format(so, mswin.winerror(so)))
+        cdef P11_HANDLE *handle = p11_open(so)
+        if handle == NULL:
+            err = <str> p11_error()
+            if err:
+                raise RuntimeError(f"OS exception while loading {so}: {err}")
+            else:
+                raise RuntimeError(f"Unknown exception while loading {so}")
+        populate_function_list = <C_GetFunctionList_ptr> handle.get_function_list_ptr
+        self._p11_handle = handle
 
-            if self._handle != NULL:
-                C_GetFunctionList = <C_GetFunctionList_ptr> mswin.GetProcAddress(self._handle, 'C_GetFunctionList')
-                if C_GetFunctionList == NULL:
-                    raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, mswin.winerror(so)))
-        ELSE:
-            self._handle = dlfcn.dlopen(so.encode('utf-8'), dlfcn.RTLD_LAZY | dlfcn.RTLD_LOCAL)
-            if self._handle == NULL:
-                raise RuntimeError(dlfcn.dlerror())
-
-            C_GetFunctionList = <C_GetFunctionList_ptr> dlfcn.dlsym(self._handle, 'C_GetFunctionList')
-            if C_GetFunctionList == NULL:
-                raise RuntimeError("{} is not a PKCS#11 library: {}".format(so, dlfcn.dlerror()))
-
-        assertRV(C_GetFunctionList(&_funclist))
+        assertRV(populate_function_list(&_funclist))
 
 
     def __cinit__(self, so):
@@ -1719,10 +1712,4 @@ cdef class lib:
         if _funclist != NULL:
             with nogil:
                 _funclist.C_Finalize(NULL)
-
-        IF UNAME_SYSNAME == "Windows":
-            if self._handle != NULL:
-                mswin.FreeLibrary(self._handle)
-        ELSE:
-            if self._handle != NULL:
-                dlfcn.dlclose(self._handle)
+        p11_close(self._p11_handle)
