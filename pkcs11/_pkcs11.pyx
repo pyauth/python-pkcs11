@@ -13,10 +13,6 @@ from __future__ import (absolute_import, unicode_literals,
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
-from ._pkcs11_defn cimport *
-from ._errors cimport *
-from ._utils cimport *
-
 from . import types
 from .defaults import *
 from .exceptions import *
@@ -36,12 +32,165 @@ from .types import (
 # to one instance only, or to several instances of the same kind.
 cdef CK_FUNCTION_LIST *_funclist = NULL
 
-
-cdef inline assertRV(rv) with gil:
+cdef assertRV(rv) with gil:
     """Check for an acceptable RV value or thrown an exception."""
-    if rv != CKR_OK:
-        raise ERROR_MAP.get(rv,
-                            PKCS11Error("Unmapped error code %s" % hex(rv)))
+    if rv == CKR_OK:
+        return
+    elif rv == CKR_ATTRIBUTE_TYPE_INVALID:
+        exc = AttributeTypeInvalid()
+    elif rv == CKR_ATTRIBUTE_VALUE_INVALID:
+        exc = AttributeValueInvalid()
+    elif rv == CKR_ATTRIBUTE_READ_ONLY:
+        exc = AttributeReadOnly()
+    elif rv == CKR_ATTRIBUTE_SENSITIVE:
+        exc = AttributeSensitive()
+    elif rv == CKR_ARGUMENTS_BAD:
+        exc = ArgumentsBad()
+    elif rv == CKR_BUFFER_TOO_SMALL:
+        exc = MemoryError("Buffer was too small. Should never see this.")
+    elif rv == CKR_CRYPTOKI_ALREADY_INITIALIZED:
+        exc = RuntimeError("Initialisation error (already initialized). Should never see this.")
+    elif rv == CKR_CRYPTOKI_NOT_INITIALIZED:
+        exc = RuntimeError("Initialisation error (not initialized). Should never see this.")
+    elif rv == CKR_DATA_INVALID:
+        exc = DataInvalid()
+    elif rv == CKR_DATA_LEN_RANGE:
+        exc = DataLenRange()
+    elif rv == CKR_DOMAIN_PARAMS_INVALID:
+        exc = DomainParamsInvalid()
+    elif rv == CKR_DEVICE_ERROR:
+        exc = DeviceError()
+    elif rv == CKR_DEVICE_MEMORY:
+        exc = DeviceMemory()
+    elif rv == CKR_DEVICE_REMOVED:
+        exc = DeviceRemoved()
+    elif rv == CKR_ENCRYPTED_DATA_INVALID:
+        exc = EncryptedDataInvalid()
+    elif rv == CKR_ENCRYPTED_DATA_LEN_RANGE:
+        exc = EncryptedDataLenRange()
+    elif rv == CKR_EXCEEDED_MAX_ITERATIONS:
+        exc = ExceededMaxIterations()
+    elif rv == CKR_FUNCTION_CANCELED:
+        exc = FunctionCancelled()
+    elif rv == CKR_FUNCTION_FAILED:
+        exc = FunctionFailed()
+    elif rv == CKR_FUNCTION_REJECTED:
+        exc = FunctionRejected()
+    elif rv == CKR_FUNCTION_NOT_SUPPORTED:
+        exc = FunctionNotSupported()
+    elif rv == CKR_KEY_HANDLE_INVALID:
+        exc = KeyHandleInvalid()
+    elif rv == CKR_KEY_INDIGESTIBLE:
+        exc = KeyIndigestible()
+    elif rv == CKR_KEY_NEEDED:
+        exc = KeyNeeded()
+    elif rv == CKR_KEY_NOT_NEEDED:
+        exc = KeyNotNeeded()
+    elif rv == CKR_KEY_SIZE_RANGE:
+        exc = KeySizeRange()
+    elif rv == CKR_KEY_NOT_WRAPPABLE:
+        exc = KeyNotWrappable()
+    elif rv == CKR_KEY_TYPE_INCONSISTENT:
+        exc = KeyTypeInconsistent()
+    elif rv == CKR_KEY_UNEXTRACTABLE:
+        exc = KeyUnextractable()
+    elif rv == CKR_GENERAL_ERROR:
+        exc = GeneralError()
+    elif rv == CKR_HOST_MEMORY:
+        exc = HostMemory()
+    elif rv == CKR_MECHANISM_INVALID:
+        exc = MechanismInvalid()
+    elif rv == CKR_MECHANISM_PARAM_INVALID:
+        exc = MechanismParamInvalid()
+    elif rv == CKR_NO_EVENT:
+        exc = NoEvent()
+    elif rv == CKR_OBJECT_HANDLE_INVALID:
+        exc = ObjectHandleInvalid()
+    elif rv == CKR_OPERATION_ACTIVE:
+        exc = OperationActive()
+    elif rv == CKR_OPERATION_NOT_INITIALIZED:
+        exc = OperationNotInitialized()
+    elif rv == CKR_PIN_EXPIRED:
+        exc = PinExpired()
+    elif rv == CKR_PIN_INCORRECT:
+        exc = PinIncorrect()
+    elif rv == CKR_PIN_INVALID:
+        exc = PinInvalid()
+    elif rv == CKR_PIN_LOCKED:
+        exc = PinLocked()
+    elif rv == CKR_PIN_TOO_WEAK:
+        exc = PinTooWeak()
+    elif rv == CKR_PUBLIC_KEY_INVALID:
+        exc = PublicKeyInvalid()
+    elif rv == CKR_RANDOM_NO_RNG:
+        exc = RandomNoRNG()
+    elif rv == CKR_RANDOM_SEED_NOT_SUPPORTED:
+        exc = RandomSeedNotSupported()
+    elif rv == CKR_SESSION_CLOSED:
+        exc = SessionClosed()
+    elif rv == CKR_SESSION_COUNT:
+        exc = SessionCount()
+    elif rv == CKR_SESSION_EXISTS:
+        exc = SessionExists()
+    elif rv == CKR_SESSION_HANDLE_INVALID:
+        exc = SessionHandleInvalid()
+    elif rv == CKR_SESSION_PARALLEL_NOT_SUPPORTED:
+        exc = RuntimeError("Parallel not supported. Should never see this.")
+    elif rv == CKR_SESSION_READ_ONLY:
+        exc = SessionReadOnly()
+    elif rv == CKR_SESSION_READ_ONLY_EXISTS:
+        exc = SessionReadOnlyExists()
+    elif rv == CKR_SESSION_READ_WRITE_SO_EXISTS:
+        exc = SessionReadWriteSOExists()
+    elif rv == CKR_SIGNATURE_LEN_RANGE:
+        exc = SignatureLenRange()
+    elif rv == CKR_SIGNATURE_INVALID:
+        exc = SignatureInvalid()
+    elif rv == CKR_TEMPLATE_INCOMPLETE:
+        exc = TemplateIncomplete()
+    elif rv == CKR_TEMPLATE_INCONSISTENT:
+        exc = TemplateInconsistent()
+    elif rv == CKR_SLOT_ID_INVALID:
+        exc = SlotIDInvalid()
+    elif rv == CKR_TOKEN_NOT_PRESENT:
+        exc = TokenNotPresent()
+    elif rv == CKR_TOKEN_NOT_RECOGNIZED:
+        exc = TokenNotRecognised()
+    elif rv == CKR_TOKEN_WRITE_PROTECTED:
+        exc = TokenWriteProtected()
+    elif rv == CKR_UNWRAPPING_KEY_HANDLE_INVALID:
+        exc = UnwrappingKeyHandleInvalid()
+    elif rv == CKR_UNWRAPPING_KEY_SIZE_RANGE:
+        exc = UnwrappingKeySizeRange()
+    elif rv == CKR_UNWRAPPING_KEY_TYPE_INCONSISTENT:
+        exc = UnwrappingKeyTypeInconsistent()
+    elif rv == CKR_USER_NOT_LOGGED_IN:
+        exc = UserNotLoggedIn()
+    elif rv == CKR_USER_ALREADY_LOGGED_IN:
+        exc = UserAlreadyLoggedIn()
+    elif rv == CKR_USER_ANOTHER_ALREADY_LOGGED_IN:
+        exc = AnotherUserAlreadyLoggedIn()
+    elif rv == CKR_USER_PIN_NOT_INITIALIZED:
+        exc = UserPinNotInitialized()
+    elif rv == CKR_USER_TOO_MANY_TYPES:
+        exc = UserTooManyTypes()
+    elif rv == CKR_USER_TYPE_INVALID:
+        exc = RuntimeError("User type invalid. Should never see this.")
+    elif rv == CKR_WRAPPED_KEY_INVALID:
+        exc = WrappedKeyInvalid()
+    elif rv == CKR_WRAPPED_KEY_LEN_RANGE:
+        exc = WrappedKeyLenRange()
+    elif rv == CKR_WRAPPING_KEY_HANDLE_INVALID:
+        exc = WrappingKeyHandleInvalid()
+    elif rv == CKR_WRAPPING_KEY_SIZE_RANGE:
+        exc = WrappingKeySizeRange()
+    elif rv == CKR_WRAPPING_KEY_TYPE_INCONSISTENT:
+        exc = WrappingKeyTypeInconsistent()
+    else:
+        exc = PKCS11Error("Unmapped error code %s" % hex(rv))
+    raise exc
+
+
 
 cdef class AttributeList:
     """
@@ -127,7 +276,7 @@ cdef class MechanismWithParam:
 
             if source_data is None:
                 oaep_params.pSourceData = NULL
-                oaep_params.ulSourceDataLen = 0
+                oaep_params.ulSourceDataLen = <CK_ULONG> 0
             else:
                 oaep_params.pSourceData = <CK_BYTE *> source_data
                 oaep_params.ulSourceDataLen = <CK_ULONG> len(source_data)
@@ -172,7 +321,7 @@ cdef class MechanismWithParam:
             self.param = aes_ecb_params = \
                 <CK_KEY_DERIVATION_STRING_DATA *> PyMem_Malloc(paramlen)
             aes_ecb_params.pData = <CK_BYTE *> param
-            aes_ecb_params.ulLen = len(param)
+            aes_ecb_params.ulLen = <CK_ULONG> len(param)
 
         elif mechanism is Mechanism.AES_CBC_ENCRYPT_DATA:
             paramlen = sizeof(CK_AES_CBC_ENCRYPT_DATA_PARAMS)
@@ -181,11 +330,11 @@ cdef class MechanismWithParam:
             (iv, data) = param
             aes_cbc_params.iv = iv[:16]
             aes_cbc_params.pData = <CK_BYTE *> data
-            aes_cbc_params.length = len(data)
+            aes_cbc_params.length = <CK_ULONG> len(data)
 
         elif isinstance(param, bytes):
             self.data.pParameter = <CK_BYTE *> param
-            paramlen = len(param)
+            paramlen =  len(param)
 
         elif param is None:
             self.data.pParameter = NULL
@@ -305,7 +454,7 @@ class Token(types.Token):
                 raise ArgumentsBad("Protected authentication is not supported by loaded module")
         elif pin is not None:
             pin_data = pin
-            pin_length = len(pin)
+            pin_length = <CK_ULONG> len(pin)
 
             with nogil:
                 retval = _funclist.C_Login(handle, final_user_type, pin_data, pin_length)
@@ -612,7 +761,7 @@ class Session(types.Session):
     def seed_random(self, seed):
         cdef CK_SESSION_HANDLE handle = self._handle
         cdef CK_BYTE *seed_data = seed
-        cdef CK_ULONG seed_len = len(seed)
+        cdef CK_ULONG seed_len = <CK_ULONG> len(seed)
         cdef CK_RV retval
 
         with nogil:
@@ -637,7 +786,7 @@ class Session(types.Session):
         cdef CK_SESSION_HANDLE handle = self._handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_BYTE *data_ptr = data
-        cdef CK_ULONG data_len = len(data)
+        cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE [:] digest
         cdef CK_ULONG length
         cdef CK_RV retval
@@ -686,7 +835,7 @@ class Session(types.Session):
                     assertRV(retval)
                 else:
                     data_ptr = block
-                    data_len = len(block)
+                    data_len = <CK_ULONG> len(block)
 
                     with nogil:
                         retval = _funclist.C_DigestUpdate(handle, data_ptr, data_len)
@@ -935,7 +1084,7 @@ class EncryptMixin(types.EncryptMixin):
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE key = self._handle
         cdef CK_BYTE *data_ptr = data
-        cdef CK_ULONG data_len = len(data)
+        cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE [:] ciphertext
         cdef CK_ULONG length
         cdef CK_RV retval
@@ -995,7 +1144,7 @@ class EncryptMixin(types.EncryptMixin):
                     continue
 
                 data_ptr = part_in
-                data_len = len(part_in)
+                data_len = <CK_ULONG> len(part_in)
                 length = buffer_size
 
                 with nogil:
@@ -1029,7 +1178,7 @@ class DecryptMixin(types.DecryptMixin):
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE key = self._handle
         cdef CK_BYTE *data_ptr = data
-        cdef CK_ULONG data_len = len(data)
+        cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE [:] plaintext
         cdef CK_ULONG length
         cdef CK_USER_TYPE user_type
@@ -1040,7 +1189,7 @@ class DecryptMixin(types.DecryptMixin):
         if pin is not None:
             pin = pin.encode('utf-8')
             pin_data = pin
-            pin_length = len(pin)
+            pin_length = <CK_ULONG> len(pin)
             user_type = CKU_CONTEXT_SPECIFIC
 
         with self.session._operation_lock:
@@ -1100,7 +1249,7 @@ class DecryptMixin(types.DecryptMixin):
         if pin is not None:
             pin = pin.encode('utf-8')
             pin_data = pin
-            pin_length = len(pin)
+            pin_length = <CK_ULONG> len(pin)
             user_type = CKU_CONTEXT_SPECIFIC
 
         with self.session._operation_lock:
@@ -1119,7 +1268,7 @@ class DecryptMixin(types.DecryptMixin):
                     continue
 
                 data_ptr = part_in
-                data_len = len(part_in)
+                data_len = <CK_ULONG> len(part_in)
                 length = buffer_size
 
                 with nogil:
@@ -1153,7 +1302,7 @@ class SignMixin(types.SignMixin):
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE key = self._handle
         cdef CK_BYTE *data_ptr = data
-        cdef CK_ULONG data_len = len(data)
+        cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE [:] signature
         cdef CK_ULONG length
         cdef CK_USER_TYPE user_type
@@ -1164,7 +1313,7 @@ class SignMixin(types.SignMixin):
         if pin is not None:
             pin = pin.encode('utf-8')
             pin_data = pin
-            pin_length = len(pin)
+            pin_length = <CK_ULONG> len(pin)
             user_type = CKU_CONTEXT_SPECIFIC
 
         with self.session._operation_lock:
@@ -1213,7 +1362,7 @@ class SignMixin(types.SignMixin):
         if pin is not None:
             pin = pin.encode('utf-8')
             pin_data = pin
-            pin_length = len(pin)
+            pin_length = <CK_ULONG> len(pin)
             user_type = CKU_CONTEXT_SPECIFIC
 
         with self.session._operation_lock:
@@ -1232,7 +1381,7 @@ class SignMixin(types.SignMixin):
                     continue
 
                 data_ptr = part_in
-                data_len = len(part_in)
+                data_len = <CK_ULONG> len(part_in)
 
                 with nogil:
                     retval = _funclist.C_SignUpdate(handle, data_ptr, data_len)
@@ -1267,9 +1416,9 @@ class VerifyMixin(types.VerifyMixin):
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE key = self._handle
         cdef CK_BYTE *data_ptr = data
-        cdef CK_ULONG data_len = len(data)
+        cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE *sig_ptr = signature
-        cdef CK_ULONG sig_len = len(signature)
+        cdef CK_ULONG sig_len = <CK_ULONG> len(signature)
         cdef CK_RV retval
 
         with self.session._operation_lock:
@@ -1294,7 +1443,7 @@ class VerifyMixin(types.VerifyMixin):
         cdef CK_BYTE *data_ptr
         cdef CK_ULONG data_len
         cdef CK_BYTE *sig_ptr = signature
-        cdef CK_ULONG sig_len = len(signature)
+        cdef CK_ULONG sig_len = <CK_ULONG> len(signature)
         cdef CK_RV retval
 
         with self.session._operation_lock:
@@ -1307,7 +1456,7 @@ class VerifyMixin(types.VerifyMixin):
                     continue
 
                 data_ptr = part_in
-                data_len = len(part_in)
+                data_len = <CK_ULONG> len(part_in)
 
                 with nogil:
                     retval = _funclist.C_VerifyUpdate(handle, data_ptr, data_len)
@@ -1400,7 +1549,7 @@ class UnwrapMixin(types.UnwrapMixin):
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE unwrapping_key = self._handle
         cdef CK_BYTE *wrapped_key_ptr = key_data
-        cdef CK_ULONG wrapped_key_len = len(key_data)
+        cdef CK_ULONG wrapped_key_len = <CK_ULONG> len(key_data)
         cdef CK_ATTRIBUTE *attr_data = attrs.data
         cdef CK_ULONG attr_count = attrs.count
         cdef CK_OBJECT_HANDLE key
