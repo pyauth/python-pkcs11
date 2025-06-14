@@ -4,13 +4,14 @@ X.509 Certificate Tests
 
 import base64
 import datetime
-import subprocess
-import tempfile
 
 from asn1crypto import pem
 from asn1crypto.csr import CertificationRequest, CertificationRequestInfo
 from asn1crypto.keys import RSAPublicKey
 from asn1crypto.x509 import Certificate, Name, TbsCertificate, Time
+from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
+from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 
 import pkcs11
 from pkcs11 import (
@@ -23,7 +24,7 @@ from pkcs11.util.ec import decode_ecdsa_signature
 from pkcs11.util.rsa import encode_rsa_public_key
 from pkcs11.util.x509 import decode_x509_certificate, decode_x509_public_key
 
-from . import OPENSSL, Not, Only, TestCase, requires
+from . import Not, TestCase, requires
 
 # X.509 self-signed certificate (generated with OpenSSL)
 # openssl req -x509 \
@@ -63,12 +64,12 @@ class X509Tests(TestCase):
 
         self.assertEqual(
             cert[Attribute.HASH_OF_ISSUER_PUBLIC_KEY],
-            b"\xf9\xc1\xb6\xe3\x43\xf3\xcf\x4c\xba\x8a" b"\x0b\x66\x86\x79\x35\xfb\x52\x85\xbf\xa8",
+            b"\xf9\xc1\xb6\xe3\x43\xf3\xcf\x4c\xba\x8a\x0b\x66\x86\x79\x35\xfb\x52\x85\xbf\xa8",
         )
         # Cert is self signed
         self.assertEqual(
             cert[Attribute.HASH_OF_SUBJECT_PUBLIC_KEY],
-            b"\xf9\xc1\xb6\xe3\x43\xf3\xcf\x4c\xba\x8a" b"\x0b\x66\x86\x79\x35\xfb\x52\x85\xbf\xa8",
+            b"\xf9\xc1\xb6\xe3\x43\xf3\xcf\x4c\xba\x8a\x0b\x66\x86\x79\x35\xfb\x52\x85\xbf\xa8",
         )
 
     @requires(Mechanism.SHA1_RSA_PKCS)
@@ -160,11 +161,11 @@ class X509Tests(TestCase):
 
         self.assertTrue(key.verify(value, signature, mechanism=Mechanism.ECDSA_SHA1))
 
-    @Only.openssl
-    @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
+    @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA256_RSA_PKCS)
     def test_self_sign_certificate(self):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
+        pub_asn1 = RSAPublicKey.load(encode_rsa_public_key(pub))
 
         tbs = TbsCertificate(
             {
@@ -181,7 +182,7 @@ class X509Tests(TestCase):
                     }
                 ),
                 "signature": {
-                    "algorithm": "sha1_rsa",
+                    "algorithm": "sha256_rsa",
                     "parameters": None,
                 },
                 "validity": {
@@ -205,46 +206,40 @@ class X509Tests(TestCase):
                         "algorithm": "rsa",
                         "parameters": None,
                     },
-                    "public_key": RSAPublicKey.load(encode_rsa_public_key(pub)),
+                    "public_key": pub_asn1,
                 },
             }
         )
 
         # Sign the TBS Certificate
-        value = priv.sign(tbs.dump(), mechanism=Mechanism.SHA1_RSA_PKCS)
+        value = priv.sign(tbs.dump(), mechanism=Mechanism.SHA256_RSA_PKCS)
 
         cert = Certificate(
             {
                 "tbs_certificate": tbs,
                 "signature_algorithm": {
-                    "algorithm": "sha1_rsa",
+                    "algorithm": "sha256_rsa",
                     "parameters": None,
                 },
                 "signature_value": value,
             }
         )
 
-        pem_cert = pem.armor("CERTIFICATE", cert.dump())
+        der_cert = cert.dump()
 
-        with tempfile.NamedTemporaryFile() as pem_file:
-            pem_file.write(pem_cert)
-            pem_file.flush()
+        # read back the data and validate it
+        pub_key_handle = load_der_public_key(pub_asn1.dump())
+        cert_loaded = Certificate.load(der_cert)
+        tbs_bytes = cert_loaded["tbs_certificate"].dump()
+        signature_bytes = cert_loaded["signature_value"].native
+        pub_key_handle.verify(signature_bytes, tbs_bytes, PKCS1v15(), SHA256())
 
-            # Pipe our certificate to OpenSSL to verify it
-            with subprocess.Popen(
-                (OPENSSL, "verify", "-CAfile", pem_file.name),
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-            ) as proc:
-                proc.stdin.write(pem.armor("CERTIFICATE", cert.dump()))
-                proc.stdin.close()
-                self.assertEqual(proc.wait(), 0)
-
-    @Only.openssl
-    @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA1_RSA_PKCS)
+    @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA256_RSA_PKCS)
     def test_sign_csr(self):
         # Warning: proof of concept code only!
         pub, priv = self.session.generate_keypair(KeyType.RSA, 1024)
+
+        pub_asn1 = RSAPublicKey.load(encode_rsa_public_key(pub))
 
         info = CertificationRequestInfo(
             {
@@ -259,32 +254,28 @@ class X509Tests(TestCase):
                         "algorithm": "rsa",
                         "parameters": None,
                     },
-                    "public_key": RSAPublicKey.load(encode_rsa_public_key(pub)),
+                    "public_key": pub_asn1,
                 },
             }
         )
 
         # Sign the CSR Info
-        value = priv.sign(info.dump(), mechanism=Mechanism.SHA1_RSA_PKCS)
+        value = priv.sign(info.dump(), mechanism=Mechanism.SHA256_RSA_PKCS)
 
-        csr = CertificationRequest(
+        csr_data = CertificationRequest(
             {
                 "certification_request_info": info,
                 "signature_algorithm": {
-                    "algorithm": "sha1_rsa",
+                    "algorithm": "sha256_rsa",
                     "parameters": None,
                 },
                 "signature": value,
             }
-        )
+        ).dump()
 
-        # Pipe our CSR to OpenSSL to verify it
-        with subprocess.Popen(
-            (OPENSSL, "req", "-inform", "der", "-noout", "-verify"),
-            stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-        ) as proc:
-            proc.stdin.write(csr.dump())
-            proc.stdin.close()
-
-            self.assertEqual(proc.wait(), 0)
+        # read back the data and validate it
+        pub_key_handle = load_der_public_key(pub_asn1.dump())
+        csr_loaded = CertificationRequest.load(csr_data)
+        info_bytes = csr_loaded["certification_request_info"].dump()
+        signature_bytes = csr_loaded["signature"].native
+        pub_key_handle.verify(signature_bytes, info_bytes, PKCS1v15(), SHA256())

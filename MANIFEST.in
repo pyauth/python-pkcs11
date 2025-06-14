@@ -1,0 +1,2 @@
+graft extern/
+include pkcs11/*.pxd

@@ -1,6 +1,7 @@
 name: Tests
 on:
-  push:
+  push: {}
+  workflow_dispatch: {}
 env:
   UV_PYTHON_PREFERENCE: only-system
   PKCS11_TOKEN_LABEL: TEST
@@ -8,19 +9,21 @@ env:
   PKCS11_TOKEN_SO_PIN: 5678
 jobs:
   run:
-    # Run in Ubuntu 22.04 right now, as oscrypto fails on OpenSSL versions with a
-    # double-digit patch number (such as provided by Ubuntu 24.04):
-    #   https://community.snowflake.com/s/article/Python-Connector-fails-to-connect-with-LibraryNotFoundError-Error-detecting-the-version-of-libcrypto
-    #   https://github.com/wbond/oscrypto/issues/78
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
         python-version:
           - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
-          - "3.13"
+          # 3.13.4 has a regression in C extension builds,
+          # need to stick to 3.13.3 until 3.13.5 is available on runners
+          - "3.13.3"
 
     steps:
       - name: Acquire sources
@@ -30,28 +33,40 @@ jobs:
         uses: actions/setup-python@v5.0.0
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: x64
-
+      - name: Install Softhsm
+        shell: bash
+        run: |
+          if [[ $OS_NAME == 'ubuntu-latest' ]]; then
+            sudo apt-get install softhsm2
+            mkdir softhsm_tokens
+            echo "directories.tokendir = $(pwd)/softhsm_tokens" > /tmp/softhsm2.conf
+            echo "SOFTHSM2_CONF=/tmp/softhsm2.conf" >> "$GITHUB_ENV"
+            echo "PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so" >> "$GITHUB_ENV"
+          elif [[ $OS_NAME == 'macos-latest' ]]; then
+            brew install softhsm
+            echo "PKCS11_MODULE=/opt/homebrew/lib/softhsm/libsofthsm2.so" >> "$GITHUB_ENV"
+          elif [[ $OS_NAME == 'windows-latest' ]]; then
+            choco install softhsm.install
+            echo "SOFTHSM2_CONF=D:/SoftHSM2/etc/softhsm2.conf" >> "$GITHUB_ENV"
+            echo "PKCS11_MODULE=D:/SoftHSM2/lib/softhsm2-x64.dll" >> "$GITHUB_ENV"
+            echo "D:/SoftHSM2/bin" >> "$GITHUB_PATH"
+            echo "D:/SoftHSM2/lib" >> "$GITHUB_PATH"
+          else
+            echo "$OS_NAME is not a supported target system"
+            exit 1
+          fi
+        env:
+          OS_NAME: ${{ matrix.os }}
+      - name: Initialize SoftHSM token
+        shell: bash
+        run: |
+          softhsm2-util --init-token --free --label $PKCS11_TOKEN_LABEL --pin $PKCS11_TOKEN_PIN --so-pin $PKCS11_TOKEN_SO_PIN
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
-
       - name: Install dev dependencies
         run: uv sync --all-extras
-
-      # Locally compile softhsmv2. For unknown reasons, the version installed by Ubuntu fails on
-      # Github Actions (while working e.g. in Docker).
-      - name: Install Softhsm
-        run: |
-          curl https://dist.opendnssec.org/source/softhsm-2.6.1.tar.gz | tar -zxv
-          (cd softhsm-2.6.1 && ./configure --prefix=$HOME --disable-p11-kit --disable-gost && make all install CC="gcc" CXX="g++")
-          echo "$HOME/bin" >> "$GITHUB_PATH"
-          echo "PKCS11_MODULE=$HOME/lib/softhsm/libsofthsm2.so" >> "$GITHUB_ENV"
-
-      - name: Initialize token
-        run: softhsm2-util --init-token --free --label $PKCS11_TOKEN_LABEL --pin $PKCS11_TOKEN_PIN --so-pin $PKCS11_TOKEN_SO_PIN
-
       - name: Run tests
         run: uv run pytest -v

@@ -1,3 +1,17 @@
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.ec import ECDSA
+from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
+from cryptography.hazmat.primitives.ciphers import Cipher
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.modes import CBC
+from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.padding import PKCS7
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PublicFormat,
+    load_der_public_key,
+)
+
 from pkcs11 import KDF, Attribute, KeyType, Mechanism, ObjectClass
 from pkcs11.util.ec import (
     decode_ec_public_key,
@@ -20,10 +34,8 @@ class ExternalPublicKeyTests(TestCase):
 
         pub = encode_rsa_public_key(pub)
 
-        from oscrypto.asymmetric import load_public_key, rsa_pkcs1v15_encrypt
-
-        pub = load_public_key(pub)
-        crypttext = rsa_pkcs1v15_encrypt(pub, b"Data to encrypt")
+        pub = load_der_public_key(pub)
+        crypttext = pub.encrypt(b"Data to encrypt", PKCS1v15())
 
         priv = self.session.get_key(key_type=KeyType.RSA, object_class=ObjectClass.PRIVATE_KEY)
 
@@ -31,7 +43,7 @@ class ExternalPublicKeyTests(TestCase):
 
         self.assertEqual(plaintext, b"Data to encrypt")
 
-    @requires(Mechanism.ECDSA_SHA1)
+    @requires(Mechanism.ECDSA_SHA256)
     def test_ecdsa(self):
         # A key we generated earlier
         self.session.create_domain_parameters(
@@ -44,16 +56,12 @@ class ExternalPublicKeyTests(TestCase):
 
         priv = self.session.get_key(key_type=KeyType.EC, object_class=ObjectClass.PRIVATE_KEY)
 
-        signature = priv.sign(b"Data to sign", mechanism=Mechanism.ECDSA_SHA1)
-        # Encode as ASN.1 for OpenSSL
+        signature = priv.sign(b"Data to sign", mechanism=Mechanism.ECDSA_SHA256)
         signature = encode_ecdsa_signature(signature)
 
-        from oscrypto.asymmetric import ecdsa_verify, load_public_key
-
         pub = self.session.get_key(key_type=KeyType.EC, object_class=ObjectClass.PUBLIC_KEY)
-        pub = load_public_key(encode_ec_public_key(pub))
-
-        ecdsa_verify(pub, signature, b"Data to sign", "sha1")
+        pub = load_der_public_key(encode_ec_public_key(pub))
+        pub.verify(signature, b"Data to sign", ECDSA(SHA256()))
 
     @requires(Mechanism.ECDH1_DERIVE)
     def test_ecdh(self):
@@ -71,17 +79,9 @@ class ExternalPublicKeyTests(TestCase):
         alice_pub = self.session.get_key(key_type=KeyType.EC, object_class=ObjectClass.PUBLIC_KEY)
         alice_pub = encode_ec_public_key(alice_pub)
 
-        from cryptography.hazmat.backends import default_backend
-        from cryptography.hazmat.primitives.asymmetric import ec
-        from cryptography.hazmat.primitives.serialization import (
-            Encoding,
-            PublicFormat,
-            load_der_public_key,
-        )
-
         # Bob generates a keypair, with their public key encoded for
         # interchange
-        bob_priv = ec.generate_private_key(ec.SECP256R1(), default_backend())
+        bob_priv = ec.generate_private_key(ec.SECP256R1())
         bob_pub = bob_priv.public_key().public_bytes(
             Encoding.DER,
             PublicFormat.SubjectPublicKeyInfo,
@@ -91,7 +91,7 @@ class ExternalPublicKeyTests(TestCase):
         # shared key
         bob_shared_key = bob_priv.exchange(
             ec.ECDH(),
-            load_der_public_key(alice_pub, default_backend()),
+            load_der_public_key(alice_pub),
         )
 
         key = alice_priv.derive_key(
@@ -119,17 +119,11 @@ class ExternalPublicKeyTests(TestCase):
         # Proof of concept code only!
         import io
 
-        from oscrypto.asymmetric import load_public_key, rsa_pkcs1v15_encrypt
-        from oscrypto.symmetric import (
-            aes_cbc_pkcs7_decrypt,
-            aes_cbc_pkcs7_encrypt,
-        )
-
         # A key we generated earlier
         self.session.generate_keypair(KeyType.RSA, 1024)
 
         pub = self.session.get_key(key_type=KeyType.RSA, object_class=ObjectClass.PUBLIC_KEY)
-        pub = load_public_key(encode_rsa_public_key(pub))
+        pub = load_der_public_key(encode_rsa_public_key(pub))
 
         key = self.session.generate_random(256)
         iv = self.session.generate_random(128)
@@ -143,8 +137,13 @@ class ExternalPublicKeyTests(TestCase):
             #
             # FIXME: Because this is RSA 1.5, we should fill the rest of the
             # frame with nonsense
-            self.assertEqual(dest.write(rsa_pkcs1v15_encrypt(pub, key + iv)), 128)
-            _, ciphertext = aes_cbc_pkcs7_encrypt(key, source, iv)
+            self.assertEqual(dest.write(pub.encrypt(key + iv, PKCS1v15())), 128)
+
+            cipher = Cipher(AES(key), CBC(iv))
+            encryptor = cipher.encryptor()
+            padder = PKCS7(128).padder()
+            padded_data = padder.update(source) + padder.finalize()
+            ciphertext = encryptor.update(padded_data) + encryptor.finalize()
             dest.write(ciphertext)
 
             # Time passes
@@ -162,6 +161,10 @@ class ExternalPublicKeyTests(TestCase):
             iv = header[:16]
             # We can ignore the rest
 
-            plaintext = aes_cbc_pkcs7_decrypt(key, dest.read(), iv)
+            cipher = Cipher(AES(key), CBC(iv))
+            decryptor = cipher.decryptor()
+            unpadder = PKCS7(128).unpadder()
+            padded_plaintext = decryptor.update(dest.read()) + decryptor.finalize()
+            plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
 
         self.assertEqual(source, plaintext)
