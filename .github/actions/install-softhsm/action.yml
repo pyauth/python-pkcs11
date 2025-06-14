@@ -1,0 +1,54 @@
+name: install-softhsm
+author: Matthias Valvekens
+description: Install SoftHSM and configure an empty token
+inputs:
+  os:
+    description: OS to target
+    required: true
+  token-label:
+    description: Label assigned to the token
+    required: false
+    default: TEST
+  token-user-pin:
+    description: User PIN to configure on the token
+    required: false
+    default: "1234"
+  token-so-pin:
+    description: Security officer PIN to configure on the token
+    required: false
+    default: "5678"
+runs:
+  using: "composite"
+  steps:
+    - name: Install SoftHSM
+      shell: bash
+      run: |
+        if [[ "${OS_NAME:0:6}" == 'ubuntu' ]]; then
+          sudo apt-get install softhsm2
+          mkdir softhsm_tokens
+          echo "directories.tokendir = $(pwd)/softhsm_tokens" > /tmp/softhsm2.conf
+          echo "SOFTHSM2_CONF=/tmp/softhsm2.conf" >> "$GITHUB_ENV"
+          echo "PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so" >> "$GITHUB_ENV"
+        elif [[ "${OS_NAME:0:5}" == 'macos' ]]; then
+          brew install softhsm
+          echo "PKCS11_MODULE=/opt/homebrew/lib/softhsm/libsofthsm2.so" >> "$GITHUB_ENV"
+        elif [[ "${OS_NAME:0:7}" == 'windows' ]]; then
+          choco install softhsm.install
+          echo "SOFTHSM2_CONF=D:/SoftHSM2/etc/softhsm2.conf" >> "$GITHUB_ENV"
+          echo "PKCS11_MODULE=D:/SoftHSM2/lib/softhsm2-x64.dll" >> "$GITHUB_ENV"
+          echo "D:/SoftHSM2/bin" >> "$GITHUB_PATH"
+          echo "D:/SoftHSM2/lib" >> "$GITHUB_PATH"
+        else
+          echo "$OS_NAME is not a supported target system"
+          exit 1
+        fi
+      env:
+        OS_NAME: ${{ inputs.os }}
+    - name: Initialize SoftHSM token
+      shell: bash
+      run: |
+        softhsm2-util --init-token --free --label "${{ inputs.token-label }}" \
+          --pin "${{ inputs.token-user-pin }}" --so-pin "${{ inputs.token-so-pin }}"
+        echo "PKCS11_TOKEN_LABEL=${{ inputs.token-label }}" >> "$GITHUB_ENV"
+        echo "PKCS11_TOKEN_PIN=${{ inputs.token-user-pin }}" >> "$GITHUB_ENV"
+        echo "PKCS11_TOKEN_SO_PIN=${{ inputs.token-so-pin }}" >> "$GITHUB_ENV"

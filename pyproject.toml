@@ -1,10 +1,9 @@
 [build-system]
-requires = ["setuptools>=80.8", "cython"]
+requires = ["setuptools>=80.8", "cython", "setuptools-scm>=8.3.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "python-pkcs11"
-version = "0.7.0"
 description = "PKCS#11 support for Python"
 readme = "README.rst"
 authors = [
@@ -27,10 +26,11 @@ classifiers = [
 dependencies = ["asn1crypto>=1.4.0"]
 license = "MIT"
 requires-python = ">=3.9"
+dynamic = ["version"]
 
 [project.urls]
-Homepage = "http://python-pkcs11.readthedocs.io/en/latest/"
-Documentation = "http://python-pkcs11.readthedocs.io/en/latest/"
+Homepage = "https://python-pkcs11.readthedocs.io/en/latest/"
+Documentation = "https://python-pkcs11.readthedocs.io/en/latest/"
 Issues = "https://github.com/pyauth/python-pkcs11/issues"
 Repository = "https://github.com/pyauth/python-pkcs11"
 
@@ -50,18 +50,50 @@ extend-select = [
 [tool.ruff.lint.isort]
 combine-as-imports = true
 
+[tool.setuptools]
+ext-modules = [
+    {name = "pkcs11._pkcs11", sources = ["pkcs11/_pkcs11.pyx"]}
+]
+
+[tool.cibuildwheel.linux]
+archs = ["auto64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
+
+[tool.cibuildwheel.macos]
+archs = ["universal2"]
+
 [tool.setuptools.packages.find]
 include = ["pkcs11*"]
 
 [dependency-groups]
-dev = [
+testing = [
     "cryptography>=44.0.0",
     "parameterized>=0.9.0",
     "pytest>=8.3.4",
-    "ruff>=0.8.3",
-    "setuptools>=80.8",
-    "setuptools-scm>=8.3.1",
+]
+docs = [
     "sphinx>=7.4.7",
     "sphinx-rtd-theme>=3.0.2",
-    "cython"
 ]
+lint = [
+    "ruff>=0.8.3",
+]
+release = [
+    "setuptools>=80.8",
+    "setuptools-scm>=8.3.1",
+    "cython",
+]
+docs-build = [
+    { include-group = "docs" },
+    "python-pkcs11",
+]
+dev = [
+    { include-group = "docs" },
+    { include-group = "testing" },
+    { include-group = "lint" },
+    { include-group = "release" },
+]
+
+[tool.setuptools_scm]

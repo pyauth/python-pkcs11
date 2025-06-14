@@ -522,7 +522,6 @@ wheels = [
 
 [[package]]
 name = "python-pkcs11"
-version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "asn1crypto" },
@@ -542,6 +541,32 @@ dev = [
     { name = "sphinx", version = "8.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sphinx-rtd-theme" },
 ]
+docs = [
+    { name = "sphinx", version = "7.4.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
+    { name = "sphinx", version = "8.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "sphinx-rtd-theme" },
+]
+docs-build = [
+    { name = "python-pkcs11" },
+    { name = "sphinx", version = "7.4.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
+    { name = "sphinx", version = "8.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "sphinx-rtd-theme" },
+]
+lint = [
+    { name = "ruff" },
+]
+release = [
+    { name = "cython" },
+    { name = "setuptools" },
+    { name = "setuptools-scm" },
+]
+testing = [
+    { name = "cryptography" },
+    { name = "parameterized" },
+    { name = "pytest" },
+]
 
 [package.metadata]
 requires-dist = [{ name = "asn1crypto", specifier = ">=1.4.0" }]
@@ -557,6 +582,26 @@ dev = [
     { name = "setuptools-scm", specifier = ">=8.3.1" },
     { name = "sphinx", specifier = ">=7.4.7" },
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
+]
+docs = [
+    { name = "sphinx", specifier = ">=7.4.7" },
+    { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
+]
+docs-build = [
+    { name = "python-pkcs11" },
+    { name = "sphinx", specifier = ">=7.4.7" },
+    { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
+]
+lint = [{ name = "ruff", specifier = ">=0.8.3" }]
+release = [
+    { name = "cython" },
+    { name = "setuptools", specifier = ">=80.8" },
+    { name = "setuptools-scm", specifier = ">=8.3.1" },
+]
+testing = [
+    { name = "cryptography", specifier = ">=44.0.0" },
+    { name = "parameterized", specifier = ">=0.9.0" },
+    { name = "pytest", specifier = ">=8.3.4" },
 ]
 
 [[package]]

@@ -1,12 +1,12 @@
 name: Tests
 on:
-  push: {}
+  push:
+    branches: ["*"]
+  pull_request: {}
   workflow_dispatch: {}
 env:
   UV_PYTHON_PREFERENCE: only-system
-  PKCS11_TOKEN_LABEL: TEST
-  PKCS11_TOKEN_PIN: 1234
-  PKCS11_TOKEN_SO_PIN: 5678
+  UV_NO_SYNC: "1"
 jobs:
   run:
     runs-on: ${{ matrix.os }}
@@ -27,46 +27,21 @@ jobs:
 
     steps:
       - name: Acquire sources
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5.0.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Softhsm
-        shell: bash
-        run: |
-          if [[ $OS_NAME == 'ubuntu-latest' ]]; then
-            sudo apt-get install softhsm2
-            mkdir softhsm_tokens
-            echo "directories.tokendir = $(pwd)/softhsm_tokens" > /tmp/softhsm2.conf
-            echo "SOFTHSM2_CONF=/tmp/softhsm2.conf" >> "$GITHUB_ENV"
-            echo "PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so" >> "$GITHUB_ENV"
-          elif [[ $OS_NAME == 'macos-latest' ]]; then
-            brew install softhsm
-            echo "PKCS11_MODULE=/opt/homebrew/lib/softhsm/libsofthsm2.so" >> "$GITHUB_ENV"
-          elif [[ $OS_NAME == 'windows-latest' ]]; then
-            choco install softhsm.install
-            echo "SOFTHSM2_CONF=D:/SoftHSM2/etc/softhsm2.conf" >> "$GITHUB_ENV"
-            echo "PKCS11_MODULE=D:/SoftHSM2/lib/softhsm2-x64.dll" >> "$GITHUB_ENV"
-            echo "D:/SoftHSM2/bin" >> "$GITHUB_PATH"
-            echo "D:/SoftHSM2/lib" >> "$GITHUB_PATH"
-          else
-            echo "$OS_NAME is not a supported target system"
-            exit 1
-          fi
-        env:
-          OS_NAME: ${{ matrix.os }}
-      - name: Initialize SoftHSM token
-        shell: bash
-        run: |
-          softhsm2-util --init-token --free --label $PKCS11_TOKEN_LABEL --pin $PKCS11_TOKEN_PIN --so-pin $PKCS11_TOKEN_SO_PIN
+      - uses: ./.github/actions/install-softhsm
+        with:
+          os: ${{ matrix.os }}
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
-      - name: Install dev dependencies
-        run: uv sync --all-extras
+      - name: Install testing dependencies
+        run: uv sync --no-dev --exact --group testing
       - name: Run tests
         run: uv run pytest -v

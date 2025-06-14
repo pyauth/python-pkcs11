@@ -1,14 +1,16 @@
 name: Code quality
 on:
-  push:
+  push: {}
+  pull_request: {}
 env:
   UV_PYTHON_PREFERENCE: only-system
+  UV_NO_SYNC: "1"
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
       - name: Acquire sources
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -16,13 +18,13 @@ jobs:
           enable-cache: true
 
       - name: Setup Python
-        uses: actions/setup-python@v5.0.0
+        uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           architecture: x64
 
-      - name: Install dev dependencies
-        run: uv sync
+      - name: Install lint dependencies
+        run: uv sync --no-dev --exact --group lint
 
       - name: ruff format
         run: uv run ruff format --diff .
