@@ -42,7 +42,11 @@ class DSATests(TestCase):
         public, private = dhparams.generate_keypair()
         self.assertIsInstance(public, pkcs11.PublicKey)
         self.assertIsInstance(private, pkcs11.PrivateKey)
-        self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)
+        # We expect a length of 128 (1024/8) in the vast majority of cases,
+        # but since the length of an integer value in DER is not fixed, there's
+        # a chance that we end up with a slightly shorter key length.
+        # The probability that the length falls short of 120 is vanishingly low, though.
+        self.assertGreater(len(public[Attribute.VALUE]), 120)
 
         data = "Message to sign"
         signature = private.sign(data, mechanism=Mechanism.DSA_SHA1)
@@ -52,4 +56,5 @@ class DSATests(TestCase):
     @FIXME.nfast  # returns Function Failed
     def test_generate_keypair_directly(self):
         public, private = self.session.generate_keypair(KeyType.DSA, 1024)
-        self.assertEqual(len(public[Attribute.VALUE]), 1024 // 8)
+        # See above.
+        self.assertGreater(len(public[Attribute.VALUE]), 120)
