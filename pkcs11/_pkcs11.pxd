@@ -151,6 +151,10 @@ cdef extern from '../extern/cryptoki.h':
         CK_TRUE,
         CK_FALSE,
 
+    cdef enum:
+        CK_UNAVAILABLE_INFORMATION,
+        CK_EFFECTIVELY_INFINITE,
+
     cdef enum:  # CK_FLAGS
         CKF_DONT_BLOCK,
         CKF_RW_SESSION,
