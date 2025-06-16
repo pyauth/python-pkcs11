@@ -915,6 +915,8 @@ class Object(types.Object):
         # Find out the attribute size
         with nogil:
             retval = _funclist.C_GetAttributeValue(handle, obj, &template, 1)
+        if retval == CK_UNAVAILABLE_INFORMATION:
+            return None
         assertRV(retval)
 
         if template.ulValueLen == 0:
@@ -927,6 +929,8 @@ class Object(types.Object):
         # Request the value
         with nogil:
             retval = _funclist.C_GetAttributeValue(handle, obj, &template, 1)
+        if retval == CK_UNAVAILABLE_INFORMATION:
+            return None
         assertRV(retval)
 
         return _unpack_attributes(key, value)
