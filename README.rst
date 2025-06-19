@@ -16,13 +16,15 @@ python-pkcs11 also includes numerous utility functions to convert between PKCS
 #11 data structures and common interchange formats including PKCS #1 and X.509.
 
 python-pkcs11 is fully documented and has a full integration test suite for all
-features, with continuous integration against multiple HSM platforms including:
+features.
 
-* Thales nCipher
-* Opencryptoki TPM
-* OpenSC/Smartcard-HSM/Nitrokey HSM
+Historically, this project used to run continuous integration tests against several
+HSM platforms, but this test setup has not been maintained over time. Currently,
+the integration tests in GitHub Actions use SoftHSMv2 as a baseline. If you would like
+to contribute some CI setup with additional PKCS#11 implementations or actual HSMs,
+let's chat!
 
-Source: https://github.com/danni/python-pkcs11
+Source: https://github.com/pyauth/python-pkcs11
 
 Documentation: http://python-pkcs11.readthedocs.io/en/latest/
 
@@ -40,7 +42,13 @@ Or build from source:
 
 ::
 
-    python setup.py build
+    python -m build .
+
+Or using ``uv``:
+
+::
+
+   uv build
 
 Assuming your PKCS#11 library is set as `PKCS11_MODULE` and contains a
 token named `DEMO`:
@@ -306,15 +314,14 @@ Tested Compatibility
 
 Python version:
 
-* 3.4 (with `aenum`)
-* 3.5 (with `aenum`)
-* 3.6
+* >= 3.9
 
 PKCS#11 versions:
 
 * 2.11
 * 2.20
 * 2.40
+* 3.1
 
 Feel free to send pull requests for any functionality that's not exposed. The
 code is designed to be readable and expose the PKCS #11 spec in a
@@ -339,7 +346,7 @@ License
 
 MIT License
 
-Copyright (c) 2017 Danielle Madeley
+Copyright (c) 2017 Danielle Madeley and contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

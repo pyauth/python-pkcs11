@@ -5,10 +5,7 @@ See the Python :mod:`enum` documentation for more information on how to
 use these classes.
 """
 
-try:
-    from enum import IntEnum, IntFlag, unique
-except ImportError:
-    from aenum import IntEnum, IntFlag, unique
+from enum import IntEnum, IntFlag, unique
 
 
 DEFAULT = object()
