@@ -257,12 +257,34 @@ cdef class MechanismWithParam:
         # FIXME: is there a better way to do this?
         cdef CK_RSA_PKCS_OAEP_PARAMS *oaep_params
         cdef CK_RSA_PKCS_PSS_PARAMS *pss_params
+        cdef CK_EDDSA_PARAMS *eddsa_params
         cdef CK_ECDH1_DERIVE_PARAMS *ecdh1_params
         cdef CK_KEY_DERIVATION_STRING_DATA *aes_ecb_params
         cdef CK_AES_CBC_ENCRYPT_DATA_PARAMS *aes_cbc_params
 
         # Unpack mechanism parameters
-        if mechanism is Mechanism.RSA_PKCS_OAEP:
+
+        if mechanism == Mechanism.AES_ECB_ENCRYPT_DATA:
+            paramlen = sizeof(CK_KEY_DERIVATION_STRING_DATA)
+            self.param = aes_ecb_params = \
+                <CK_KEY_DERIVATION_STRING_DATA *> PyMem_Malloc(paramlen)
+            aes_ecb_params.pData = <CK_BYTE *> param
+            aes_ecb_params.ulLen = <CK_ULONG> len(param)
+
+        elif isinstance(param, bytes):
+            # Note: this is an escape hatch of sorts that can be used to provide parameters for
+            #  unsupported algorithms in raw binary form.
+            # We include it at this point in the chain for forwards compatibility reasons:
+            #  if at a later point, "first class" support for the unsupported mechanism is added
+            #  to the library, existing code that used this "raw mode" workaround will keep working
+            #  because this branch takes priority.
+            #
+            # The parameter convention for AES_ECB_ENCRYPT_DATA predates this ordering decision,
+            #  so it takes precedence over this branch for backwards compatibility.
+            self.data.pParameter = <CK_BYTE *> param
+            paramlen =  len(param)
+
+        elif mechanism == Mechanism.RSA_PKCS_OAEP:
             paramlen = sizeof(CK_RSA_PKCS_OAEP_PARAMS)
             self.param = oaep_params = \
                 <CK_RSA_PKCS_OAEP_PARAMS *> PyMem_Malloc(paramlen)
@@ -297,6 +319,18 @@ cdef class MechanismWithParam:
 
             (pss_params.hashAlg, pss_params.mgf, pss_params.sLen) = param
 
+        elif mechanism == Mechanism.EDDSA and param is not None:
+            paramlen = sizeof(CK_EDDSA_PARAMS)
+            self.param = eddsa_params = \
+                <CK_EDDSA_PARAMS *> PyMem_Malloc(paramlen)
+            (eddsa_params.phFlag, context_data) = param
+            if context_data is None:
+                eddsa_params.pContextData = NULL
+                eddsa_params.ulContextDataLen = 0
+            else:
+                eddsa_params.pContextData = context_data
+                eddsa_params.ulContextDataLen = <CK_ULONG> len(context_data)
+
         elif mechanism in (
                 Mechanism.ECDH1_DERIVE,
                 Mechanism.ECDH1_COFACTOR_DERIVE):
@@ -316,14 +350,7 @@ cdef class MechanismWithParam:
             ecdh1_params.pPublicData = public_data
             ecdh1_params.ulPublicDataLen = <CK_ULONG> len(public_data)
 
-        elif mechanism is Mechanism.AES_ECB_ENCRYPT_DATA:
-            paramlen = sizeof(CK_KEY_DERIVATION_STRING_DATA)
-            self.param = aes_ecb_params = \
-                <CK_KEY_DERIVATION_STRING_DATA *> PyMem_Malloc(paramlen)
-            aes_ecb_params.pData = <CK_BYTE *> param
-            aes_ecb_params.ulLen = <CK_ULONG> len(param)
-
-        elif mechanism is Mechanism.AES_CBC_ENCRYPT_DATA:
+        elif mechanism == Mechanism.AES_CBC_ENCRYPT_DATA:
             paramlen = sizeof(CK_AES_CBC_ENCRYPT_DATA_PARAMS)
             self.param = aes_cbc_params = \
                     <CK_AES_CBC_ENCRYPT_DATA_PARAMS *> PyMem_Malloc(paramlen)
@@ -331,10 +358,6 @@ cdef class MechanismWithParam:
             aes_cbc_params.iv = iv[:16]
             aes_cbc_params.pData = <CK_BYTE *> data
             aes_cbc_params.length = <CK_ULONG> len(data)
-
-        elif isinstance(param, bytes):
-            self.data.pParameter = <CK_BYTE *> param
-            paramlen =  len(param)
 
         elif param is None:
             self.data.pParameter = NULL

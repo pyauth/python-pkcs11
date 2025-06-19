@@ -569,7 +569,7 @@ testing = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "asn1crypto", specifier = ">=1.4.0" }]
+requires-dist = [{ name = "asn1crypto", specifier = ">=1.5.1" }]
 
 [package.metadata.requires-dev]
 dev = [

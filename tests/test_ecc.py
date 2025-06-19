@@ -4,6 +4,8 @@ PKCS#11 Elliptic Curve Cryptography.
 
 import base64
 
+from asn1crypto.keys import PrivateKeyAlgorithmId
+
 import pkcs11
 from pkcs11 import KDF, Attribute, KeyType, Mechanism
 from pkcs11.util.ec import (
@@ -152,13 +154,13 @@ class ECCTests(TestCase):
         self.assertTrue(pub.verify(b"Example", signature, mechanism=Mechanism.ECDSA))
 
     @requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN, Mechanism.EDDSA)
-    def test_sign_eddsa(self):
+    def test_sign_ed25519(self):
         parameters = self.session.create_domain_parameters(
             KeyType.EC_EDWARDS,
             {
-                # use "Ed25519" once https://github.com/wbond/asn1crypto/pull/134
-                # is merged
-                Attribute.EC_PARAMS: encode_named_curve_parameters("1.3.101.112")
+                Attribute.EC_PARAMS: encode_named_curve_parameters(
+                    PrivateKeyAlgorithmId.unmap("ed25519")
+                )
             },
             local=True,
         )
@@ -169,3 +171,24 @@ class ECCTests(TestCase):
         data = b"HI BOB!"
         eddsa = priv.sign(data, mechanism=mechanism)
         self.assertTrue(pub.verify(data, eddsa, mechanism=mechanism))
+
+    @requires(Mechanism.EC_EDWARDS_KEY_PAIR_GEN, Mechanism.EDDSA)
+    def test_sign_ed448(self):
+        parameters = self.session.create_domain_parameters(
+            KeyType.EC_EDWARDS,
+            {
+                Attribute.EC_PARAMS: encode_named_curve_parameters(
+                    PrivateKeyAlgorithmId.unmap("ed448")
+                )
+            },
+            local=True,
+        )
+
+        pub, priv = parameters.generate_keypair()
+
+        mechanism = Mechanism.EDDSA
+        data = b"HI BOB!"
+        # As per the spec, mechanism parameters are required for Ed448: phFlag is False and
+        # the contextData is null for a regular Ed448 signature.
+        eddsa = priv.sign(data, mechanism=mechanism, mechanism_param=(False, None))
+        self.assertTrue(pub.verify(data, eddsa, mechanism=mechanism, mechanism_param=(False, None)))
