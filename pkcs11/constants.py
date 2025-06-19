@@ -7,7 +7,6 @@ use these classes.
 
 from enum import IntEnum, IntFlag, unique
 
-
 DEFAULT = object()
 """Sentinel value used in templates.
 
