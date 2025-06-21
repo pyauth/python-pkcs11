@@ -10,12 +10,6 @@ class PKCS11Error(RuntimeError):
     """
 
 
-class AlreadyInitialized(PKCS11Error):
-    """
-    pkcs11 was already initialized with another library.
-    """
-
-
 class AnotherUserAlreadyLoggedIn(PKCS11Error):
     pass
 

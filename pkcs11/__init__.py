@@ -8,8 +8,7 @@ from .mechanisms import *  # noqa: F403
 from .types import *  # noqa: F403
 from .util import dh, dsa, ec, rsa, x509  # noqa: F401
 
-_so = None
-_lib = None
+_loaded = {}
 
 
 def lib(so):
@@ -17,20 +16,19 @@ def lib(so):
     Wrap the main library call coming from Cython with a preemptive
     dynamic loading.
     """
-    global _lib
-    global _so
+    global _loaded
 
-    if _lib:
-        if _so != so:
-            raise AlreadyInitialized(  # noqa: F405
-                "Already initialized with %s" % _so
-            )
-        else:
-            return _lib
+    try:
+        _lib = _loaded[so]
+        if not _lib.initialized:
+            _lib.initialize()
+        return _lib
+    except KeyError:
+        pass
 
     from . import _pkcs11
 
     _lib = _pkcs11.lib(so)
-    _so = so
+    _loaded[so] = _lib
 
     return _lib

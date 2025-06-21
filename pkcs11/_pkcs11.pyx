@@ -11,6 +11,8 @@ library loaded.
 from __future__ import (absolute_import, unicode_literals,
                         print_function, division)
 
+from threading import RLock
+
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 from . import types
@@ -26,11 +28,14 @@ from .types import (
 )
 
 
-# _funclist is used to keep the pointer to the list of functions, when lib() is invoked.
-# This is a global, as this object cannot be shared between Python and Cython classes
-# Due to this limitation, the current implementation limits the loading of the library
-# to one instance only, or to several instances of the same kind.
-cdef CK_FUNCTION_LIST *_funclist = NULL
+cdef class lib(HasFuncList)
+
+cdef class HasFuncList:
+    cdef CK_FUNCTION_LIST *funclist
+
+    def __cinit__(self, *args, **kwargs):
+        self.funclist = NULL
+
 
 cdef assertRV(rv) with gil:
     """Check for an acceptable RV value or thrown an exception."""
@@ -377,8 +382,52 @@ cdef class MechanismWithParam:
         PyMem_Free(self.param)
 
 
-class Slot(types.Slot):
+cdef class Slot(HasFuncList, types.Slot):
     """Extend Slot with implementation."""
+
+    cdef readonly CK_SLOT_ID slot_id
+    """Slot identifier (opaque)."""
+    cdef readonly str slot_description
+    """Slot name (:class:`str`)."""
+    cdef readonly str manufacturer_id
+    """Slot/device manufacturer's name (:class:`str`)."""
+    cdef CK_FLAGS slot_flags
+    cdef CK_VERSION hw_version
+    cdef CK_VERSION fw_version
+
+    @staticmethod
+    cdef Slot make(CK_FUNCTION_LIST *funclist, CK_SLOT_ID slot_id, CK_SLOT_INFO info):
+        description = info.slotDescription[:sizeof(info.slotDescription)]
+        manufacturer_id = info.manufacturerID[:sizeof(info.manufacturerID)]
+
+        cdef Slot slot = Slot.__new__(Slot)
+        slot.funclist = funclist
+
+        slot.slot_id = slot_id
+        slot.slot_description = _CK_UTF8CHAR_to_str(description)
+        slot.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturer_id)
+        slot.hw_version = info.hardwareVersion
+        slot.fw_version = info.firmwareVersion
+        slot.slot_flags = info.flags
+        return slot
+
+    def __init__(self):
+        raise TypeError
+
+    @property
+    def flags(self):
+        """Capabilities of this slot (:class:`SlotFlag`)."""
+        return SlotFlag(self.slot_flags)
+
+    @property
+    def hardware_version(self):
+        """Hardware version (:class:`tuple`)."""
+        return _CK_VERSION_to_tuple(self.hw_version)
+
+    @property
+    def firmware_version(self):
+        """Firmware version (:class:`tuple`)."""
+        return _CK_VERSION_to_tuple(self.fw_version)
 
     def get_token(self):
         cdef CK_SLOT_ID slot_id = self.slot_id
@@ -386,16 +435,10 @@ class Slot(types.Slot):
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_GetTokenInfo(slot_id, &info)
+            retval = self.funclist.C_GetTokenInfo(slot_id, &info)
         assertRV(retval)
 
-        label = info.label[:sizeof(info.label)]
-        serialNumber = info.serialNumber[:sizeof(info.serialNumber)]
-        model = info.model[:sizeof(info.model)]
-        manufacturerID = info.manufacturerID[:sizeof(info.manufacturerID)]
-
-        return Token(self, label, serialNumber, model, manufacturerID,
-                     info.hardwareVersion, info.firmwareVersion, info.flags)
+        return Token.make(self, info)
 
     def get_mechanisms(self):
         cdef CK_SLOT_ID slot_id = self.slot_id
@@ -403,7 +446,7 @@ class Slot(types.Slot):
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_GetMechanismList(slot_id, NULL, &count)
+            retval = self.funclist.C_GetMechanismList(slot_id, NULL, &count)
         assertRV(retval)
 
         if count == 0:
@@ -412,7 +455,7 @@ class Slot(types.Slot):
         cdef CK_MECHANISM_TYPE [:] mechanisms = CK_ULONG_buffer(count)
 
         with nogil:
-            retval = _funclist.C_GetMechanismList(slot_id, &mechanisms[0], &count)
+            retval = self.funclist.C_GetMechanismList(slot_id, &mechanisms[0], &count)
         assertRV(retval)
 
         return set(map(_CK_MECHANISM_TYPE_to_enum, mechanisms))
@@ -424,14 +467,84 @@ class Slot(types.Slot):
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_GetMechanismInfo(slot_id, mech_type, &info)
+            retval = self.funclist.C_GetMechanismInfo(slot_id, mech_type, &info)
         assertRV(retval)
 
         return types.MechanismInfo(self, mechanism, **info)
 
+    def _identity(self):
+        return Slot.__name__, self.slot_id
 
-class Token(types.Token):
+    def __str__(self):
+        return "\n".join(
+            (
+                "Slot Description: %s" % self.slot_description,
+                "Manufacturer ID: %s" % self.manufacturer_id,
+                "Hardware Version: %s.%s" % self.hardware_version,
+                "Firmware Version: %s.%s" % self.firmware_version,
+                "Flags: %s" % self.flags,
+            )
+        )
+
+    def __repr__(self):
+        return "<{klass} (slotID={slot_id} flags={flags})>".format(
+            klass=type(self).__name__, slot_id=self.slot_id, flags=str(self.flags)
+        )
+
+
+cdef class Token(HasFuncList, types.Token):
     """Extend Token with implementation."""
+
+    cdef readonly Slot slot
+    """The :class:`Slot` this token is installed in."""
+    cdef readonly str label
+    """Label of this token (:class:`str`)."""
+    cdef readonly bytes serial
+    """Serial number of this token (:class:`bytes`)."""
+    cdef readonly str manufacturer_id
+    """Manufacturer ID."""
+    cdef readonly str model
+    """Model name."""
+    cdef CK_FLAGS token_flags
+    cdef CK_VERSION hw_version
+    cdef CK_VERSION fw_version
+
+    @staticmethod
+    cdef Token make(Slot slot, CK_TOKEN_INFO info):
+        label = info.label[:sizeof(info.label)]
+        serial_number = info.serialNumber[:sizeof(info.serialNumber)]
+        model = info.model[:sizeof(info.model)]
+        manufacturer_id = info.manufacturerID[:sizeof(info.manufacturerID)]
+
+        cdef Token token = Token.__new__(Token)
+        token.funclist = slot.funclist
+        token.slot = slot
+        token.label = _CK_UTF8CHAR_to_str(label)
+        token.serial = serial_number.rstrip()
+        token.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturer_id)
+        token.model = _CK_UTF8CHAR_to_str(model)
+        token.hw_version = info.hardwareVersion
+        token.fw_version = info.firmwareVersion
+        token.token_flags = info.flags
+        return token
+
+    def __init__(self):
+        raise TypeError
+
+    @property
+    def flags(self):
+        """Capabilities of this token (:class:`TokenFlag`)."""
+        return TokenFlag(self.token_flags)
+
+    @property
+    def hardware_version(self):
+        """Hardware version (:class:`tuple`)."""
+        return _CK_VERSION_to_tuple(self.hw_version)
+
+    @property
+    def firmware_version(self):
+        """Firmware version (:class:`tuple`)."""
+        return _CK_VERSION_to_tuple(self.fw_version)
 
     def open(self, rw=False, user_pin=None, so_pin=None, user_type=None):
         cdef CK_SLOT_ID slot_id = self.slot.slot_id
@@ -441,6 +554,7 @@ class Token(types.Token):
         cdef CK_UTF8CHAR *pin_data
         cdef CK_ULONG pin_length
         cdef CK_RV retval
+        cdef CK_USER_TYPE c_user_type
 
         if rw:
             flags |= CKF_RW_SESSION
@@ -449,29 +563,28 @@ class Token(types.Token):
             raise ArgumentsBad("Set either `user_pin` or `so_pin`")
         elif user_pin is PROTECTED_AUTH:
             pin = None
-            user_type = user_type if user_type is not None else CKU_USER
+            c_user_type = user_type if user_type is not None else CKU_USER
         elif so_pin is PROTECTED_AUTH:
             pin = None
-            user_type = CKU_SO
+            c_user_type = CKU_SO
         elif user_pin is not None:
             pin = user_pin.encode('utf-8')
-            user_type = user_type if user_type is not None else CKU_USER
+            c_user_type = user_type if user_type is not None else CKU_USER
         elif so_pin is not None:
             pin = so_pin.encode('utf-8')
-            user_type = CKU_SO
+            c_user_type = CKU_SO
         else:
             pin = None
-            user_type = UserType.NOBODY
+            c_user_type = CKU_USER_NOBODY
 
-        final_user_type = user_type
         with nogil:
-            retval = _funclist.C_OpenSession(slot_id, flags, NULL, NULL, &handle)
+            retval = self.funclist.C_OpenSession(slot_id, flags, NULL, NULL, &handle)
         assertRV(retval)
 
         if so_pin is PROTECTED_AUTH or user_pin is PROTECTED_AUTH:
             if self.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
                 with nogil:
-                    retval = _funclist.C_Login(handle, final_user_type, NULL, 0)
+                    retval = self.funclist.C_Login(handle, c_user_type, NULL, 0)
                 assertRV(retval)
             else:
                 raise ArgumentsBad("Protected authentication is not supported by loaded module")
@@ -480,68 +593,95 @@ class Token(types.Token):
             pin_length = <CK_ULONG> len(pin)
 
             with nogil:
-                retval = _funclist.C_Login(handle, final_user_type, pin_data, pin_length)
+                retval = self.funclist.C_Login(handle, c_user_type, pin_data, pin_length)
             assertRV(retval)
 
-        return Session(self, handle, rw=rw, user_type=user_type)
+        return Session.make(self, handle, rw=<bint> rw, user_type=c_user_type)
+
+    def __str__(self):
+        return self.label
+
+    def _identity(self):
+        return Token.__name__, self.slot
+
+    def __repr__(self):
+        return "<{klass} (label='{label}' serial={serial} flags={flags})>".format(
+            klass=type(self).__name__, label=self.label, serial=self.serial, flags=str(self.flags)
+        )
 
 
-class SearchIter:
+cdef class SearchIter:
     """Iterate a search for objects on a session."""
 
-    def __init__(self, session, attrs):
+    cdef Session session
+    cdef bint active
+
+    def __cinit__(self, session, attrs):
         self.session = session
+        self.active = False
 
-        template = AttributeList(attrs)
-        self.session._operation_lock.acquire()
-        self._active = True
-
-        cdef CK_SESSION_HANDLE handle = self.session._handle
-        cdef CK_ATTRIBUTE *attr_data = template.data
-        cdef CK_ULONG attr_count = template.count
-        cdef CK_RV retval
-
-        with nogil:
-            retval = _funclist.C_FindObjectsInit(handle, attr_data, attr_count)
-        assertRV(retval)
+    def __init__(self, session, attrs):
+        cdef AttributeList template = AttributeList(attrs)
+        self.start_search(template)
 
     def __iter__(self):
         return self
 
     def __next__(self):
         """Get the next object."""
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef CK_SESSION_HANDLE handle = self.session.handle
         cdef CK_OBJECT_HANDLE obj
         cdef CK_ULONG count
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_FindObjects(handle, &obj, 1, &count)
+            retval = self.session.funclist.C_FindObjects(handle, &obj, 1, &count)
         assertRV(retval)
 
         if count == 0:
             self._finalize()
             raise StopIteration()
         else:
-            return Object._make(self.session, obj)
+            return make_object(self.session, obj)
 
     def __del__(self):
         """Close the search."""
         self._finalize()
 
-    def _finalize(self):
-        """Finish the operation."""
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+    def __enter__(self):
+        # it would make sense to start the search here, but we can't do that for
+        # API compatibility reasons
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._finalize()
+
+    cdef start_search(self, AttributeList template):
+        self.session.operation_lock.acquire()
+        self.active = True
+
+        cdef CK_SESSION_HANDLE handle = self.session.handle
+        cdef CK_ATTRIBUTE *attr_data = template.data
+        cdef CK_ULONG attr_count = template.count
         cdef CK_RV retval
 
-        if self._active:
-            self._active = False
+        with nogil:
+            retval = self.session.funclist.C_FindObjectsInit(handle, attr_data, attr_count)
+        assertRV(retval)
+
+    def _finalize(self):
+        """Finish the operation."""
+        cdef CK_SESSION_HANDLE handle = self.session.handle
+        cdef CK_RV retval
+
+        if self.active:
+            self.active = False
 
             with nogil:
-                retval = _funclist.C_FindObjectsFinal(handle)
+                retval = self.session.funclist.C_FindObjectsFinal(handle)
             assertRV(retval)
 
-            self.session._operation_lock.release()
+            self.session.operation_lock.release()
 
 
 def merge_templates(default_template, *user_templates):
@@ -558,20 +698,57 @@ def merge_templates(default_template, *user_templates):
     }
 
 
-class Session(types.Session):
+cdef class Session(HasFuncList, types.Session):
     """Extend Session with implementation."""
 
+    # FIXME this shouldn't have to be public once we're done here
+    cdef CK_SESSION_HANDLE handle
+    cdef readonly Token token
+    """:class:`Token` this session is on."""
+    cdef readonly bint rw
+    """True if this is a read/write session."""
+    cdef CK_USER_TYPE _user_type
+    cdef object operation_lock
+
+    @staticmethod
+    cdef Session make(Token token, CK_SESSION_HANDLE handle, bint rw, CK_USER_TYPE user_type):
+        cdef Session session = Session.__new__(Session)
+
+        session.funclist = token.funclist
+        session.token = token
+
+        session.handle = handle
+        # Big operation lock prevents other threads from entering/reentering
+        # operations. If the same thread enters the lock, they will get a
+        # Cryptoki warning
+        session.operation_lock = RLock()
+
+        session.rw = rw
+        session._user_type = user_type
+        return session
+
+    def __init__(self):
+        raise TypeError
+
+    def _identity(self):
+        return Session.__name__, self.token, self.handle
+
+    @property
+    def user_type(self):
+        """User type for this session (:class:`pkcs11.constants.UserType`)."""
+        return UserType(self._user_type)
+
     def close(self):
-        cdef CK_SESSION_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_RV retval
 
         if self.user_type != UserType.NOBODY:
             with nogil:
-                retval = _funclist.C_Logout(handle)
+                retval = self.funclist.C_Logout(handle)
             assertRV(retval)
 
         with nogil:
-            retval = _funclist.C_CloseSession(handle)
+            retval = self.funclist.C_CloseSession(handle)
         assertRV(retval)
 
     def get_objects(self, attrs=None):
@@ -580,17 +757,17 @@ class Session(types.Session):
     def create_object(self, attrs):
         template = AttributeList(attrs)
 
-        cdef CK_OBJECT_HANDLE handle = self._handle
+        cdef CK_OBJECT_HANDLE handle = self.handle
         cdef CK_ATTRIBUTE *attr_data = template.data
         cdef CK_ULONG attr_count = template.count
         cdef CK_OBJECT_HANDLE new
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_CreateObject(handle, attr_data, attr_count, &new)
+            retval = self.funclist.C_CreateObject(handle, attr_data, attr_count, &new)
         assertRV(retval)
 
-        return Object._make(self, new)
+        return make_object(self, new)
 
     def create_domain_parameters(self, key_type, attrs,
                                  local=False, store=False):
@@ -603,7 +780,7 @@ class Session(types.Session):
         attrs[Attribute.TOKEN] = store
 
         if local:
-            return DomainParameters(self, None, attrs)
+            return LocalDomainParameters(self, attrs)
         else:
             return self.create_object(attrs)
 
@@ -627,7 +804,7 @@ class Session(types.Session):
         }
         attrs = AttributeList(merge_templates(template_, template))
 
-        cdef CK_SESSION_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_ATTRIBUTE *attr_data = attrs.data
         cdef CK_ULONG attr_count = attrs.count
@@ -635,10 +812,10 @@ class Session(types.Session):
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_GenerateKey(handle, mech_data, attr_data, attr_count, &obj)
+            retval = self.funclist.C_GenerateKey(handle, mech_data, attr_data, attr_count, &obj)
         assertRV(retval)
 
-        return Object._make(self, obj)
+        return make_object(self, obj)
 
     def generate_key(self, key_type, key_length=None,
                      id=None, label=None,
@@ -689,17 +866,17 @@ class Session(types.Session):
 
         attrs = AttributeList(merge_templates(template_, template))
 
-        cdef CK_SESSION_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_ATTRIBUTE *attr_data = attrs.data
         cdef CK_ULONG attr_count = attrs.count
         cdef CK_OBJECT_HANDLE key
 
         with nogil:
-            retval = _funclist.C_GenerateKey(handle, mech_data, attr_data, attr_count, &key)
+            retval = self.funclist.C_GenerateKey(handle, mech_data, attr_data, attr_count, &key)
         assertRV(retval)
 
-        return Object._make(self, key)
+        return make_object(self, key)
 
     def _generate_keypair(self, key_type, key_length=None,
                           id=None, label=None,
@@ -764,7 +941,7 @@ class Session(types.Session):
         }
         private_attrs = AttributeList(merge_templates(private_template_, private_template))
 
-        cdef CK_SESSION_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_ATTRIBUTE *public_attr_data = public_attrs.data
         cdef CK_ULONG public_attr_count = public_attrs.count
@@ -775,30 +952,30 @@ class Session(types.Session):
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_GenerateKeyPair(handle, mech_data, public_attr_data, public_attr_count, private_attr_data, private_attr_count, &public_key, &private_key)
+            retval = self.funclist.C_GenerateKeyPair(handle, mech_data, public_attr_data, public_attr_count, private_attr_data, private_attr_count, &public_key, &private_key)
         assertRV(retval)
 
-        return (Object._make(self, public_key),
-                Object._make(self, private_key))
+        return (make_object(self, public_key),
+                make_object(self, private_key))
 
     def seed_random(self, seed):
-        cdef CK_SESSION_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_BYTE *seed_data = seed
         cdef CK_ULONG seed_len = <CK_ULONG> len(seed)
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_SeedRandom(handle, seed_data, seed_len)
+            retval = self.funclist.C_SeedRandom(handle, seed_data, seed_len)
         assertRV(retval)
 
     def generate_random(self, nbits):
-        cdef CK_SESSION_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_ULONG length = nbits // 8
         cdef CK_CHAR [:] random = CK_BYTE_buffer(length)
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_GenerateRandom(handle, &random[0], length)
+            retval = self.funclist.C_GenerateRandom(handle, &random[0], length)
         assertRV(retval)
 
         return bytes(random)
@@ -806,7 +983,7 @@ class Session(types.Session):
     def _digest(self, data, mechanism=None, mechanism_param=None):
         mech = MechanismWithParam(None, {}, mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
@@ -814,20 +991,20 @@ class Session(types.Session):
         cdef CK_ULONG length
         cdef CK_RV retval
 
-        with self._operation_lock:
+        with self.operation_lock:
             with nogil:
-                retval = _funclist.C_DigestInit(handle, mech_data)
+                retval = self.funclist.C_DigestInit(handle, mech_data)
             assertRV(retval)
 
             with nogil:
                 # Run once to get the length
-                retval = _funclist.C_Digest(handle, data_ptr, data_len, NULL, &length)
+                retval = self.funclist.C_Digest(handle, data_ptr, data_len, NULL, &length)
             assertRV(retval)
 
             digest = CK_BYTE_buffer(length)
 
             with nogil:
-                retval = _funclist.C_Digest(handle, data_ptr, data_len, &digest[0], &length)
+                retval = self.funclist.C_Digest(handle, data_ptr, data_len, &digest[0], &length)
             assertRV(retval)
 
             return bytes(digest[:length])
@@ -835,7 +1012,7 @@ class Session(types.Session):
     def _digest_generator(self, data, mechanism=None, mechanism_param=None):
         mech = MechanismWithParam(None, {}, mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self._handle
+        cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE key
         cdef CK_BYTE *data_ptr
@@ -844,90 +1021,62 @@ class Session(types.Session):
         cdef CK_ULONG length
         cdef CK_RV retval
 
-        with self._operation_lock:
+        with self.operation_lock:
             with nogil:
-                retval = _funclist.C_DigestInit(handle, mech_data)
+                retval = self.funclist.C_DigestInit(handle, mech_data)
             assertRV(retval)
 
             for block in data:
                 if isinstance(block, types.Key):
-                    key = block._handle
+                    key = block.handle
 
                     with nogil:
-                        retval = _funclist.C_DigestKey(handle, key)
+                        retval = self.funclist.C_DigestKey(handle, key)
                     assertRV(retval)
                 else:
                     data_ptr = block
                     data_len = <CK_ULONG> len(block)
 
                     with nogil:
-                        retval = _funclist.C_DigestUpdate(handle, data_ptr, data_len)
+                        retval = self.funclist.C_DigestUpdate(handle, data_ptr, data_len)
                     assertRV(retval)
 
             # Run once to get the length
             with nogil:
-                retval = _funclist.C_DigestFinal(handle, NULL, &length)
+                retval = self.funclist.C_DigestFinal(handle, NULL, &length)
             assertRV(retval)
 
             digest = CK_BYTE_buffer(length)
 
             with nogil:
-                retval = _funclist.C_DigestFinal(handle, &digest[0], &length)
+                retval = self.funclist.C_DigestFinal(handle, &digest[0], &length)
             assertRV(retval)
 
             return bytes(digest[:length])
 
 
-class Object(types.Object):
-    """Expand Object with an implementation."""
+cdef class ObjectHandleWrapper(HasFuncList):
+    """
+    Class implementing generic operations on PKCS#11 objects.
+    """
 
-    @classmethod
-    def _make(cls, *args, **kwargs):
-        """
-        Make an object with the right bases for its class and capabilities.
-        """
+    cdef readonly Session session
+    cdef readonly CK_OBJECT_HANDLE handle
 
-        # Make a version of ourselves we can introspect
-        self = cls(*args, **kwargs)
+    @staticmethod
+    cdef ObjectHandleWrapper wrap(Session session, CK_OBJECT_HANDLE handle):
+        cdef ObjectHandleWrapper obj = ObjectHandleWrapper.__new__(ObjectHandleWrapper)
+        obj.funclist = session.funclist
+        obj.session = session
+        obj.handle = handle
+        return obj
 
-        try:
-            # Determine a list of base classes to manufacture our class with
-            # FIXME: we should really request all of these attributes in
-            # one go
-            object_class = self[Attribute.CLASS]
-            bases = (_CLASS_MAP[object_class],)
-
-            # Build a list of mixins for this new class
-            for attribute, mixin in (
-                    (Attribute.ENCRYPT, EncryptMixin),
-                    (Attribute.DECRYPT, DecryptMixin),
-                    (Attribute.SIGN, SignMixin),
-                    (Attribute.VERIFY, VerifyMixin),
-                    (Attribute.WRAP, WrapMixin),
-                    (Attribute.UNWRAP, UnwrapMixin),
-                    (Attribute.DERIVE, DeriveMixin),
-            ):
-                try:
-                    if self[attribute]:
-                        bases += (mixin,)
-                # nFast returns FunctionFailed when you request an attribute
-                # it doesn't like.
-                except (AttributeTypeInvalid, FunctionFailed):
-                    pass
-
-            bases += (cls,)
-
-            # Manufacture a class with the right capabilities.
-            klass = type(bases[0].__name__, bases, {})
-
-            return klass(*args, **kwargs)
-
-        except KeyError:
-            return self
+    def __init__(self):
+        raise TypeError
 
     def __getitem__(self, key):
-        cdef CK_SESSION_HANDLE handle = self.session._handle
-        cdef CK_OBJECT_HANDLE obj = self._handle
+        cdef CK_SESSION_HANDLE handle = self.session.handle
+        cdef CK_OBJECT_HANDLE obj = self.handle
         cdef CK_ATTRIBUTE template
         cdef CK_RV retval
 
@@ -937,7 +1086,7 @@ class Object(types.Object):
 
         # Find out the attribute size
         with nogil:
-            retval = _funclist.C_GetAttributeValue(handle, obj, &template, 1)
+            retval = self.funclist.C_GetAttributeValue(handle, obj, &template, 1)
         if retval == CKR_OK and \
                 template.ulValueLen == CK_UNAVAILABLE_INFORMATION:
             # The spec prohibits returning CK_UNAVAILABLE_INFORMATION
@@ -957,14 +1106,14 @@ class Object(types.Object):
 
         # Request the value
         with nogil:
-            retval = _funclist.C_GetAttributeValue(handle, obj, &template, 1)
+            retval = self.funclist.C_GetAttributeValue(handle, obj, &template, 1)
         assertRV(retval)
 
         return _unpack_attributes(key, value)
 
     def __setitem__(self, key, value):
-        cdef CK_SESSION_HANDLE handle = self.session._handle
-        cdef CK_OBJECT_HANDLE obj = self._handle
+        cdef CK_SESSION_HANDLE handle = self.session.handle
+        cdef CK_OBJECT_HANDLE obj = self.handle
         cdef CK_ATTRIBUTE template
         cdef CK_RV retval
 
@@ -975,33 +1124,107 @@ class Object(types.Object):
         template.ulValueLen = <CK_ULONG>len(value)
 
         with nogil:
-            retval = _funclist.C_SetAttributeValue(handle, obj, &template, 1)
+            retval = self.funclist.C_SetAttributeValue(handle, obj, &template, 1)
+        assertRV(retval)
+
+    def destroy(self):
+        cdef CK_SESSION_HANDLE handle = self.session.handle
+        cdef CK_OBJECT_HANDLE obj = self.handle
+        cdef CK_RV retval
+
+        with nogil:
+            retval = self.session.funclist.C_DestroyObject(handle, obj)
         assertRV(retval)
 
     def copy(self, attrs):
         template = AttributeList(attrs)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
-        cdef CK_OBJECT_HANDLE obj = self._handle
+        cdef CK_SESSION_HANDLE handle = self.session.handle
+        cdef CK_OBJECT_HANDLE obj = self.handle
         cdef CK_ATTRIBUTE *attr_data = template.data
         cdef CK_ULONG attr_count = template.count
-        cdef CK_OBJECT_HANDLE new
+        cdef CK_OBJECT_HANDLE new_obj
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_CopyObject(handle, obj, attr_data, attr_count, &new)
+            retval = self.session.funclist.C_CopyObject(handle, obj, attr_data, attr_count, &new_obj)
         assertRV(retval)
+        return new_obj
 
-        return Object._make(self.session, new)
+    def identity(self):
+        return ObjectHandleWrapper.__name__, self.session, self.handle
+
+class Object(types.Object):
+    """Expand Object with an implementation."""
+
+    def __init__(self, wrapper: ObjectHandleWrapper):
+        self.wrapper = wrapper
+
+    def __getitem__(self, item):
+        return self.wrapper[item]
+
+    def __setitem__(self, key, value):
+        self.wrapper[key] = value
+
+    @property
+    def session(self):
+        return self.wrapper.session
+
+    @property
+    def handle(self):
+        return self.wrapper.handle
+
+    def copy(self, attrs):
+        new_obj = self.wrapper.copy(attrs)
+        return make_object(self.wrapper.session, new_obj)
 
     def destroy(self):
-        cdef CK_SESSION_HANDLE handle = self.session._handle
-        cdef CK_OBJECT_HANDLE obj = self._handle
-        cdef CK_RV retval
+        self.wrapper.destroy()
 
-        with nogil:
-            retval = _funclist.C_DestroyObject(handle, obj)
-        assertRV(retval)
+    def _identity(self):
+        return Object.__name__, self.wrapper.identity()
+
+
+cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
+    """
+    Make an object with the right bases for its class and capabilities.
+    """
+    wrapper = ObjectHandleWrapper.wrap(session, handle)
+
+    try:
+        # Determine a list of base classes to manufacture our class with
+        # FIXME: we should really request all of these attributes in
+        # one go
+        object_class = wrapper[Attribute.CLASS]
+        bases = (_CLASS_MAP[object_class],)
+
+        # Build a list of mixins for this new class
+        for attribute, mixin in (
+                (Attribute.ENCRYPT, EncryptMixin),
+                (Attribute.DECRYPT, DecryptMixin),
+                (Attribute.SIGN, SignMixin),
+                (Attribute.VERIFY, VerifyMixin),
+                (Attribute.WRAP, WrapMixin),
+                (Attribute.UNWRAP, UnwrapMixin),
+                (Attribute.DERIVE, DeriveMixin),
+        ):
+            try:
+                if wrapper[attribute]:
+                    bases += (mixin,)
+            # nFast returns FunctionFailed when you request an attribute
+            # it doesn't like.
+            except (AttributeTypeInvalid, FunctionFailed):
+                pass
+
+        bases += (Object,)
+
+        # Manufacture a class with the right capabilities.
+        klass = type(bases[0].__name__, bases, {})
+
+        return klass(wrapper)
+
+    except KeyError:
+        return Object(wrapper)
 
 
 class SecretKey(types.SecretKey):
@@ -1016,7 +1239,7 @@ class PrivateKey(types.PrivateKey):
     pass
 
 
-class DomainParameters(types.DomainParameters):
+class GenerateWithParametersMixin(types.DomainParameters):
     def generate_keypair(self,
                          id=None, label=None,
                          store=False, capabilities=None,
@@ -1077,7 +1300,7 @@ class DomainParameters(types.DomainParameters):
         }
         private_attrs = AttributeList(merge_templates(private_template_, private_template))
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_ATTRIBUTE *public_attr_data = public_attrs.data
         cdef CK_ULONG public_attr_count = public_attrs.count
@@ -1088,12 +1311,18 @@ class DomainParameters(types.DomainParameters):
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_GenerateKeyPair(handle, mech_data, public_attr_data, public_attr_count, private_attr_data, private_attr_count, &public_key, &private_key)
+            retval = session.funclist.C_GenerateKeyPair(session.handle, mech_data, public_attr_data, public_attr_count, private_attr_data, private_attr_count, &public_key, &private_key)
         assertRV(retval)
 
-        return (Object._make(self.session, public_key),
-                Object._make(self.session, private_key))
+        return (make_object(session, public_key),
+                make_object(session, private_key))
 
+
+class LocalDomainParameters(GenerateWithParametersMixin, types.LocalDomainParameters):
+    pass
+
+class StoredDomainParameters(GenerateWithParametersMixin):
+    pass
 
 class Certificate(types.Certificate):
     pass
@@ -1111,29 +1340,29 @@ class EncryptMixin(types.EncryptMixin):
             self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self._handle
+        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE [:] ciphertext
         cdef CK_ULONG length
         cdef CK_RV retval
 
-        with self.session._operation_lock:
+        with session.operation_lock:
             with nogil:
-                retval = _funclist.C_EncryptInit(handle, mech_data, key)
+                retval = session.funclist.C_EncryptInit(session.handle, mech_data, key)
             assertRV(retval)
 
             # Call to find out the buffer length
             with nogil:
-                retval = _funclist.C_Encrypt(handle, data_ptr, data_len, NULL, &length)
+                retval = session.funclist.C_Encrypt(session.handle, data_ptr, data_len, NULL, &length)
             assertRV(retval)
 
             ciphertext = CK_BYTE_buffer(length)
 
             with nogil:
-                retval = _funclist.C_Encrypt(handle, data_ptr, data_len, &ciphertext[0], &length)
+                retval = session.funclist.C_Encrypt(session.handle, data_ptr, data_len, &ciphertext[0], &length)
             assertRV(retval)
 
             return bytes(ciphertext[:length])
@@ -1156,18 +1385,18 @@ class EncryptMixin(types.EncryptMixin):
             self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self._handle
+        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr
         cdef CK_ULONG data_len
         cdef CK_ULONG length
         cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
         cdef CK_RV retval
 
-        with self.session._operation_lock:
+        with session.operation_lock:
             with nogil:
-                retval = _funclist.C_EncryptInit(handle, mech_data, key)
+                retval = session.funclist.C_EncryptInit(session.handle, mech_data, key)
             assertRV(retval)
 
             for part_in in data:
@@ -1179,7 +1408,7 @@ class EncryptMixin(types.EncryptMixin):
                 length = buffer_size
 
                 with nogil:
-                    retval = _funclist.C_EncryptUpdate(handle, data_ptr, data_len, &part_out[0], &length)
+                    retval = session.funclist.C_EncryptUpdate(session.handle, data_ptr, data_len, &part_out[0], &length)
                 assertRV(retval)
 
                 yield bytes(part_out[:length])
@@ -1189,7 +1418,7 @@ class EncryptMixin(types.EncryptMixin):
             length = buffer_size
 
             with nogil:
-                retval = _funclist.C_EncryptFinal(handle, &part_out[0], &length)
+                retval = session.funclist.C_EncryptFinal(session.handle, &part_out[0], &length)
             assertRV(retval)
 
             yield bytes(part_out[:length])
@@ -1205,9 +1434,9 @@ class DecryptMixin(types.DecryptMixin):
             self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self._handle
+        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE [:] plaintext
@@ -1223,26 +1452,26 @@ class DecryptMixin(types.DecryptMixin):
             pin_length = <CK_ULONG> len(pin)
             user_type = CKU_CONTEXT_SPECIFIC
 
-        with self.session._operation_lock:
+        with session.operation_lock:
             with nogil:
-                retval = _funclist.C_DecryptInit(handle, mech_data, key)
+                retval = session.funclist.C_DecryptInit(session.handle, mech_data, key)
             assertRV(retval)
 
             # Log in if pin provided
             if pin is not None:
                 with nogil:
-                    retval = _funclist.C_Login(handle, user_type, pin_data, pin_length)
+                    retval = session.funclist.C_Login(session.handle, user_type, pin_data, pin_length)
                 assertRV(retval)
 
             # Call to find out the buffer length
             with nogil:
-                retval = _funclist.C_Decrypt(handle, data_ptr, data_len, NULL, &length)
+                retval = session.funclist.C_Decrypt(session.handle, data_ptr, data_len, NULL, &length)
             assertRV(retval)
 
             plaintext = CK_BYTE_buffer(length)
 
             with nogil:
-                retval = _funclist.C_Decrypt(handle, data_ptr, data_len, &plaintext[0], &length)
+                retval = session.funclist.C_Decrypt(session.handle, data_ptr, data_len, &plaintext[0], &length)
             assertRV(retval)
 
             return bytes(plaintext[:length])
@@ -1265,9 +1494,9 @@ class DecryptMixin(types.DecryptMixin):
             self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self._handle
+        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr
         cdef CK_ULONG data_len
         cdef CK_ULONG length
@@ -1283,15 +1512,15 @@ class DecryptMixin(types.DecryptMixin):
             pin_length = <CK_ULONG> len(pin)
             user_type = CKU_CONTEXT_SPECIFIC
 
-        with self.session._operation_lock:
+        with session.operation_lock:
             with nogil:
-                retval = _funclist.C_DecryptInit(handle, mech_data, key)
+                retval = session.funclist.C_DecryptInit(session.handle, mech_data, key)
             assertRV(retval)
 
             # Log in if pin provided
             if pin is not None:
                 with nogil:
-                    retval = _funclist.C_Login(handle, user_type, pin_data, pin_length)
+                    retval = session.funclist.C_Login(session.handle, user_type, pin_data, pin_length)
                 assertRV(retval)
 
             for part_in in data:
@@ -1303,7 +1532,7 @@ class DecryptMixin(types.DecryptMixin):
                 length = buffer_size
 
                 with nogil:
-                    retval = _funclist.C_DecryptUpdate(handle, data_ptr, data_len, &part_out[0], &length)
+                    retval = session.funclist.C_DecryptUpdate(session.handle, data_ptr, data_len, &part_out[0], &length)
                 assertRV(retval)
 
                 yield bytes(part_out[:length])
@@ -1313,7 +1542,7 @@ class DecryptMixin(types.DecryptMixin):
             length = buffer_size
 
             with nogil:
-                retval = _funclist.C_DecryptFinal(handle, &part_out[0], &length)
+                retval = session.funclist.C_DecryptFinal(session.handle, &part_out[0], &length)
             assertRV(retval)
 
             yield bytes(part_out[:length])
@@ -1329,9 +1558,9 @@ class SignMixin(types.SignMixin):
             self.key_type, DEFAULT_SIGN_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self._handle
+        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE [:] signature
@@ -1347,26 +1576,26 @@ class SignMixin(types.SignMixin):
             pin_length = <CK_ULONG> len(pin)
             user_type = CKU_CONTEXT_SPECIFIC
 
-        with self.session._operation_lock:
+        with session.operation_lock:
             with nogil:
-                retval = _funclist.C_SignInit(handle, mech_data, key)
+                retval = session.funclist.C_SignInit(session.handle, mech_data, key)
             assertRV(retval)
 
             # Log in if pin provided
             if pin is not None:
                 with nogil:
-                    retval = _funclist.C_Login(handle, user_type, pin_data, pin_length)
+                    retval = session.funclist.C_Login(session.handle, user_type, pin_data, pin_length)
                 assertRV(retval)
 
             # Call to find out the buffer length
             with nogil:
-                retval = _funclist.C_Sign(handle, data_ptr, data_len, NULL, &length)
+                retval = session.funclist.C_Sign(session.handle, data_ptr, data_len, NULL, &length)
             assertRV(retval)
 
             signature = CK_BYTE_buffer(length)
 
             with nogil:
-                retval = _funclist.C_Sign(handle, data_ptr, data_len, &signature[0], &length)
+                retval = session.funclist.C_Sign(session.handle, data_ptr, data_len, &signature[0], &length)
             assertRV(retval)
 
             return bytes(signature[:length])
@@ -1378,9 +1607,9 @@ class SignMixin(types.SignMixin):
             self.key_type, DEFAULT_SIGN_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self._handle
+        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr
         cdef CK_ULONG data_len
         cdef CK_BYTE [:] signature
@@ -1396,15 +1625,15 @@ class SignMixin(types.SignMixin):
             pin_length = <CK_ULONG> len(pin)
             user_type = CKU_CONTEXT_SPECIFIC
 
-        with self.session._operation_lock:
+        with session.operation_lock:
             with nogil:
-                retval = _funclist.C_SignInit(handle, mech_data, key)
+                retval = session.funclist.C_SignInit(session.handle, mech_data, key)
             assertRV(retval)
 
             # Log in if pin provided
             if pin is not None:
                 with nogil:
-                    retval = _funclist.C_Login(handle, user_type, pin_data, pin_length)
+                    retval = session.funclist.C_Login(session.handle, user_type, pin_data, pin_length)
                 assertRV(retval)
 
             for part_in in data:
@@ -1415,19 +1644,19 @@ class SignMixin(types.SignMixin):
                 data_len = <CK_ULONG> len(part_in)
 
                 with nogil:
-                    retval = _funclist.C_SignUpdate(handle, data_ptr, data_len)
+                    retval = session.funclist.C_SignUpdate(session.handle, data_ptr, data_len)
                 assertRV(retval)
 
             # Finalize
             # Call to find out the buffer length
             with nogil:
-                retval = _funclist.C_SignFinal(handle, NULL, &length)
+                retval = session.funclist.C_SignFinal(session.handle, NULL, &length)
             assertRV(retval)
 
             signature = CK_BYTE_buffer(length)
 
             with nogil:
-                retval = _funclist.C_SignFinal(handle, &signature[0], &length)
+                retval = session.funclist.C_SignFinal(session.handle, &signature[0], &length)
             assertRV(retval)
 
             return bytes(signature[:length])
@@ -1443,22 +1672,22 @@ class VerifyMixin(types.VerifyMixin):
             self.key_type, DEFAULT_SIGN_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self._handle
+        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE *sig_ptr = signature
         cdef CK_ULONG sig_len = <CK_ULONG> len(signature)
         cdef CK_RV retval
 
-        with self.session._operation_lock:
+        with session.operation_lock:
             with nogil:
-                retval = _funclist.C_VerifyInit(handle, mech_data, key)
+                retval = session.funclist.C_VerifyInit(session.handle, mech_data, key)
             assertRV(retval)
 
             with nogil:
-                retval = _funclist.C_Verify(handle, data_ptr, data_len, sig_ptr, sig_len)
+                retval = session.funclist.C_Verify(session.handle, data_ptr, data_len, sig_ptr, sig_len)
             assertRV(retval)
 
     def _verify_generator(self, data, signature,
@@ -1468,18 +1697,18 @@ class VerifyMixin(types.VerifyMixin):
             self.key_type, DEFAULT_SIGN_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self._handle
+        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr
         cdef CK_ULONG data_len
         cdef CK_BYTE *sig_ptr = signature
         cdef CK_ULONG sig_len = <CK_ULONG> len(signature)
         cdef CK_RV retval
 
-        with self.session._operation_lock:
+        with session.operation_lock:
             with nogil:
-                retval = _funclist.C_VerifyInit(handle, mech_data, key)
+                retval = session.funclist.C_VerifyInit(session.handle, mech_data, key)
             assertRV(retval)
 
             for part_in in data:
@@ -1490,11 +1719,11 @@ class VerifyMixin(types.VerifyMixin):
                 data_len = <CK_ULONG> len(part_in)
 
                 with nogil:
-                    retval = _funclist.C_VerifyUpdate(handle, data_ptr, data_len)
+                    retval = session.funclist.C_VerifyUpdate(session.handle, data_ptr, data_len)
                 assertRV(retval)
 
             with nogil:
-                retval = _funclist.C_VerifyFinal(handle, sig_ptr, sig_len)
+                retval = session.funclist.C_VerifyFinal(session.handle, sig_ptr, sig_len)
             assertRV(retval)
 
 
@@ -1511,22 +1740,22 @@ class WrapMixin(types.WrapMixin):
             self.key_type, DEFAULT_WRAP_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE wrapping_key = self._handle
-        cdef CK_OBJECT_HANDLE key_to_wrap = key._handle
+        cdef CK_OBJECT_HANDLE wrapping_key = self.handle
+        cdef CK_OBJECT_HANDLE key_to_wrap = key.handle
         cdef CK_ULONG length
         cdef CK_RV retval
 
         # Find out how many bytes we need to allocate
         with nogil:
-            retval = _funclist.C_WrapKey(handle, mech_data, wrapping_key, key_to_wrap, NULL, &length)
+            retval = session.funclist.C_WrapKey(session.handle, mech_data, wrapping_key, key_to_wrap, NULL, &length)
         assertRV(retval)
 
         cdef CK_BYTE [:] data = CK_BYTE_buffer(length)
 
         with nogil:
-            retval = _funclist.C_WrapKey(handle, mech_data, wrapping_key, key_to_wrap, &data[0], &length)
+            retval = session.funclist.C_WrapKey(session.handle, mech_data, wrapping_key, key_to_wrap, &data[0], &length)
         assertRV(retval)
 
         return bytes(data[:length])
@@ -1576,9 +1805,9 @@ class UnwrapMixin(types.UnwrapMixin):
         }
         attrs = AttributeList(merge_templates(template_, template))
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE unwrapping_key = self._handle
+        cdef CK_OBJECT_HANDLE unwrapping_key = self.handle
         cdef CK_BYTE *wrapped_key_ptr = key_data
         cdef CK_ULONG wrapped_key_len = <CK_ULONG> len(key_data)
         cdef CK_ATTRIBUTE *attr_data = attrs.data
@@ -1587,10 +1816,10 @@ class UnwrapMixin(types.UnwrapMixin):
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_UnwrapKey(handle, mech_data, unwrapping_key, wrapped_key_ptr, wrapped_key_len, attr_data, attr_count, &key)
+            retval = session.funclist.C_UnwrapKey(session.handle, mech_data, unwrapping_key, wrapped_key_ptr, wrapped_key_len, attr_data, attr_count, &key)
         assertRV(retval)
 
-        return Object._make(self.session, key)
+        return make_object(session, key)
 
 
 class DeriveMixin(types.DeriveMixin):
@@ -1640,26 +1869,26 @@ class DeriveMixin(types.DeriveMixin):
         }
         attrs = AttributeList(merge_templates(template_, template))
 
-        cdef CK_SESSION_HANDLE handle = self.session._handle
+        cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE src_key = self._handle
+        cdef CK_OBJECT_HANDLE src_key = self.handle
         cdef CK_ATTRIBUTE *attr_data = attrs.data
         cdef CK_ULONG attr_count = attrs.count
         cdef CK_OBJECT_HANDLE key
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_DeriveKey(handle, mech_data, src_key, attr_data, attr_count, &key)
+            retval = session.funclist.C_DeriveKey(session.handle, mech_data, src_key, attr_data, attr_count, &key)
         assertRV(retval)
 
-        return Object._make(self.session, key)
+        return make_object(session, key)
 
 
 _CLASS_MAP = {
     ObjectClass.SECRET_KEY: SecretKey,
     ObjectClass.PUBLIC_KEY: PublicKey,
     ObjectClass.PRIVATE_KEY: PrivateKey,
-    ObjectClass.DOMAIN_PARAMETERS: DomainParameters,
+    ObjectClass.DOMAIN_PARAMETERS: StoredDomainParameters,
     ObjectClass.CERTIFICATE: Certificate,
 }
 
@@ -1672,8 +1901,7 @@ cdef extern from "../extern/load_module.c":
     int p11_close(P11_HANDLE* handle)
 
 
-
-cdef class lib:
+cdef class lib(HasFuncList):
     """
     Main entry point.
 
@@ -1681,11 +1909,12 @@ cdef class lib:
     pkcs11.types.
     """
 
-    cdef public str so
-    cdef public str manufacturer_id
-    cdef public str library_description
-    cdef public tuple cryptoki_version
-    cdef public tuple library_version
+    cdef readonly str so
+    cdef readonly str manufacturer_id
+    cdef readonly str library_description
+    cdef readonly tuple cryptoki_version
+    cdef readonly tuple library_version
+    cdef readonly bint initialized
     cdef P11_HANDLE *_p11_handle
 
     cdef _load_pkcs11_lib(self, so) with gil:
@@ -1718,24 +1947,46 @@ cdef class lib:
         populate_function_list = <C_GetFunctionList_ptr> handle.get_function_list_ptr
         self._p11_handle = handle
 
-        assertRV(populate_function_list(&_funclist))
+        assertRV(populate_function_list(&self.funclist))
 
 
     def __cinit__(self, so):
         cdef CK_RV retval
+        self._p11_handle = NULL
         self._load_pkcs11_lib(so)
+        self.initialized = False
         # at this point, _funclist contains all function pointers to the library
-        with nogil:
-            retval = _funclist.C_Initialize(NULL)
-        assertRV(retval)
+
+    cpdef initialize(self):
+        cdef CK_RV retval
+        if self.funclist != NULL and not self.initialized:
+            with nogil:
+                retval = self.funclist.C_Initialize(NULL)
+            assertRV(retval)
+            self.initialized = True
+
+    cpdef finalize(self):
+        cdef CK_RV retval
+        if self.funclist != NULL and self.initialized:
+            with nogil:
+                retval = self.funclist.C_Finalize(NULL)
+            assertRV(retval)
+            self.initialized = False
+
+    def reinitialize(self):
+        if self.funclist != NULL:
+            self.finalize()
+            self.initialize()
 
     def __init__(self, so):
         self.so = so
         cdef CK_INFO info
         cdef CK_RV retval
 
+        self.initialize()
+
         with nogil:
-            retval = _funclist.C_GetInfo(&info)
+            retval = self.funclist.C_GetInfo(&info)
         assertRV(retval)
 
         manufacturerID = info.manufacturerID[:sizeof(info.manufacturerID)]
@@ -1768,7 +2019,7 @@ cdef class lib:
         cdef CK_RV retval
 
         with nogil:
-            retval = _funclist.C_GetSlotList(present, NULL, &count)
+            retval = self.funclist.C_GetSlotList(present, NULL, &count)
         assertRV(retval)
 
         if count == 0:
@@ -1777,7 +2028,7 @@ cdef class lib:
         cdef CK_SLOT_ID [:] slot_list = CK_ULONG_buffer(count)
 
         with nogil:
-            retval = _funclist.C_GetSlotList(present, &slot_list[0], &count)
+            retval = self.funclist.C_GetSlotList(present, &slot_list[0], &count)
         assertRV(retval)
 
         cdef CK_SLOT_ID slot_id
@@ -1787,15 +2038,11 @@ cdef class lib:
 
         for slot_id in slot_list:
             with nogil:
-                retval = _funclist.C_GetSlotInfo(slot_id, &info)
+                retval = self.funclist.C_GetSlotInfo(slot_id, &info)
             assertRV(retval)
 
-            slotDescription = info.slotDescription[:sizeof(info.slotDescription)]
-            manufacturerID = info.manufacturerID[:sizeof(info.manufacturerID)]
-
             slots.append(
-                Slot(self, slot_id, slotDescription, manufacturerID,
-                     info.hardwareVersion, info.firmwareVersion, info.flags)
+                Slot.make(self.funclist, slot_id, info)
             )
 
         return slots
@@ -1863,13 +2110,13 @@ cdef class lib:
             flag |= CKF_DONT_BLOCK
 
         with nogil:
-            retval = _funclist.C_WaitForSlotEvent(flag, &slot_id, NULL)
+            retval = self.funclist.C_WaitForSlotEvent(flag, &slot_id, NULL)
         assertRV(retval)
 
         cdef CK_SLOT_INFO info
 
         with nogil:
-            retval = _funclist.C_GetSlotInfo(slot_id, &info)
+            retval = self.funclist.C_GetSlotInfo(slot_id, &info)
         assertRV(retval)
 
         slotDescription = info.slotDescription[:sizeof(info.slotDescription)]
@@ -1878,18 +2125,8 @@ cdef class lib:
         return Slot(self, slot_id, slotDescription, manufacturerID,
                  info.hardwareVersion, info.firmwareVersion, info.flags)
 
-    def reinitialize(self):
-        cdef CK_RV retval
-        if _funclist != NULL:
-            with nogil:
-                retval = _funclist.C_Finalize(NULL)
-            assertRV(retval)
-            with nogil:
-                retval = _funclist.C_Initialize(NULL)
-            assertRV(retval)
-
     def __dealloc__(self):
-        if _funclist != NULL:
-            with nogil:
-                _funclist.C_Finalize(NULL)
-        p11_close(self._p11_handle)
+        self.finalize()
+        self.funclist = NULL
+        if self._p11_handle != NULL:
+            p11_close(self._p11_handle)

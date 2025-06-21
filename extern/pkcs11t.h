@@ -270,6 +270,8 @@ typedef CK_ULONG          CK_USER_TYPE;
 #define CKU_USER                1UL
 /* Context specific */
 #define CKU_CONTEXT_SPECIFIC    2UL
+/* Value used in python-pkcs11 as a sentinel value for non-logged in sessions */
+#define CKU_USER_NOBODY         999UL
 
 /* CK_STATE enumerates the session states */
 typedef CK_ULONG          CK_STATE;

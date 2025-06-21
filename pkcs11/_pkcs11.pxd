@@ -146,6 +146,7 @@ cdef extern from '../extern/cryptoki.h':
         CKU_SO,
         CKU_USER,
         CKU_CONTEXT_SPECIFIC,
+        CKU_USER_NOBODY,
 
     cdef enum:
         CK_TRUE,
