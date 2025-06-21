@@ -19,7 +19,7 @@ static PyObject* p11_error() {
         LocalFree(msgbuffer);
         return errmsg;
     } else {
-        return NULL;
+        Py_RETURN_NONE;
     }
 }
 
@@ -57,7 +57,7 @@ static PyObject* p11_error() {
     char* error = dlerror();
 
     if (error == NULL) {
-        return NULL;
+        Py_RETURN_NONE;
     }
     int len = strlen(error);
     PyObject* result = PyUnicode_DecodeUTF8(error, len, NULL);
