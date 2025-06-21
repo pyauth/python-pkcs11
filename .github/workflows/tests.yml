@@ -21,9 +21,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
-          # 3.13.4 has a regression in C extension builds,
-          # need to stick to 3.13.3 until 3.13.5 is available on runners
-          - "3.13.3"
+          - "3.13"
 
     steps:
       - name: Acquire sources
