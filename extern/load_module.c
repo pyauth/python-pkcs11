@@ -17,6 +17,9 @@ static PyObject* p11_error() {
                     NULL);
         PyObject* errmsg = PyUnicode_FromWideChar(msgbuffer, l);
         LocalFree(msgbuffer);
+        if (errmsg == NULL) {
+            Py_RETURN_NONE;
+        }
         return errmsg;
     } else {
         Py_RETURN_NONE;
@@ -61,7 +64,9 @@ static PyObject* p11_error() {
     }
     int len = strlen(error);
     PyObject* result = PyUnicode_DecodeUTF8(error, len, NULL);
-    PyMem_Free(error);
+    if (result == NULL) {
+        Py_RETURN_NONE;
+    }
     return result;
 }
 

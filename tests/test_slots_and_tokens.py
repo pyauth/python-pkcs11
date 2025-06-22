@@ -14,6 +14,10 @@ class SlotsAndTokensTests(unittest.TestCase):
         self.assertIsNotNone(pkcs11.lib(LIB))
         self.assertIsNotNone(pkcs11.lib(LIB))
 
+    def test_nonexistent_lib(self):
+        with self.assertRaises(RuntimeError):
+            pkcs11.lib("thislibdoesntexist.so")
+
     def test_double_initialise_different_libs(self):
         self.assertIsNotNone(pkcs11.lib(LIB))
         with self.assertRaises(pkcs11.AlreadyInitialized):
