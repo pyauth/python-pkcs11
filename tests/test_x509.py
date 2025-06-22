@@ -125,27 +125,24 @@ class X509Tests(TestCase):
 
         self.assertTrue(key.verify(value, signature, mechanism=Mechanism.DSA_SHA1))
 
-    @requires(Mechanism.ECDSA_SHA1)
+    @requires(Mechanism.ECDSA_SHA256)
     def test_verify_certificate_ecdsa(self):
         # Warning: proof of concept code only!
         CERT = base64.b64decode("""
-        MIIDGjCCAsKgAwIBAgIJAL+PbwiJUZB1MAkGByqGSM49BAEwRTELMAkGA1UEBhMC
-        QVUxEzARBgNVBAgTClNvbWUtU3RhdGUxITAfBgNVBAoTGEludGVybmV0IFdpZGdp
-        dHMgUHR5IEx0ZDAeFw0xNzA3MDMxMTUxMTBaFw0xOTA3MDMxMTUxMTBaMEUxCzAJ
-        BgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5l
-        dCBXaWRnaXRzIFB0eSBMdGQwggFLMIIBAwYHKoZIzj0CATCB9wIBATAsBgcqhkjO
-        PQEBAiEA/////wAAAAEAAAAAAAAAAAAAAAD///////////////8wWwQg/////wAA
-        AAEAAAAAAAAAAAAAAAD///////////////wEIFrGNdiqOpPns+u9VXaYhrxlHQaw
-        zFOw9jvOPD4n0mBLAxUAxJ02CIbnBJNqZnjhE50mt4GffpAEQQRrF9Hy4SxCR/i8
-        5uVjpEDydwN9gS3rM6D0oTlF2JjClk/jQuL+Gn+bjufrSnwPnhYrzjNXazFezsu2
-        QGg3v1H1AiEA/////wAAAAD//////////7zm+q2nF56E87nKwvxjJVECAQEDQgAE
-        royPJHkCQMq55egxmQxkFWqiz+yJx0MZP98is99SrkiK5UadFim3r3ZSt5kfh/cc
-        Ccmy94BZCmihhGJ0F4eB2qOBpzCBpDAdBgNVHQ4EFgQURNXKlYGsAMItf4Ad8fkg
-        Rg9ATqEwdQYDVR0jBG4wbIAURNXKlYGsAMItf4Ad8fkgRg9ATqGhSaRHMEUxCzAJ
-        BgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5l
-        dCBXaWRnaXRzIFB0eSBMdGSCCQC/j28IiVGQdTAMBgNVHRMEBTADAQH/MAkGByqG
-        SM49BAEDRwAwRAIgAdJp/S9vSjS6EvRy/9zl5k2DBKGI52A3Ygsp1a96UicCIDul
-        m/eL2OcGdNbzqzsC11alhemJX7Qt9GOcVqQwROIm
+        MIICgzCCAgmgAwIBAgICEAAwCgYIKoZIzj0EAwIwUTELMAkGA1UEBhMCQkUxFDAS
+        BgNVBAoMC0V4YW1wbGUgSW5jMRowGAYDVQQLDBFUZXN0aW5nIEF1dGhvcml0eTEQ
+        MA4GA1UEAwwHUm9vdCBDQTAgFw0wMDAxMDEwMDAwMDBaGA8yNTAwMDEwMTAwMDAw
+        MFowUTELMAkGA1UEBhMCQkUxFDASBgNVBAoMC0V4YW1wbGUgSW5jMRowGAYDVQQL
+        DBFUZXN0aW5nIEF1dGhvcml0eTEQMA4GA1UEAwwHUm9vdCBDQTB2MBAGByqGSM49
+        AgEGBSuBBAAiA2IABIxRV+HCT5hbggdOa0CxbOyLRgCRQIFHnsjwk7UZCBeb+SHb
+        r4zHM447nASOEwJKvc37UttkdC4lpdOjw9OkwltCSMCS2s22v18//MqjRoQ8wAiX
+        hk1mR499ltu1jKicDKOBsTCBrjAdBgNVHQ4EFgQUJNkIpnJ27yAJidmTShDvCLfz
+        PJYwHwYDVR0jBBgwFoAUJNkIpnJ27yAJidmTShDvCLfzPJYwDwYDVR0TAQH/BAUw
+        AwEB/zAOBgNVHQ8BAf8EBAMCAYYwSwYDVR0fBEQwQjBAoD6gPIY6aHR0cDovL3B5
+        aGFua28udGVzdHMvdGVzdGluZy1jYS1lY2RzYS9jcmxzL3Jvb3QvbGF0ZXN0LmNy
+        bDAKBggqhkjOPQQDAgNoADBlAjApktbaE81Qil3bbI5UFWqpH4JsW1pgucZTlQN+
+        VmXMRT/0SVHTMM64IK1B8CzVhI8CMQCFbdX+K7KZYNDYuA7gTQHdp7l12PXMoBGE
+        dcda0K/1qwvA2w6mNU1qi/b0Is7oA0I=
         """)
 
         x509 = Certificate.load(CERT)
@@ -155,11 +152,11 @@ class X509Tests(TestCase):
         value = x509["tbs_certificate"].dump()
 
         assert x509.signature_algo == "ecdsa"
-        assert x509.hash_algo == "sha1"
+        assert x509.hash_algo == "sha256"
 
         signature = decode_ecdsa_signature(x509.signature)
 
-        self.assertTrue(key.verify(value, signature, mechanism=Mechanism.ECDSA_SHA1))
+        self.assertTrue(key.verify(value, signature, mechanism=Mechanism.ECDSA_SHA256))
 
     @requires(Mechanism.RSA_PKCS_KEY_PAIR_GEN, Mechanism.SHA256_RSA_PKCS)
     def test_self_sign_certificate(self):
