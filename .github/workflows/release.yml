@@ -141,4 +141,4 @@ jobs:
             dist/*.tar.gz
           body_path: release-body/release.md
           fail_on_unmatched_files: true
-          name: python-pkcs11 ${{ needs.extract-params.outputs.version }}
+          name: v${{ needs.extract-params.outputs.version }}
