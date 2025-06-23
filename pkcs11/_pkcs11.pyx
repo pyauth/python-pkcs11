@@ -938,8 +938,14 @@ class Object(types.Object):
         # Find out the attribute size
         with nogil:
             retval = _funclist.C_GetAttributeValue(handle, obj, &template, 1)
-        if retval == CK_UNAVAILABLE_INFORMATION:
-            return None
+        if retval == CKR_OK and \
+                template.ulValueLen == CK_UNAVAILABLE_INFORMATION:
+            # The spec prohibits returning CK_UNAVAILABLE_INFORMATION
+            #  together with CKR_OK, but some tokens do that anyway.
+            #  Let's be defensive and map that to a proper error,
+            #  otherwise CK_UNAVAILABLE_INFORMATION will be treated
+            #  as a length value, which causes issues.
+            retval = CKR_FUNCTION_FAILED
         assertRV(retval)
 
         if template.ulValueLen == 0:
@@ -952,8 +958,6 @@ class Object(types.Object):
         # Request the value
         with nogil:
             retval = _funclist.C_GetAttributeValue(handle, obj, &template, 1)
-        if retval == CK_UNAVAILABLE_INFORMATION:
-            return None
         assertRV(retval)
 
         return _unpack_attributes(key, value)

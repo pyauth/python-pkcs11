@@ -3,6 +3,7 @@ PKCS#11 Sessions
 """
 
 import pkcs11
+from pkcs11 import Attribute, AttributeSensitive, AttributeTypeInvalid
 
 from . import FIXME, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
 
@@ -157,3 +158,17 @@ class SessionTests(TestCase):
             self.assertEqual(len(random), 16)
             # Ensure we didn't get 16 bytes of zeros
             self.assertTrue(all(c != "\0" for c in random))
+
+    def test_attribute_reading_failures(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+
+            def try_read_value():
+                return key[Attribute.VALUE]
+
+            self.assertRaises(AttributeSensitive, try_read_value)
+
+            def try_read_irrelevant():
+                return key[Attribute.CERTIFICATE_TYPE]
+
+            self.assertRaises(AttributeTypeInvalid, try_read_irrelevant)
