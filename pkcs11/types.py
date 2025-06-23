@@ -217,6 +217,9 @@ class Session(IdentifiedBy):
         """Close the session."""
         raise NotImplementedError()
 
+    def reaffirm_credentials(self, pin):
+        raise NotImplementedError()
+
     def get_key(self, object_class=None, key_type=None, label=None, id=None):
         """
         Search for a key with any of `key_type`, `label` and/or `id`.
@@ -252,17 +255,17 @@ class Session(IdentifiedBy):
         if id is not None:
             attrs[Attribute.ID] = id
 
-        with self.get_objects(attrs) as iterator:
-            try:
-                key = next(iterator)
-            except StopIteration as ex:
-                raise NoSuchKey("No key matching %s" % attrs) from ex
+        iterator = self.get_objects(attrs)
+        try:
+            key = next(iterator)
+        except StopIteration as ex:
+            raise NoSuchKey("No key matching %s" % attrs) from ex
 
-            try:
-                next(iterator)
-                raise MultipleObjectsReturned("More than 1 key matches %s" % attrs)
-            except StopIteration:
-                pass
+        try:
+            next(iterator)
+            raise MultipleObjectsReturned("More than 1 key matches %s" % attrs)
+        except StopIteration:
+            pass
         return key
 
     def get_objects(self, attrs=None):

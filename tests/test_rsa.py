@@ -42,9 +42,50 @@ class RSATests(TestCase):
             b"N" * 16,
             b"P" * 16,
             b"U" * 16,
-            b"T" * 10,  # don't align to the blocksize
+            b"T" * 10,
         )
 
+        signature = self.private.sign(data)
+        self.assertIsNotNone(signature)
+        self.assertIsInstance(signature, bytes)
+        self.assertTrue(self.public.verify(data, signature))
+
+    @requires(Mechanism.SHA512_RSA_PKCS)
+    def test_sign_stream_undersized_buffer(self):
+        data = (
+            b"I" * 16,
+            b"N" * 16,
+            b"P" * 16,
+            b"U" * 16,
+            b"T" * 10,
+        )
+
+        signature = self.private.sign(data, buffer_size=16)
+        self.assertIsNotNone(signature)
+        self.assertIsInstance(signature, bytes)
+        self.assertTrue(self.public.verify(data, signature))
+
+    @requires(Mechanism.SHA512_RSA_PKCS)
+    def test_sign_stream_interrupt_releases_operation(self):
+        data = (
+            b"I" * 16,
+            b"N" * 16,
+            b"P" * 16,
+            b"U" * 16,
+            b"T" * 10,
+        )
+
+        def _data_with_error():
+            yield data[0]
+            yield data[1]
+            yield data[2]
+            raise ValueError
+
+        def attempt_sign():
+            self.private.sign(_data_with_error())
+
+        self.assertRaises(ValueError, attempt_sign)
+        # ...try again
         signature = self.private.sign(data)
         self.assertIsNotNone(signature)
         self.assertIsInstance(signature, bytes)
@@ -106,6 +147,20 @@ class RSATests(TestCase):
             data,
             mechanism=Mechanism.SHA1_RSA_PKCS_PSS,
             mechanism_param=(Mechanism.SHA_1, MGF.SHA1, 20),
+        )
+
+        self.assertTrue(self.public.verify(data, signature, mechanism=Mechanism.SHA1_RSA_PKCS_PSS))
+
+    @requires(Mechanism.SHA1_RSA_PKCS_PSS)
+    def test_sign_pss_undersized_buffer(self):
+        data = b"SOME DATA"
+
+        # These are the default params
+        signature = self.private.sign(
+            data,
+            mechanism=Mechanism.SHA1_RSA_PKCS_PSS,
+            mechanism_param=(Mechanism.SHA_1, MGF.SHA1, 20),
+            buffer_size=16,
         )
 
         self.assertTrue(self.public.verify(data, signature, mechanism=Mechanism.SHA1_RSA_PKCS_PSS))

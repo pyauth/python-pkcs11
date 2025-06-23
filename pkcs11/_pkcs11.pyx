@@ -52,11 +52,11 @@ cdef assertRV(rv) with gil:
     elif rv == CKR_ARGUMENTS_BAD:
         exc = ArgumentsBad()
     elif rv == CKR_BUFFER_TOO_SMALL:
-        exc = MemoryError("Buffer was too small. Should never see this.")
+        exc = PKCS11Error("Buffer was too small. Should never see this.")
     elif rv == CKR_CRYPTOKI_ALREADY_INITIALIZED:
-        exc = RuntimeError("Initialisation error (already initialized). Should never see this.")
+        exc = PKCS11Error("Initialisation error (already initialized). Should never see this.")
     elif rv == CKR_CRYPTOKI_NOT_INITIALIZED:
-        exc = RuntimeError("Initialisation error (not initialized). Should never see this.")
+        exc = PKCS11Error("Initialisation error (not initialized). Should never see this.")
     elif rv == CKR_DATA_INVALID:
         exc = DataInvalid()
     elif rv == CKR_DATA_LEN_RANGE:
@@ -140,7 +140,7 @@ cdef assertRV(rv) with gil:
     elif rv == CKR_SESSION_HANDLE_INVALID:
         exc = SessionHandleInvalid()
     elif rv == CKR_SESSION_PARALLEL_NOT_SUPPORTED:
-        exc = RuntimeError("Parallel not supported. Should never see this.")
+        exc = PKCS11Error("Parallel not supported. Should never see this.")
     elif rv == CKR_SESSION_READ_ONLY:
         exc = SessionReadOnly()
     elif rv == CKR_SESSION_READ_ONLY_EXISTS:
@@ -180,7 +180,7 @@ cdef assertRV(rv) with gil:
     elif rv == CKR_USER_TOO_MANY_TYPES:
         exc = UserTooManyTypes()
     elif rv == CKR_USER_TYPE_INVALID:
-        exc = RuntimeError("User type invalid. Should never see this.")
+        exc = PKCS11Error("User type invalid. Should never see this.")
     elif rv == CKR_WRAPPED_KEY_INVALID:
         exc = WrappedKeyInvalid()
     elif rv == CKR_WRAPPED_KEY_LEN_RANGE:
@@ -391,17 +391,19 @@ cdef class Slot(HasFuncList, types.Slot):
     """Slot name (:class:`str`)."""
     cdef readonly str manufacturer_id
     """Slot/device manufacturer's name (:class:`str`)."""
+    cdef readonly tuple cryptoki_version
     cdef CK_FLAGS slot_flags
     cdef CK_VERSION hw_version
     cdef CK_VERSION fw_version
 
     @staticmethod
-    cdef Slot make(CK_FUNCTION_LIST *funclist, CK_SLOT_ID slot_id, CK_SLOT_INFO info):
+    cdef Slot make(CK_FUNCTION_LIST *funclist, CK_SLOT_ID slot_id, CK_SLOT_INFO info, tuple cryptoki_version):
         description = info.slotDescription[:sizeof(info.slotDescription)]
         manufacturer_id = info.manufacturerID[:sizeof(info.manufacturerID)]
 
         cdef Slot slot = Slot.__new__(Slot)
         slot.funclist = funclist
+        slot.cryptoki_version = cryptoki_version
 
         slot.slot_id = slot_id
         slot.slot_description = _CK_UTF8CHAR_to_str(description)
@@ -610,19 +612,164 @@ cdef class Token(HasFuncList, types.Token):
         )
 
 
-cdef class SearchIter:
-    """Iterate a search for objects on a session."""
-
+cdef class OperationContext:
     cdef Session session
     cdef bint active
 
-    def __cinit__(self, session, attrs):
+    def __cinit__(self, session, *args, **kwargs):
         self.session = session
         self.active = False
 
+    def __init__(self, session):
+        pass
+
+    def __enter__(self):
+        self.session.operation_lock.acquire()
+        self.active = True
+        self._initiate()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._finalize(silent=False)
+
+    cdef _handle_final_retval(self, CK_RV retval) with gil:
+        self.active = False
+        self.session.operation_lock.release()
+        assertRV(retval)
+
+    cdef _operation_aware_assert(self, CK_RV retval) with gil:
+        if retval != CKR_BUFFER_TOO_SMALL and retval != CKR_OK:
+            # This is an error that terminated the operation
+            # We flag the operation as completed on our end as well.
+            # This is useful to track because there's no way to cleanly cancel
+            # cryptographic operations in PCKS#11 2.x.
+            self._handle_final_retval(retval)
+
+    def _initiate(self):
+        raise NotImplementedError
+
+    def _finalize(self, silent=False):
+        if self.active:
+            self.active = False
+            self.session.operation_lock.release()
+
+    def __del__(self):
+        self._finalize()
+
+
+cdef class OperationWithBinaryOutput(OperationContext):
+
+    cdef MechanismWithParam mech
+
+    cdef CK_ULONG buffer_size
+    cdef CK_ULONG buffer_data_length
+    cdef CK_BYTE [:] output_buf
+
+    @staticmethod
+    cdef OperationWithBinaryOutput _setup(
+            type cls,
+            Session session,
+            MechanismWithParam mech,
+            CK_ULONG buffer_size
+    ) with gil:
+        cdef OperationWithBinaryOutput op = cls.__new__(cls, session)
+        op.mech = mech
+        if buffer_size > 0:
+            op.output_buf = CK_BYTE_buffer(buffer_size)
+        op.buffer_size = buffer_size
+        return op
+
+    cdef resize_buffer(self, CK_ULONG length):
+        self.output_buf = CK_BYTE_buffer(length)
+        self.buffer_size = length
+
+    cdef inline bytes current_output(self):
+        return bytes(self.output_buf[:self.buffer_data_length])
+
+    cdef CK_RV update_resizing_output(
+            self,
+            OperationUpdateWithResult op_update,
+            CK_BYTE *data,
+            CK_ULONG data_len,
+    ) with gil:
+
+        cdef CK_ULONG length = self.buffer_size
+        cdef CK_BYTE *output_buf_loc = &self.output_buf[0]
+        cdef CK_RV retval
+
+        with nogil:
+            retval = op_update(
+                self.session.handle, data, data_len, output_buf_loc, &length
+            )
+
+        if retval == CKR_BUFFER_TOO_SMALL:
+            self.resize_buffer(length)
+            output_buf_loc = &self.output_buf[0]
+            with nogil:
+                retval = op_update(
+                    self.session.handle, data, data_len, output_buf_loc, &length
+                )
+        self.buffer_data_length = length
+        return retval
+
+    cdef CK_RV execute_resizing_output(self, OperationWithResult op) with gil:
+
+        cdef CK_ULONG length = self.buffer_size
+        cdef CK_BYTE *output_buf_loc = &self.output_buf[0]
+        cdef CK_RV retval
+
+        with nogil:
+            retval = op(self.session.handle, output_buf_loc, &length)
+
+        if retval == CKR_BUFFER_TOO_SMALL:
+            self.resize_buffer(length)
+            output_buf_loc = &self.output_buf[0]
+            with nogil:
+                retval = op(self.session.handle, output_buf_loc, &length)
+
+        self.buffer_data_length = length
+        return retval
+
+    cdef bytes process_fully(
+            self,
+            OperationUpdateWithResult op,
+            CK_BYTE *data,
+            CK_ULONG data_len
+    ) with gil:
+        cdef CK_RV retval = self.update_resizing_output(op, data, data_len)
+        self._handle_final_retval(retval)
+        return self.current_output()
+
+    cdef bytes update_with_result(
+            self, OperationUpdateWithResult op, CK_BYTE *data, CK_ULONG data_len
+    ) with gil:
+        cdef CK_RV retval = self.update_resizing_output(op, data, data_len)
+        self._operation_aware_assert(retval)
+        return self.current_output()
+
+    cdef update_no_output(
+            self, OperationUpdate op, CK_BYTE *data, CK_ULONG data_len
+    ) with gil:
+        cdef CK_RV retval
+        with nogil:
+            retval = op(self.session.handle, data, data_len)
+        self._operation_aware_assert(retval)
+
+    cdef bytes finish_with_output(self, OperationWithResult op_final) with gil:
+        cdef CK_RV retval = self.execute_resizing_output(op_final)
+        self._handle_final_retval(retval)
+        return self.current_output()
+
+
+cdef class SearchIter(OperationContext):
+    """Iterate a search for objects on a session."""
+
+    cdef AttributeList template
+
     def __init__(self, session, attrs):
         cdef AttributeList template = AttributeList(attrs)
-        self.start_search(template)
+        self.template = template
+        super().__init__(session)
 
     def __iter__(self):
         return self
@@ -644,44 +791,85 @@ cdef class SearchIter:
         else:
             return make_object(self.session, obj)
 
-    def __del__(self):
-        """Close the search."""
-        self._finalize()
-
-    def __enter__(self):
-        # it would make sense to start the search here, but we can't do that for
-        # API compatibility reasons
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._finalize()
-
-    cdef start_search(self, AttributeList template):
-        self.session.operation_lock.acquire()
-        self.active = True
-
+    def _initiate(self):
         cdef CK_SESSION_HANDLE handle = self.session.handle
-        cdef CK_ATTRIBUTE *attr_data = template.data
-        cdef CK_ULONG attr_count = template.count
+        cdef CK_ATTRIBUTE *attr_data = self.template.data
+        cdef CK_ULONG attr_count = self.template.count
         cdef CK_RV retval
 
         with nogil:
             retval = self.session.funclist.C_FindObjectsInit(handle, attr_data, attr_count)
         assertRV(retval)
 
-    def _finalize(self):
+    def _finalize(self, silent=False):
         """Finish the operation."""
         cdef CK_SESSION_HANDLE handle = self.session.handle
         cdef CK_RV retval
 
         if self.active:
-            self.active = False
-
             with nogil:
                 retval = self.session.funclist.C_FindObjectsFinal(handle)
-            assertRV(retval)
+            if not silent:
+                self._handle_final_retval(retval)
 
-            self.session.operation_lock.release()
+
+cdef class DigestOperation(OperationWithBinaryOutput):
+
+    @staticmethod
+    cdef DigestOperation setup(
+            Session session,
+            MechanismWithParam mech,
+            CK_ULONG buffer_size
+    ) with gil:
+        cdef DigestOperation op = <DigestOperation> OperationWithBinaryOutput._setup(
+            DigestOperation, session, mech, buffer_size
+        )
+        return op
+
+    def _initiate(self):
+        cdef CK_RV retval
+        with nogil:
+            retval = self.session.funclist.C_DigestInit(self.session.handle, self.mech.data)
+        self._operation_aware_assert(retval)
+
+    cdef bytes digest_process_fully(self, CK_BYTE *data, CK_ULONG data_len) with gil:
+        cdef Session session = self.session
+        return self.process_fully(session.funclist.C_Digest, data, data_len)
+
+    cdef void update_digest(self, CK_BYTE *data, CK_ULONG data_len):
+        self.update_no_output(self.session.funclist.C_DigestUpdate, data, data_len)
+
+    cdef void update_digest_with_key(self, CK_OBJECT_HANDLE key):
+        cdef Session session = self.session
+        with nogil:
+            retval = session.funclist.C_DigestKey(session.handle, key)
+        self._operation_aware_assert(retval)
+
+    def ingest_chunks(self, chunks):
+        cdef CK_BYTE *data_ptr
+        cdef CK_ULONG data_len
+        cdef CK_OBJECT_HANDLE key
+
+        for chunk in chunks:
+            if not chunk:
+                continue
+            if isinstance(chunk, types.Key):
+                key = chunk.handle
+                self.update_digest_with_key(key)
+            else:
+                data_ptr = chunk
+                data_len = <CK_ULONG> len(chunk)
+                self.update_digest(data_ptr, data_len)
+
+    cdef bytes finish(self):
+        return self.finish_with_output(self.session.funclist.C_DigestFinal)
+
+    def _finalize(self, silent=False):
+        cdef Session session = self.session
+        if self.active:
+            self.active = False
+            session.operation_lock.release()
+            self.execute_resizing_output(session.funclist.C_DigestFinal)
 
 
 def merge_templates(default_template, *user_templates):
@@ -701,7 +889,6 @@ def merge_templates(default_template, *user_templates):
 cdef class Session(HasFuncList, types.Session):
     """Extend Session with implementation."""
 
-    # FIXME this shouldn't have to be public once we're done here
     cdef CK_SESSION_HANDLE handle
     cdef readonly Token token
     """:class:`Token` this session is on."""
@@ -752,7 +939,21 @@ cdef class Session(HasFuncList, types.Session):
         assertRV(retval)
 
     def get_objects(self, attrs=None):
-        return SearchIter(self, attrs or {})
+        with SearchIter(self, attrs or {}) as op:
+            yield from op
+
+    def reaffirm_credentials(self, pin):
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+
+        pin = pin.encode('utf-8')
+        pin_data = pin
+        pin_length = <CK_ULONG> len(pin)
+        user_type = CKU_CONTEXT_SPECIFIC
+
+        with nogil:
+            retval = self.funclist.C_Login(self.handle, user_type, pin_data, pin_length)
+        assertRV(retval)
 
     def create_object(self, attrs):
         template = AttributeList(attrs)
@@ -980,79 +1181,27 @@ cdef class Session(HasFuncList, types.Session):
 
         return bytes(random)
 
-    def _digest(self, data, mechanism=None, mechanism_param=None):
-        mech = MechanismWithParam(None, {}, mechanism, mechanism_param)
+    def __digest_operation(self, mechanism, mechanism_param):
+        mech = MechanismWithParam(
+            None, {},
+            mechanism, mechanism_param)
+        return DigestOperation.setup(self, mech, 1024)
 
-        cdef CK_SESSION_HANDLE handle = self.handle
-        cdef CK_MECHANISM *mech_data = mech.data
+    def _digest(self, data, mechanism=None, mechanism_param=None):
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
-        cdef CK_BYTE [:] digest
-        cdef CK_ULONG length
         cdef CK_RV retval
 
-        with self.operation_lock:
-            with nogil:
-                retval = self.funclist.C_DigestInit(handle, mech_data)
-            assertRV(retval)
-
-            with nogil:
-                # Run once to get the length
-                retval = self.funclist.C_Digest(handle, data_ptr, data_len, NULL, &length)
-            assertRV(retval)
-
-            digest = CK_BYTE_buffer(length)
-
-            with nogil:
-                retval = self.funclist.C_Digest(handle, data_ptr, data_len, &digest[0], &length)
-            assertRV(retval)
-
-            return bytes(digest[:length])
+        cdef DigestOperation op =  self.__digest_operation(mechanism, mechanism_param)
+        with op:
+            return op.digest_process_fully(data_ptr, data_len)
 
     def _digest_generator(self, data, mechanism=None, mechanism_param=None):
-        mech = MechanismWithParam(None, {}, mechanism, mechanism_param)
 
-        cdef CK_SESSION_HANDLE handle = self.handle
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key
-        cdef CK_BYTE *data_ptr
-        cdef CK_ULONG data_len
-        cdef CK_BYTE [:] digest
-        cdef CK_ULONG length
-        cdef CK_RV retval
-
-        with self.operation_lock:
-            with nogil:
-                retval = self.funclist.C_DigestInit(handle, mech_data)
-            assertRV(retval)
-
-            for block in data:
-                if isinstance(block, types.Key):
-                    key = block.handle
-
-                    with nogil:
-                        retval = self.funclist.C_DigestKey(handle, key)
-                    assertRV(retval)
-                else:
-                    data_ptr = block
-                    data_len = <CK_ULONG> len(block)
-
-                    with nogil:
-                        retval = self.funclist.C_DigestUpdate(handle, data_ptr, data_len)
-                    assertRV(retval)
-
-            # Run once to get the length
-            with nogil:
-                retval = self.funclist.C_DigestFinal(handle, NULL, &length)
-            assertRV(retval)
-
-            digest = CK_BYTE_buffer(length)
-
-            with nogil:
-                retval = self.funclist.C_DigestFinal(handle, &digest[0], &length)
-            assertRV(retval)
-
-            return bytes(digest[:length])
+        cdef DigestOperation op = self.__digest_operation(mechanism, mechanism_param)
+        with op:
+            op.ingest_chunks(data)
+            return op.finish()
 
 
 cdef class ObjectHandleWrapper(HasFuncList):
@@ -1153,6 +1302,7 @@ cdef class ObjectHandleWrapper(HasFuncList):
 
     def identity(self):
         return ObjectHandleWrapper.__name__, self.session, self.handle
+
 
 class Object(types.Object):
     """Expand Object with an implementation."""
@@ -1328,44 +1478,138 @@ class Certificate(types.Certificate):
     pass
 
 
+cdef class KeyOperation(OperationWithBinaryOutput):
+    cdef CK_OBJECT_HANDLE key
+    cdef KeyOperationInit op_init
+
+    @staticmethod
+    cdef KeyOperation _common_key_setup(
+            type cls,
+            Session session,
+            MechanismWithParam mech,
+            CK_OBJECT_HANDLE key,
+            CK_ULONG buffer_size
+    ) with gil:
+
+        cdef KeyOperation op = <KeyOperation> OperationWithBinaryOutput._setup(
+            cls, session, mech, buffer_size
+        )
+        op.key = key
+        return op
+
+    def unclean_shutdown(self):
+        """
+        Shutdown implementation for 2.x PKCS#11 modules that don't support shutdown signalling
+        """
+        raise NotImplementedError
+
+    def _initiate(self):
+        cdef CK_RV retval
+        with nogil:
+            retval = self.op_init(self.session.handle, self.mech.data, self.key)
+        self._operation_aware_assert(retval)
+
+    def _cancel_operation(self, silent):
+        cdef CK_RV retval
+        if self.session.token.slot.cryptoki_version >= (3, 0):
+            # cancel the operation if still active
+            # This is a PKCS#11 3.x feature
+            with nogil:
+                retval = self.op_init(self.session.handle, NULL, self.key)
+            if retval == CKR_OPERATION_CANCEL_FAILED and not silent:
+                raise PKCS11Error("Failed to cancel operation")
+        else:
+            # No official cancel protocol in v2.x of the standard
+            # Try the poor man's way by making a hail-mary call to C_XYZFinish() and ignoring the response
+            self.unclean_shutdown()
+
+    def _finalize(self, silent=False):
+        if self.active:
+            self.active = False
+            self.session.operation_lock.release()
+            self._cancel_operation(silent)
+
+
+cdef class DataCryptOperation(KeyOperation):
+
+    cdef OperationUpdateWithResult op_update
+    cdef OperationWithResult op_final
+    cdef OperationUpdateWithResult op_full
+
+    @staticmethod
+    cdef DataCryptOperation setup_encrypt(
+            Session session,
+            MechanismWithParam mech,
+            CK_OBJECT_HANDLE key,
+            CK_ULONG buffer_size
+    ) with gil:
+        cdef DataCryptOperation op = <DataCryptOperation> KeyOperation._common_key_setup(
+            DataCryptOperation, session, mech, key, buffer_size
+        )
+        op.op_init = session.funclist.C_EncryptInit
+        op.op_update = session.funclist.C_EncryptUpdate
+        op.op_final = session.funclist.C_EncryptFinal
+        op.op_full = session.funclist.C_Encrypt
+        return op
+
+    @staticmethod
+    cdef DataCryptOperation setup_decrypt(
+            Session session,
+            MechanismWithParam mech,
+            CK_OBJECT_HANDLE key,
+            CK_ULONG buffer_size
+    ) with gil:
+        cdef DataCryptOperation op = <DataCryptOperation> KeyOperation._common_key_setup(
+            DataCryptOperation, session, mech, key, buffer_size
+        )
+        op.op_init = session.funclist.C_DecryptInit
+        op.op_update = session.funclist.C_DecryptUpdate
+        op.op_final = session.funclist.C_DecryptFinal
+        op.op_full = session.funclist.C_Decrypt
+        return op
+
+    cdef bytes crypt_process_fully(self, CK_BYTE *data, CK_ULONG data_len) with gil:
+        return self.process_fully(self.op_full, data, data_len)
+
+    cdef bytes finish(self) with gil:
+        return self.finish_with_output(self.op_final)
+
+    def unclean_shutdown(self):
+        self.execute_resizing_output(self.op_final)
+
+    def update_chunks(self, chunks):
+        cdef CK_BYTE *data_ptr
+        cdef CK_ULONG data_len
+
+        for chunk in chunks:
+            if not chunk:
+                continue
+            data_ptr = chunk
+            data_len = <CK_ULONG> len(chunk)
+            yield self.update_with_result(self.op_update, data_ptr, data_len)
+
+
 class EncryptMixin(types.EncryptMixin):
     """Expand EncryptMixin with an implementation."""
 
-    def _encrypt(self, data,
-                 mechanism=None, mechanism_param=None):
-        """
-        Non chunking encrypt. Needed for some mechanisms.
-        """
+    def __encrypt_operation(self, mechanism, mechanism_param, buffer_size):
+
         mech = MechanismWithParam(
             self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
             mechanism, mechanism_param)
 
-        cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self.handle
+        return DataCryptOperation.setup_encrypt(self.session, mech, self.handle, buffer_size)
+
+    def _encrypt(self, data, mechanism=None, mechanism_param=None, buffer_size=8192):
+        """
+        Non chunking encrypt. Needed for some mechanisms.
+        """
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
-        cdef CK_BYTE [:] ciphertext
-        cdef CK_ULONG length
-        cdef CK_RV retval
 
-        with session.operation_lock:
-            with nogil:
-                retval = session.funclist.C_EncryptInit(session.handle, mech_data, key)
-            assertRV(retval)
-
-            # Call to find out the buffer length
-            with nogil:
-                retval = session.funclist.C_Encrypt(session.handle, data_ptr, data_len, NULL, &length)
-            assertRV(retval)
-
-            ciphertext = CK_BYTE_buffer(length)
-
-            with nogil:
-                retval = session.funclist.C_Encrypt(session.handle, data_ptr, data_len, &ciphertext[0], &length)
-            assertRV(retval)
-
-            return bytes(ciphertext[:length])
+        cdef DataCryptOperation op = self.__encrypt_operation(mechanism, mechanism_param, buffer_size)
+        with op:
+            return op.crypt_process_fully(data, data_len)
 
 
     def _encrypt_generator(self, data,
@@ -1373,108 +1617,35 @@ class EncryptMixin(types.EncryptMixin):
                            buffer_size=8192):
         """
         Do chunked encryption.
-
-        Failing to consume the generator will raise GeneratorExit when it
-        garbage collects. This will release the lock, but you'll still be
-        in the middle of an operation, and all future operations will raise
-        OperationActive, see tests/test_iterators.py:test_close_iterators().
-
-        FIXME: cancel the operation when we exit the generator early.
         """
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
-            mechanism, mechanism_param)
-
-        cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self.handle
-        cdef CK_BYTE *data_ptr
-        cdef CK_ULONG data_len
-        cdef CK_ULONG length
-        cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
-        cdef CK_RV retval
-
-        with session.operation_lock:
-            with nogil:
-                retval = session.funclist.C_EncryptInit(session.handle, mech_data, key)
-            assertRV(retval)
-
-            for part_in in data:
-                if not part_in:
-                    continue
-
-                data_ptr = part_in
-                data_len = <CK_ULONG> len(part_in)
-                length = buffer_size
-
-                with nogil:
-                    retval = session.funclist.C_EncryptUpdate(session.handle, data_ptr, data_len, &part_out[0], &length)
-                assertRV(retval)
-
-                yield bytes(part_out[:length])
-
-            # Finalize
-            # We assume the buffer is much bigger than the block size
-            length = buffer_size
-
-            with nogil:
-                retval = session.funclist.C_EncryptFinal(session.handle, &part_out[0], &length)
-            assertRV(retval)
-
-            yield bytes(part_out[:length])
+        cdef DataCryptOperation op = self.__encrypt_operation(mechanism, mechanism_param, buffer_size)
+        with op:
+            yield from op.update_chunks(data)
+            yield op.finish()
 
 
 class DecryptMixin(types.DecryptMixin):
     """Expand DecryptMixin with an implementation."""
 
-    def _decrypt(self, data,
-                 mechanism=None, mechanism_param=None, pin=None):
-        """Non chunking decrypt."""
+    def __decrypt_operation(self, mechanism, mechanism_param, buffer_size):
+
         mech = MechanismWithParam(
             self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
             mechanism, mechanism_param)
 
+        return DataCryptOperation.setup_decrypt(self.session, mech, self.handle, buffer_size)
+
+    def _decrypt(self, data, mechanism=None, mechanism_param=None, pin=None, buffer_size=8192):
+        """Non chunking decrypt."""
         cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
-        cdef CK_BYTE [:] plaintext
-        cdef CK_ULONG length
-        cdef CK_USER_TYPE user_type
-        cdef CK_UTF8CHAR *pin_data
-        cdef CK_ULONG pin_length
-        cdef CK_RV retval
 
-        if pin is not None:
-            pin = pin.encode('utf-8')
-            pin_data = pin
-            pin_length = <CK_ULONG> len(pin)
-            user_type = CKU_CONTEXT_SPECIFIC
-
-        with session.operation_lock:
-            with nogil:
-                retval = session.funclist.C_DecryptInit(session.handle, mech_data, key)
-            assertRV(retval)
-
-            # Log in if pin provided
+        cdef DataCryptOperation op = self.__decrypt_operation(mechanism, mechanism_param, buffer_size)
+        with op:
             if pin is not None:
-                with nogil:
-                    retval = session.funclist.C_Login(session.handle, user_type, pin_data, pin_length)
-                assertRV(retval)
-
-            # Call to find out the buffer length
-            with nogil:
-                retval = session.funclist.C_Decrypt(session.handle, data_ptr, data_len, NULL, &length)
-            assertRV(retval)
-
-            plaintext = CK_BYTE_buffer(length)
-
-            with nogil:
-                retval = session.funclist.C_Decrypt(session.handle, data_ptr, data_len, &plaintext[0], &length)
-            assertRV(retval)
-
-            return bytes(plaintext[:length])
+                session.reaffirm_credentials(pin)
+            return op.crypt_process_fully(data, data_len)
 
 
     def _decrypt_generator(self, data,
@@ -1482,249 +1653,168 @@ class DecryptMixin(types.DecryptMixin):
                            buffer_size=8192):
         """
         Chunking decrypt.
-
-        Failing to consume the generator will raise GeneratorExit when it
-        garbage collects. This will release the lock, but you'll still be
-        in the middle of an operation, and all future operations will raise
-        OperationActive, see tests/test_iterators.py:test_close_iterators().
-
-        FIXME: cancel the operation when we exit the generator early.
         """
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
-            mechanism, mechanism_param)
-
         cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self.handle
+
+        cdef DataCryptOperation op = self.__decrypt_operation(mechanism, mechanism_param, buffer_size)
+        with op:
+            if pin is not None:
+                session.reaffirm_credentials(pin)
+            yield from op.update_chunks(data)
+            yield op.finish()
+
+
+cdef class SignOrVerifyOperation(KeyOperation):
+    cdef OperationUpdate op_update
+
+    def ingest_chunks(self, chunks):
+        cdef Session session = self.session
         cdef CK_BYTE *data_ptr
         cdef CK_ULONG data_len
-        cdef CK_ULONG length
-        cdef CK_BYTE [:] part_out = CK_BYTE_buffer(buffer_size)
-        cdef CK_USER_TYPE user_type
-        cdef CK_UTF8CHAR *pin_data
-        cdef CK_ULONG pin_length
-        cdef CK_RV retval
 
-        if pin is not None:
-            pin = pin.encode('utf-8')
-            pin_data = pin
-            pin_length = <CK_ULONG> len(pin)
-            user_type = CKU_CONTEXT_SPECIFIC
+        for chunk in chunks:
+            if not chunk:
+                continue
+            data_ptr = chunk
+            data_len = <CK_ULONG> len(chunk)
+            self.update_no_output(self.op_update, data_ptr, data_len)
 
-        with session.operation_lock:
-            with nogil:
-                retval = session.funclist.C_DecryptInit(session.handle, mech_data, key)
-            assertRV(retval)
 
-            # Log in if pin provided
-            if pin is not None:
-                with nogil:
-                    retval = session.funclist.C_Login(session.handle, user_type, pin_data, pin_length)
-                assertRV(retval)
+cdef class DataSignOperation(SignOrVerifyOperation):
 
-            for part_in in data:
-                if not part_in:
-                    continue
+    @staticmethod
+    cdef DataSignOperation setup(
+            Session session,
+            MechanismWithParam mech,
+            CK_OBJECT_HANDLE key,
+            CK_ULONG buffer_size
+    ) with gil:
+        cdef DataSignOperation op = <DataSignOperation> KeyOperation._common_key_setup(
+            DataSignOperation, session, mech, key, buffer_size
+        )
+        op.op_init = session.funclist.C_SignInit
+        op.op_update = session.funclist.C_SignUpdate
+        return op
 
-                data_ptr = part_in
-                data_len = <CK_ULONG> len(part_in)
-                length = buffer_size
+    cdef bytes sign_process_fully(self, CK_BYTE *data, CK_ULONG data_len) with gil:
+        cdef Session session = self.session
+        return self.process_fully(session.funclist.C_Sign, data, data_len)
 
-                with nogil:
-                    retval = session.funclist.C_DecryptUpdate(session.handle, data_ptr, data_len, &part_out[0], &length)
-                assertRV(retval)
+    cdef bytes finish(self) with gil:
+        cdef Session session = self.session
+        return self.finish_with_output(session.funclist.C_SignFinal)
 
-                yield bytes(part_out[:length])
-
-            # Finalize
-            # We assume the buffer is much bigger than the block size
-            length = buffer_size
-
-            with nogil:
-                retval = session.funclist.C_DecryptFinal(session.handle, &part_out[0], &length)
-            assertRV(retval)
-
-            yield bytes(part_out[:length])
+    def unclean_shutdown(self):
+        cdef Session session = self.session
+        self.execute_resizing_output(session.funclist.C_SignFinal)
 
 
 class SignMixin(types.SignMixin):
     """Expand SignMixin with an implementation."""
 
-    def _sign(self, data,
-              mechanism=None, mechanism_param=None, pin=None):
-
+    def __sign_operation(self, mechanism, mechanism_param, buffer_size):
         mech = MechanismWithParam(
             self.key_type, DEFAULT_SIGN_MECHANISMS,
             mechanism, mechanism_param)
+        return DataSignOperation.setup(self.session, mech, self.handle, buffer_size)
 
+    def _sign(self, data,
+              mechanism=None, mechanism_param=None, pin=None, buffer_size=8192):
         cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self.handle
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
-        cdef CK_BYTE [:] signature
-        cdef CK_ULONG length
-        cdef CK_USER_TYPE user_type
-        cdef CK_UTF8CHAR *pin_data
-        cdef CK_ULONG pin_length
-        cdef CK_RV retval
+        cdef DataSignOperation op = self.__sign_operation(mechanism, mechanism_param, buffer_size)
 
-        if pin is not None:
-            pin = pin.encode('utf-8')
-            pin_data = pin
-            pin_length = <CK_ULONG> len(pin)
-            user_type = CKU_CONTEXT_SPECIFIC
-
-        with session.operation_lock:
-            with nogil:
-                retval = session.funclist.C_SignInit(session.handle, mech_data, key)
-            assertRV(retval)
-
-            # Log in if pin provided
+        with op:
             if pin is not None:
-                with nogil:
-                    retval = session.funclist.C_Login(session.handle, user_type, pin_data, pin_length)
-                assertRV(retval)
-
-            # Call to find out the buffer length
-            with nogil:
-                retval = session.funclist.C_Sign(session.handle, data_ptr, data_len, NULL, &length)
-            assertRV(retval)
-
-            signature = CK_BYTE_buffer(length)
-
-            with nogil:
-                retval = session.funclist.C_Sign(session.handle, data_ptr, data_len, &signature[0], &length)
-            assertRV(retval)
-
-            return bytes(signature[:length])
+                session.reaffirm_credentials(pin)
+            return op.sign_process_fully(data, data_len)
 
     def _sign_generator(self, data,
-                        mechanism=None, mechanism_param=None, pin=None):
-
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_SIGN_MECHANISMS,
-            mechanism, mechanism_param)
+                        mechanism=None, mechanism_param=None, pin=None, buffer_size=8192):
 
         cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self.handle
-        cdef CK_BYTE *data_ptr
-        cdef CK_ULONG data_len
-        cdef CK_BYTE [:] signature
-        cdef CK_ULONG length
-        cdef CK_USER_TYPE user_type
-        cdef CK_UTF8CHAR *pin_data
-        cdef CK_ULONG pin_length
-        cdef CK_RV retval
-
-        if pin is not None:
-            pin = pin.encode('utf-8')
-            pin_data = pin
-            pin_length = <CK_ULONG> len(pin)
-            user_type = CKU_CONTEXT_SPECIFIC
-
-        with session.operation_lock:
-            with nogil:
-                retval = session.funclist.C_SignInit(session.handle, mech_data, key)
-            assertRV(retval)
-
-            # Log in if pin provided
+        cdef DataSignOperation op = self.__sign_operation(mechanism, mechanism_param, buffer_size)
+        with op:
             if pin is not None:
-                with nogil:
-                    retval = session.funclist.C_Login(session.handle, user_type, pin_data, pin_length)
-                assertRV(retval)
+                session.reaffirm_credentials(pin)
+            op.ingest_chunks(data)
+            return op.finish()
 
-            for part_in in data:
-                if not part_in:
-                    continue
 
-                data_ptr = part_in
-                data_len = <CK_ULONG> len(part_in)
+cdef class DataVerifyOperation(SignOrVerifyOperation):
 
-                with nogil:
-                    retval = session.funclist.C_SignUpdate(session.handle, data_ptr, data_len)
-                assertRV(retval)
+    @staticmethod
+    cdef DataVerifyOperation setup(
+            Session session,
+            MechanismWithParam mech,
+            CK_OBJECT_HANDLE key
+    ) with gil:
+        cdef DataVerifyOperation op = <DataVerifyOperation> KeyOperation._common_key_setup(
+            DataVerifyOperation, session, mech, key, 0
+        )
+        op.op_init = session.funclist.C_VerifyInit
+        op.op_update = session.funclist.C_VerifyUpdate
+        return op
 
-            # Finalize
-            # Call to find out the buffer length
-            with nogil:
-                retval = session.funclist.C_SignFinal(session.handle, NULL, &length)
-            assertRV(retval)
+    cdef verify_process_fully(
+        self,
+        CK_BYTE *data,
+        CK_ULONG data_len,
+        CK_BYTE *sig,
+        CK_ULONG sig_len,
+    ) with gil:
+        cdef Session session = self.session
+        cdef CK_RV retval
+        with nogil:
+            retval = session.funclist.C_Verify(session.handle, data, data_len, sig, sig_len)
+        self._handle_final_retval(retval)
 
-            signature = CK_BYTE_buffer(length)
+    cdef finish(self, CK_BYTE *sig, CK_ULONG sig_len) with gil:
+        cdef Session session = self.session
+        cdef CK_RV retval
+        with nogil:
+            retval = session.funclist.C_VerifyFinal(session.handle, sig, sig_len)
+        self._handle_final_retval(retval)
 
-            with nogil:
-                retval = session.funclist.C_SignFinal(session.handle, &signature[0], &length)
-            assertRV(retval)
-
-            return bytes(signature[:length])
+    def unclean_shutdown(self):
+        cdef Session session = self.session
+        cdef CK_BYTE dummy = 0
+        with nogil:
+            session.funclist.C_VerifyFinal(session.handle, &dummy, 0)
 
 
 class VerifyMixin(types.VerifyMixin):
     """Expand VerifyMixin with an implementation."""
 
-    def _verify(self, data, signature,
-                mechanism=None, mechanism_param=None):
-
+    def __verify_operation(self, mechanism, mechanism_param):
         mech = MechanismWithParam(
             self.key_type, DEFAULT_SIGN_MECHANISMS,
             mechanism, mechanism_param)
+        return DataVerifyOperation.setup(self.session, mech, self.handle)
 
-        cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self.handle
+    def _verify(self, data, signature,
+                mechanism=None, mechanism_param=None):
+
         cdef CK_BYTE *data_ptr = data
         cdef CK_ULONG data_len = <CK_ULONG> len(data)
         cdef CK_BYTE *sig_ptr = signature
         cdef CK_ULONG sig_len = <CK_ULONG> len(signature)
-        cdef CK_RV retval
+        cdef DataVerifyOperation op = self.__verify_operation(mechanism, mechanism_param)
 
-        with session.operation_lock:
-            with nogil:
-                retval = session.funclist.C_VerifyInit(session.handle, mech_data, key)
-            assertRV(retval)
-
-            with nogil:
-                retval = session.funclist.C_Verify(session.handle, data_ptr, data_len, sig_ptr, sig_len)
-            assertRV(retval)
+        with op:
+            op.verify_process_fully(data_ptr, data_len, sig_ptr, sig_len)
 
     def _verify_generator(self, data, signature,
                           mechanism=None, mechanism_param=None):
 
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_SIGN_MECHANISMS,
-            mechanism, mechanism_param)
-
-        cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_OBJECT_HANDLE key = self.handle
-        cdef CK_BYTE *data_ptr
-        cdef CK_ULONG data_len
         cdef CK_BYTE *sig_ptr = signature
         cdef CK_ULONG sig_len = <CK_ULONG> len(signature)
-        cdef CK_RV retval
+        cdef DataVerifyOperation op = self.__verify_operation(mechanism, mechanism_param)
 
-        with session.operation_lock:
-            with nogil:
-                retval = session.funclist.C_VerifyInit(session.handle, mech_data, key)
-            assertRV(retval)
-
-            for part_in in data:
-                if not part_in:
-                    continue
-
-                data_ptr = part_in
-                data_len = <CK_ULONG> len(part_in)
-
-                with nogil:
-                    retval = session.funclist.C_VerifyUpdate(session.handle, data_ptr, data_len)
-                assertRV(retval)
-
-            with nogil:
-                retval = session.funclist.C_VerifyFinal(session.handle, sig_ptr, sig_len)
-            assertRV(retval)
+        with op:
+            op.ingest_chunks(data)
+            return op.finish(sig_ptr, sig_len)
 
 
 class WrapMixin(types.WrapMixin):
@@ -2042,7 +2132,7 @@ cdef class lib(HasFuncList):
             assertRV(retval)
 
             slots.append(
-                Slot.make(self.funclist, slot_id, info)
+                Slot.make(self.funclist, slot_id, info, self.cryptoki_version)
             )
 
         return slots

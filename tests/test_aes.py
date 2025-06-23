@@ -33,6 +33,15 @@ class AESTests(TestCase):
         self.assertEqual(data, text)
 
     @requires(Mechanism.AES_CBC_PAD)
+    def test_encrypt_undersized_buffer(self):
+        data = b"INPUT DATA" * 200
+        iv = b"0" * 16
+
+        crypttext = self.key.encrypt(data, mechanism_param=iv, buffer_size=32)
+        text = self.key.decrypt(crypttext, mechanism_param=iv, buffer_size=32)
+        self.assertEqual(data, text)
+
+    @requires(Mechanism.AES_CBC_PAD)
     def test_encrypt_stream(self):
         data = (
             b"I" * 16,
@@ -56,6 +65,72 @@ class AESTests(TestCase):
         self.assertFalse(all(c == "\0" for c in crypttext))
 
         text = b"".join(self.key.decrypt(cryptblocks, mechanism_param=iv))
+        self.assertEqual(b"".join(data), text)
+
+    @requires(Mechanism.AES_CBC_PAD)
+    def test_encrypt_stream_interrupt_releases_operation(self):
+        data = (
+            b"I" * 16,
+            b"N" * 16,
+            b"P" * 16,
+            b"U" * 16,
+            b"T" * 10,
+        )
+        iv = b"0" * 16
+
+        def _data_with_error():
+            yield data[0]
+            yield data[1]
+            yield data[2]
+            raise ValueError
+
+        def attempt_encrypt():
+            list(self.key.encrypt(_data_with_error(), mechanism_param=iv))
+
+        self.assertRaises(ValueError, attempt_encrypt)
+
+        cryptblocks = list(self.key.encrypt(data, mechanism_param=iv))
+        text = b"".join(self.key.decrypt(cryptblocks, mechanism_param=iv))
+        self.assertEqual(b"".join(data), text)
+
+    @requires(Mechanism.AES_CBC_PAD)
+    def test_encrypt_stream_gc_releases_operation(self):
+        data = (
+            b"I" * 16,
+            b"N" * 16,
+            b"P" * 16,
+            b"U" * 16,
+            b"T" * 10,
+        )
+        iv = b"0" * 16
+
+        attempt = self.key.encrypt(data, mechanism_param=iv)
+        next(attempt)
+        del attempt
+
+        cryptblocks = list(self.key.encrypt(data, mechanism_param=iv))
+        text = b"".join(self.key.decrypt(cryptblocks, mechanism_param=iv))
+        self.assertEqual(b"".join(data), text)
+
+    @requires(Mechanism.AES_CBC_PAD)
+    def test_encrypt_stream_undersized_buffers(self):
+        data = (
+            b"I" * 3189,
+            b"N" * 3284,
+            b"P" * 5812,
+            b"U" * 2139,
+            b"T" * 5851,
+        )
+        iv = b"0" * 16
+
+        cryptblocks = list(self.key.encrypt(data, mechanism_param=iv, buffer_size=256))
+
+        self.assertEqual(len(cryptblocks), len(data) + 1)
+
+        crypttext = b"".join(cryptblocks)
+
+        self.assertNotEqual(b"".join(data), crypttext)
+        text = b"".join(self.key.decrypt(cryptblocks, mechanism_param=iv, buffer_size=5))
         self.assertEqual(b"".join(data), text)
 
     @requires(Mechanism.AES_CBC_PAD)

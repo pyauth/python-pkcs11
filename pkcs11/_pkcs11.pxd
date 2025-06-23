@@ -139,6 +139,8 @@ cdef extern from '../extern/cryptoki.h':
 
         CKR_FUNCTION_REJECTED,
 
+        CKR_OPERATION_CANCEL_FAILED,
+
         CKR_VENDOR_DEFINED,
 
 
@@ -590,6 +592,28 @@ cdef extern from '../extern/cryptoki.h':
 # All other APIs are taken from the CK_FUNCTION_LIST table
 ctypedef CK_RV (*C_GetFunctionList_ptr) (CK_FUNCTION_LIST **) nogil
 
+ctypedef CK_RV (*KeyOperationInit) (
+        CK_SESSION_HANDLE session,
+        CK_MECHANISM *mechanism,
+        CK_OBJECT_HANDLE key
+) nogil
+ctypedef CK_RV (*OperationUpdateWithResult) (
+        CK_SESSION_HANDLE session,
+        CK_BYTE *part_in,
+        CK_ULONG part_in_len,
+        CK_BYTE *part_out,
+        CK_ULONG *part_out_len
+) nogil
+ctypedef CK_RV (*OperationUpdate) (
+        CK_SESSION_HANDLE session,
+        CK_BYTE *part_in,
+        CK_ULONG part_in_len
+) nogil
+ctypedef CK_RV (*OperationWithResult) (
+        CK_SESSION_HANDLE session,
+        CK_BYTE *part_out,
+        CK_ULONG *part_out_len
+) nogil
 
 cdef inline CK_BYTE_buffer(length):
     """Make a buffer for `length` CK_BYTEs."""
