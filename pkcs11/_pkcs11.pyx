@@ -14,6 +14,8 @@ from __future__ import (absolute_import, unicode_literals,
 from threading import RLock
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from cpython.bytes cimport PyBytes_FromStringAndSize
+from libc.string cimport memcpy
 
 from pkcs11 import types
 from pkcs11.defaults import *
@@ -54,30 +56,73 @@ cdef class AttributeList:
     cdef CK_ULONG count
     """Length of `data`."""
 
-    cdef _values
-
     def __cinit__(self, attrs):
+        self.data = NULL
+        self.count = 0
+
+    @staticmethod
+    cdef AttributeList from_owned_pointer(CK_ATTRIBUTE * data, CK_ULONG count):
+        cdef AttributeList lst = AttributeList.__new__(AttributeList, ())
+        lst.data = data
+        lst.count = count
+        return lst
+
+    def __init__(self, attrs):
         attrs = dict(attrs)
         self.count = count = <CK_ULONG> len(attrs)
 
         self.data = <CK_ATTRIBUTE *> PyMem_Malloc(count * sizeof(CK_ATTRIBUTE))
-        if not self.data:
+        if self.data is NULL:
             raise MemoryError()
 
-        # Turn the values into bytes and store them so we have pointers
-        # to them.
-        self._values = [
-            (key, _pack_attribute(key, value))
-            for key, value in attrs.items()
-        ]
-
-        for index, (key, value) in enumerate(self._values):
+        cdef bytes value_bytes
+        cdef CK_CHAR * value_ptr
+        cdef Py_ssize_t value_len
+        for index, (key, value) in enumerate(attrs.items()):
             self.data[index].type = key
-            self.data[index].pValue = <CK_CHAR *> value
-            self.data[index].ulValueLen = <CK_ULONG>len(value)
+            value_bytes = _pack_attribute(key, value)
+            value_len = len(value_bytes)
+            # copy the result into a pointer that we manage, for consistency with the other init method
+            value_ptr = <CK_CHAR *> PyMem_Malloc(value_len)
+            if value_ptr is NULL:
+                raise MemoryError()
+            memcpy(value_ptr, <CK_CHAR *> value_bytes, <size_t> value_len)
+            self.data[index].pValue = <CK_CHAR *> value_ptr
+            self.data[index].ulValueLen = <CK_ULONG> value_len
+
+    cdef at_index(self, CK_ULONG index):
+        cdef CK_ATTRIBUTE * attr
+        if index < self.count:
+            attr = &self.data[index]
+            return _unpack_attributes(
+                attr.type,
+                PyBytes_FromStringAndSize(<char *> attr.pValue, <Py_ssize_t> attr.ulValueLen)
+            )
+        else:
+            raise IndexError()
+
+    def as_dict(self):
+        cdef CK_ATTRIBUTE * attr
+        result = {}
+        for index in range(self.count):
+            attr = &self.data[index]
+            result[attr.type] = self.at_index(index)
+        return result
+
+    def __getitem__(self, item):
+        cdef CK_ULONG index = 0
+        cdef CK_ATTRIBUTE_TYPE key = item
+        for index in range(self.count):
+            if self.data[index].type == key:
+                return self.at_index(index)
+        raise KeyError(item)
 
     def __dealloc__(self):
-        PyMem_Free(self.data)
+        cdef CK_ULONG index = 0
+        if self.data is not NULL:
+            for index in range(self.count):
+                PyMem_Free(self.data[index].pValue)
+            PyMem_Free(self.data)
 
 
 cdef class MechanismWithParam:
@@ -1050,42 +1095,55 @@ cdef class ObjectHandleWrapper(HasFuncList):
     def __init__(self):
         raise TypeError
 
-    def __getitem__(self, key):
+    cdef AttributeList get_attribute_list(self, CK_ATTRIBUTE_TYPE * keys, CK_ULONG total) with gil:
         cdef CK_SESSION_HANDLE handle = self.session.handle
         cdef CK_OBJECT_HANDLE obj = self.handle
-        cdef CK_ATTRIBUTE template
+        cdef CK_ULONG ix = 0
+        cdef CK_ULONG retrievable = 0
+        cdef CK_ATTRIBUTE *tpl = <CK_ATTRIBUTE *> PyMem_Malloc(total * sizeof(CK_ATTRIBUTE))
         cdef CK_RV retval
 
-        template.type = key
-        template.pValue = NULL
-        template.ulValueLen = <CK_ULONG> 0
+        for ix in range(total):
+            tpl[ix].type = keys[ix]
+            tpl[ix].pValue = NULL
+            tpl[ix].ulValueLen = <CK_ULONG> 0
 
-        # Find out the attribute size
         with nogil:
-            retval = self.funclist.C_GetAttributeValue(handle, obj, &template, 1)
-        if retval == CKR_OK and \
-                template.ulValueLen == CK_UNAVAILABLE_INFORMATION:
+            retval = self.funclist.C_GetAttributeValue(handle, obj, tpl, total)
+
+        for ix in range(total):
+            if tpl[ix].ulValueLen != CK_UNAVAILABLE_INFORMATION:
+                # overwrite the template at position 'retrievable' in the buffer
+                tpl[retrievable].type = tpl[ix].type
+                tpl[retrievable].pValue = PyMem_Malloc(tpl[ix].ulValueLen)
+                if tpl[retrievable].pValue is NULL:
+                    raise MemoryError()
+                tpl[retrievable].ulValueLen = tpl[ix].ulValueLen
+                retrievable += 1
             # The spec prohibits returning CK_UNAVAILABLE_INFORMATION
             #  together with CKR_OK, but some tokens do that anyway.
             #  Let's be defensive and map that to a proper error,
-            #  otherwise CK_UNAVAILABLE_INFORMATION will be treated
-            #  as a length value, which causes issues.
-            retval = CKR_FUNCTION_FAILED
+            if tpl[ix].ulValueLen == CK_UNAVAILABLE_INFORMATION and retval == CKR_OK:
+                retval = CKR_FUNCTION_FAILED
+                break
+
+        # when this gets GC'd, the __dealloc__ will clean up our buffers
+        result = AttributeList.from_owned_pointer(tpl, retrievable)
+        if retrievable:
+            with nogil:
+                retval = self.funclist.C_GetAttributeValue(handle, obj, tpl, retrievable)
+            for ix in range(retrievable):
+                # Ensure the data returned from the token is sane
+                if tpl[ix].ulValueLen == CK_UNAVAILABLE_INFORMATION or tpl[ix].pValue is NULL:
+                    retval = CKR_FUNCTION_FAILED
+                    break
         assertRV(retval)
+        return result
 
-        if template.ulValueLen == 0:
-            return _unpack_attributes(key, b'')
 
-        # Put a buffer of the right length in place
-        cdef CK_CHAR [:] value = CK_BYTE_buffer(template.ulValueLen)
-        template.pValue = <CK_CHAR *> &value[0]
-
-        # Request the value
-        with nogil:
-            retval = self.funclist.C_GetAttributeValue(handle, obj, &template, 1)
-        assertRV(retval)
-
-        return _unpack_attributes(key, value)
+    def __getitem__(self, key):
+        cdef CK_ATTRIBUTE_TYPE key_t = key
+        return self.get_attribute_list(&key_t, 1).at_index(0)
 
     def __setitem__(self, key, value):
         cdef CK_SESSION_HANDLE handle = self.session.handle
@@ -1143,6 +1201,20 @@ class Object(types.Object):
     def __setitem__(self, key, value):
         self.wrapper[key] = value
 
+    def get_attributes(self, keys):
+        cdef ObjectHandleWrapper wrapper = self.wrapper
+        cdef CK_ULONG total = len(keys)
+        cdef CK_ATTRIBUTE_TYPE * key_ptr = <CK_ATTRIBUTE_TYPE *> PyMem_Malloc(total * sizeof(CK_ATTRIBUTE_TYPE))
+        cdef CK_ULONG ix = 0
+        for ix, key in enumerate(keys):
+            key_ptr[ix] = <CK_ATTRIBUTE_TYPE> key
+
+        try:
+            result = wrapper.get_attribute_list(key_ptr, total).as_dict()
+        finally:
+            PyMem_Free(key_ptr)
+        return result
+
     @property
     def session(self):
         return self.wrapper.session
@@ -1168,11 +1240,25 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
     """
     wrapper = ObjectHandleWrapper.wrap(session, handle)
 
+    cdef CK_ATTRIBUTE_TYPE[8] attr_keys = [
+        Attribute.CLASS,
+        Attribute.ENCRYPT,
+        Attribute.DECRYPT,
+        Attribute.SIGN,
+        Attribute.VERIFY,
+        Attribute.WRAP,
+        Attribute.UNWRAP,
+        Attribute.DERIVE
+    ]
+
     try:
         # Determine a list of base classes to manufacture our class with
-        # FIXME: we should really request all of these attributes in
-        # one go
-        object_class = wrapper[Attribute.CLASS]
+        try:
+            attributes = wrapper.get_attribute_list(&attr_keys[0], 8)
+        except (AttributeTypeInvalid, FunctionFailed) as e:
+            attributes = {}
+
+        object_class = attributes[Attribute.CLASS]
         bases = (_CLASS_MAP[object_class],)
 
         # Build a list of mixins for this new class
@@ -1186,11 +1272,9 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
                 (Attribute.DERIVE, DeriveMixin),
         ):
             try:
-                if wrapper[attribute]:
+                if attributes[attribute]:
                     bases += (mixin,)
-            # nFast returns FunctionFailed when you request an attribute
-            # it doesn't like.
-            except (AttributeTypeInvalid, FunctionFailed):
+            except KeyError:
                 pass
 
         bases += (Object,)
@@ -1241,17 +1325,19 @@ class GenerateWithParametersMixin(types.DomainParameters):
 
         # Copy in our domain parameters.
         # Not all parameters are appropriate for all domains.
-        for attribute in (
-                Attribute.BASE,
-                Attribute.PRIME,
-                Attribute.SUBPRIME,
-                Attribute.EC_PARAMS,
-        ):
-            try:
-                public_template_[attribute] = self[attribute]
-                # nFast returns FunctionFailed for parameters it doesn't like
-            except (AttributeTypeInvalid, FunctionFailed):
-                pass
+        try:
+            public_template_.update(
+                self.get_attributes(
+                    (
+                        Attribute.BASE,
+                        Attribute.PRIME,
+                        Attribute.SUBPRIME,
+                        Attribute.EC_PARAMS,
+                    )
+                )
+            )
+        except (AttributeTypeInvalid, FunctionFailed):
+            pass
 
         public_attrs = AttributeList(merge_templates(public_template_, public_template))
 
