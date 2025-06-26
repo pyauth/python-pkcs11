@@ -642,7 +642,7 @@ cdef inline _unpack_attributes(key, value):
 
     try:
         _, unpack = ATTRIBUTE_TYPES[key]
-        return unpack(bytes(value))
+        return unpack(value)
     except KeyError:
         raise NotImplementedError("Can't unpack this %s. "
                                   "Expand ATTRIBUTE_TYPES!" % key)

@@ -539,6 +539,9 @@ class Object(IdentifiedBy):
     def __setitem__(self, key, value):
         raise NotImplementedError()
 
+    def get_attributes(self, keys):
+        raise NotImplementedError()
+
     def copy(self, attrs):
         """
         Make a copy of the object with new attributes `attrs`.
@@ -638,6 +641,9 @@ class LocalDomainParameters(DomainParameters):
             return self.params[key]
         except KeyError as ex:
             raise AttributeTypeInvalid from ex
+
+    def get_attributes(self, keys):
+        return {key: self.params[key] for key in keys if key in self.params}
 
     def __setitem__(self, key, value):
         self.params[key] = value

@@ -3,7 +3,7 @@ PKCS#11 Sessions
 """
 
 import pkcs11
-from pkcs11 import Attribute, AttributeSensitive, AttributeTypeInvalid
+from pkcs11 import Attribute, AttributeSensitive, AttributeTypeInvalid, ObjectClass, PKCS11Error
 
 from . import FIXME, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
 
@@ -172,3 +172,76 @@ class SessionTests(TestCase):
                 return key[Attribute.CERTIFICATE_TYPE]
 
             self.assertRaises(AttributeTypeInvalid, try_read_irrelevant)
+
+    def test_bulk_attribute_raise_error_if_no_result(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+
+            def try_read_value():
+                return key.get_attributes([Attribute.VALUE])
+
+            self.assertRaises(AttributeSensitive, try_read_value)
+
+            def try_read_irrelevant():
+                return key.get_attributes([Attribute.CERTIFICATE_TYPE])
+
+            self.assertRaises(AttributeTypeInvalid, try_read_irrelevant)
+
+            def try_read_both_inaccessible():
+                return key.get_attributes([Attribute.VALUE, Attribute.CERTIFICATE_TYPE])
+
+            # we can't know which error code the token will choose here
+            self.assertRaises(PKCS11Error, try_read_both_inaccessible)
+
+    def test_bulk_attribute_partial_success_sensitive_attribute(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+            result = key.get_attributes([Attribute.LABEL, Attribute.VALUE, Attribute.CLASS])
+            expected = {Attribute.LABEL: "SAMPLE KEY", Attribute.CLASS: ObjectClass.SECRET_KEY}
+            self.assertDictEqual(expected, result)
+
+    def test_bulk_attribute_partial_success_irrelevant_attribute(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY", id=b"a")
+
+            result = key.get_attributes(
+                [Attribute.LABEL, Attribute.CERTIFICATE_TYPE, Attribute.CLASS, Attribute.ID]
+            )
+            expected = {
+                Attribute.LABEL: "SAMPLE KEY",
+                Attribute.CLASS: ObjectClass.SECRET_KEY,
+                Attribute.ID: b"a",
+            }
+            self.assertDictEqual(expected, result)
+
+    def test_bulk_attribute_partial_success_with_some_empty_attrs(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, label="", id=b"")
+
+            result = key.get_attributes(
+                [Attribute.LABEL, Attribute.CLASS, Attribute.VALUE, Attribute.ID]
+            )
+            expected = {
+                Attribute.LABEL: "",
+                Attribute.CLASS: ObjectClass.SECRET_KEY,
+                Attribute.ID: b"",
+            }
+            self.assertDictEqual(expected, result)
+
+    def test_bulk_attribute_only_empty_attrs(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, label="", id=b"")
+
+            result = key.get_attributes([Attribute.LABEL, Attribute.ID])
+            expected = {
+                Attribute.LABEL: "",
+                Attribute.ID: b"",
+            }
+            self.assertDictEqual(expected, result)
+
+    def test_bulk_attribute_empty_key_list(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
+
+            result = key.get_attributes([])
+            self.assertDictEqual({}, result)
