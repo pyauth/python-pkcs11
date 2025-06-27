@@ -648,6 +648,61 @@ cdef inline _unpack_attributes(key, value):
                                   "Expand ATTRIBUTE_TYPES!" % key)
 
 
+cdef inline _default_public_key_template(
+        capabilities, id, label, store,
+):
+    # Build attributes
+    return {
+        Attribute.CLASS: ObjectClass.PUBLIC_KEY,
+        Attribute.ID: id or b'',
+        Attribute.LABEL: label or '',
+        Attribute.TOKEN: store,
+        # Capabilities
+        Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
+        Attribute.WRAP: MechanismFlag.WRAP & capabilities,
+        Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
+    }
+
+
+cdef inline _default_private_key_template(
+        capabilities, id, label, store,
+):
+    return {
+        Attribute.CLASS: ObjectClass.PRIVATE_KEY,
+        Attribute.ID: id or b'',
+        Attribute.LABEL: label or '',
+        Attribute.TOKEN: store,
+        Attribute.PRIVATE: True,
+        Attribute.SENSITIVE: True,
+        # Capabilities
+        Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
+        Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
+        Attribute.SIGN: MechanismFlag.SIGN & capabilities,
+        Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
+    }
+
+
+cdef inline _default_secret_key_template(
+        capabilities, id, label, store,
+):
+    return {
+        Attribute.CLASS: ObjectClass.SECRET_KEY,
+        Attribute.ID: id or b'',
+        Attribute.LABEL: label or '',
+        Attribute.TOKEN: store,
+        Attribute.PRIVATE: True,
+        Attribute.SENSITIVE: True,
+        # Capabilities
+        Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
+        Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
+        Attribute.WRAP: MechanismFlag.WRAP & capabilities,
+        Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
+        Attribute.SIGN: MechanismFlag.SIGN & capabilities,
+        Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
+        Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
+    }
+
+
 cdef inline object map_rv_to_error(
         CK_RV rv
 ):

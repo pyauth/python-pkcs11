@@ -852,18 +852,7 @@ cdef class Session(HasFuncList, types.Session):
         }
         attrs = AttributeList(merge_templates(template_, template))
 
-        cdef CK_SESSION_HANDLE handle = self.handle
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_ATTRIBUTE *attr_data = attrs.data
-        cdef CK_ULONG attr_count = attrs.count
-        cdef CK_OBJECT_HANDLE obj
-        cdef CK_RV retval
-
-        with nogil:
-            retval = self.funclist.C_GenerateKey(handle, mech_data, attr_data, attr_count, &obj)
-        assertRV(retval)
-
-        return make_object(self, obj)
+        return self.generate_key_from_attrs(attrs, mech)
 
     def generate_key(self, key_type, key_length=None,
                      id=None, label=None,
@@ -888,24 +877,10 @@ cdef class Session(HasFuncList, types.Session):
             key_type, DEFAULT_GENERATE_MECHANISMS,
             mechanism, mechanism_param)
 
+        template_ = _default_secret_key_template(
+            capabilities, id, label, store,
+        )
         # Build attributes
-        template_ = {
-            Attribute.CLASS: ObjectClass.SECRET_KEY,
-            Attribute.ID: id or b'',
-            Attribute.LABEL: label or '',
-            Attribute.TOKEN: store,
-            Attribute.PRIVATE: True,
-            Attribute.SENSITIVE: True,
-            # Capabilities
-            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
-            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
-            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
-            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
-            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
-            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
-            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
-        }
-
         if key_type not in (KeyType.DES2, KeyType.DES3, KeyType.GOST28147, KeyType.SEED):
             if key_length is None:
                 raise ArgumentsBad("Must provide `key_length'")
@@ -914,6 +889,11 @@ cdef class Session(HasFuncList, types.Session):
 
         attrs = AttributeList(merge_templates(template_, template))
 
+        return self.generate_key_from_attrs(attrs, mech)
+
+    cdef object generate_key_from_attrs(
+            self, AttributeList attrs, MechanismWithParam mech
+    ):
         cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_ATTRIBUTE *attr_data = attrs.data
@@ -925,6 +905,7 @@ cdef class Session(HasFuncList, types.Session):
         assertRV(retval)
 
         return make_object(self, key)
+
 
     def _generate_keypair(self, key_type, key_length=None,
                           id=None, label=None,
@@ -949,17 +930,9 @@ cdef class Session(HasFuncList, types.Session):
             key_type, DEFAULT_GENERATE_MECHANISMS,
             mechanism, mechanism_param)
 
-        # Build attributes
-        public_template_ = {
-            Attribute.CLASS: ObjectClass.PUBLIC_KEY,
-            Attribute.ID: id or b'',
-            Attribute.LABEL: label or '',
-            Attribute.TOKEN: store,
-            # Capabilities
-            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
-            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
-            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
-        }
+        public_template_ = _default_public_key_template(
+            id=id, label=label, store=store, capabilities=capabilities,
+        )
 
         if key_type is KeyType.RSA:
             if key_length is None:
@@ -974,20 +947,18 @@ cdef class Session(HasFuncList, types.Session):
 
         public_attrs = AttributeList(merge_templates(public_template_, public_template))
 
-        private_template_ = {
-            Attribute.CLASS: ObjectClass.PRIVATE_KEY,
-            Attribute.ID: id or b'',
-            Attribute.LABEL: label or '',
-            Attribute.TOKEN: store,
-            Attribute.PRIVATE: True,
-            Attribute.SENSITIVE: True,
-            # Capabilities
-            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
-            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
-            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
-            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
-        }
+        private_template_ = _default_private_key_template(
+            id=id, label=label, store=store, capabilities=capabilities,
+        )
         private_attrs = AttributeList(merge_templates(private_template_, private_template))
+        return self.generate_keypair_from_attrs(public_attrs, private_attrs, mech)
+
+    cdef tuple generate_keypair_from_attrs(
+            self,
+            AttributeList public_attrs,
+            AttributeList private_attrs,
+            MechanismWithParam mech
+    ):
 
         cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_MECHANISM *mech_data = mech.data
@@ -1255,16 +1226,9 @@ class GenerateWithParametersMixin(types.DomainParameters):
             mechanism, mechanism_param)
 
         # Build attributes
-        public_template_ = {
-            Attribute.CLASS: ObjectClass.PUBLIC_KEY,
-            Attribute.ID: id or b'',
-            Attribute.LABEL: label or '',
-            Attribute.TOKEN: store,
-            # Capabilities
-            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
-            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
-            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
-        }
+        public_template_ = _default_public_key_template(
+            id=id, label=label, store=store, capabilities=capabilities,
+        )
 
         # Copy in our domain parameters.
         # Not all parameters are appropriate for all domains.
@@ -1282,37 +1246,14 @@ class GenerateWithParametersMixin(types.DomainParameters):
 
         public_attrs = AttributeList(merge_templates(public_template_, public_template))
 
-        private_template_ = {
-            Attribute.CLASS: ObjectClass.PRIVATE_KEY,
-            Attribute.ID: id or b'',
-            Attribute.LABEL: label or '',
-            Attribute.TOKEN: store,
-            Attribute.PRIVATE: True,
-            Attribute.SENSITIVE: True,
-            # Capabilities
-            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
-            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
-            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
-            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
-        }
+        private_template_ = _default_private_key_template(
+            id=id, label=label, store=store, capabilities=capabilities,
+        )
         private_attrs = AttributeList(merge_templates(private_template_, private_template))
 
         cdef Session session = self.session
-        cdef CK_MECHANISM *mech_data = mech.data
-        cdef CK_ATTRIBUTE *public_attr_data = public_attrs.data
-        cdef CK_ULONG public_attr_count = public_attrs.count
-        cdef CK_ATTRIBUTE *private_attr_data = private_attrs.data
-        cdef CK_ULONG private_attr_count = private_attrs.count
-        cdef CK_OBJECT_HANDLE public_key
-        cdef CK_OBJECT_HANDLE private_key
-        cdef CK_RV retval
 
-        with nogil:
-            retval = session.funclist.C_GenerateKeyPair(session.handle, mech_data, public_attr_data, public_attr_count, private_attr_data, private_attr_count, &public_key, &private_key)
-        assertRV(retval)
-
-        return (make_object(session, public_key),
-                make_object(session, private_key))
+        return session.generate_keypair_from_attrs(public_attrs, private_attrs, mech)
 
 
 class LocalDomainParameters(GenerateWithParametersMixin, types.LocalDomainParameters):
