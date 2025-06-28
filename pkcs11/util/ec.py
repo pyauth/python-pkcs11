@@ -12,8 +12,8 @@ from asn1crypto.keys import (
     PublicKeyInfo,
 )
 
-from ..constants import Attribute, ObjectClass
-from ..mechanisms import KeyType
+from pkcs11.constants import Attribute, ObjectClass
+from pkcs11.mechanisms import KeyType
 
 
 def encode_named_curve_parameters(oid):

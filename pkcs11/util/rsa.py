@@ -4,10 +4,10 @@ Key handling utilities for RSA keys (PKCS#1).
 
 from asn1crypto.keys import RSAPrivateKey, RSAPublicKey
 
-from ..constants import Attribute, MechanismFlag, ObjectClass
-from ..defaults import DEFAULT_KEY_CAPABILITIES
-from ..mechanisms import KeyType
-from . import biginteger
+from pkcs11.constants import Attribute, MechanismFlag, ObjectClass
+from pkcs11.defaults import DEFAULT_KEY_CAPABILITIES
+from pkcs11.mechanisms import KeyType
+from pkcs11.util import biginteger
 
 
 def decode_rsa_private_key(der, capabilities=None):

@@ -8,13 +8,13 @@ assumed.
 from datetime import datetime
 from struct import Struct
 
-from .constants import (
+from pkcs11.constants import (
     Attribute,
     CertificateType,
     MechanismFlag,
     ObjectClass,
 )
-from .mechanisms import MGF, KeyType, Mechanism
+from pkcs11.mechanisms import MGF, KeyType, Mechanism
 
 DEFAULT_GENERATE_MECHANISMS = {
     KeyType.AES: Mechanism.AES_KEY_GEN,

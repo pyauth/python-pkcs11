@@ -6,8 +6,8 @@ from asn1crypto.algos import DSASignature
 from asn1crypto.core import Integer
 from asn1crypto.keys import DSAParams
 
-from ..constants import Attribute
-from . import biginteger
+from pkcs11.constants import Attribute
+from pkcs11.util import biginteger
 
 
 def decode_dsa_domain_parameters(der):

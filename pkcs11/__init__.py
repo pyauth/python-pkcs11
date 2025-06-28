@@ -2,11 +2,11 @@
 :mod:`pkcs11` defines a high-level, "Pythonic" interface to PKCS#11.
 """
 
-from .constants import *  # noqa: F403
-from .exceptions import *  # noqa: F403
-from .mechanisms import *  # noqa: F403
-from .types import *  # noqa: F403
-from .util import dh, dsa, ec, rsa, x509  # noqa: F401
+from pkcs11.constants import *  # noqa: F403
+from pkcs11.exceptions import *  # noqa: F403
+from pkcs11.mechanisms import *  # noqa: F403
+from pkcs11.types import *  # noqa: F403
+from pkcs11.util import dh, dsa, ec, rsa, x509  # noqa: F401
 
 _loaded = {}
 

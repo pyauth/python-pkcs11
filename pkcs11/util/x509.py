@@ -4,8 +4,8 @@ Certificate handling utilities for X.509 (SSL) certificates.
 
 from asn1crypto.x509 import Certificate
 
-from ..constants import Attribute, CertificateType, ObjectClass
-from ..mechanisms import KeyType
+from pkcs11.constants import Attribute, CertificateType, ObjectClass
+from pkcs11.mechanisms import KeyType
 
 
 def decode_x509_public_key(der):

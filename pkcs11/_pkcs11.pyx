@@ -15,12 +15,12 @@ from threading import RLock
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
-from . import types
-from .defaults import *
-from .exceptions import *
-from .constants import *
-from .mechanisms import *
-from .types import (
+from pkcs11 import types
+from pkcs11.defaults import *
+from pkcs11.exceptions import *
+from pkcs11.constants import *
+from pkcs11.mechanisms import *
+from pkcs11.types import (
     _CK_UTF8CHAR_to_str,
     _CK_VERSION_to_tuple,
     _CK_MECHANISM_TYPE_to_enum,
@@ -41,160 +41,7 @@ cdef assertRV(rv) with gil:
     """Check for an acceptable RV value or thrown an exception."""
     if rv == CKR_OK:
         return
-    elif rv == CKR_ATTRIBUTE_TYPE_INVALID:
-        exc = AttributeTypeInvalid()
-    elif rv == CKR_ATTRIBUTE_VALUE_INVALID:
-        exc = AttributeValueInvalid()
-    elif rv == CKR_ATTRIBUTE_READ_ONLY:
-        exc = AttributeReadOnly()
-    elif rv == CKR_ATTRIBUTE_SENSITIVE:
-        exc = AttributeSensitive()
-    elif rv == CKR_ARGUMENTS_BAD:
-        exc = ArgumentsBad()
-    elif rv == CKR_BUFFER_TOO_SMALL:
-        exc = PKCS11Error("Buffer was too small. Should never see this.")
-    elif rv == CKR_CRYPTOKI_ALREADY_INITIALIZED:
-        exc = PKCS11Error("Initialisation error (already initialized). Should never see this.")
-    elif rv == CKR_CRYPTOKI_NOT_INITIALIZED:
-        exc = PKCS11Error("Initialisation error (not initialized). Should never see this.")
-    elif rv == CKR_DATA_INVALID:
-        exc = DataInvalid()
-    elif rv == CKR_DATA_LEN_RANGE:
-        exc = DataLenRange()
-    elif rv == CKR_DOMAIN_PARAMS_INVALID:
-        exc = DomainParamsInvalid()
-    elif rv == CKR_DEVICE_ERROR:
-        exc = DeviceError()
-    elif rv == CKR_DEVICE_MEMORY:
-        exc = DeviceMemory()
-    elif rv == CKR_DEVICE_REMOVED:
-        exc = DeviceRemoved()
-    elif rv == CKR_ENCRYPTED_DATA_INVALID:
-        exc = EncryptedDataInvalid()
-    elif rv == CKR_ENCRYPTED_DATA_LEN_RANGE:
-        exc = EncryptedDataLenRange()
-    elif rv == CKR_EXCEEDED_MAX_ITERATIONS:
-        exc = ExceededMaxIterations()
-    elif rv == CKR_FUNCTION_CANCELED:
-        exc = FunctionCancelled()
-    elif rv == CKR_FUNCTION_FAILED:
-        exc = FunctionFailed()
-    elif rv == CKR_FUNCTION_REJECTED:
-        exc = FunctionRejected()
-    elif rv == CKR_FUNCTION_NOT_SUPPORTED:
-        exc = FunctionNotSupported()
-    elif rv == CKR_KEY_HANDLE_INVALID:
-        exc = KeyHandleInvalid()
-    elif rv == CKR_KEY_INDIGESTIBLE:
-        exc = KeyIndigestible()
-    elif rv == CKR_KEY_NEEDED:
-        exc = KeyNeeded()
-    elif rv == CKR_KEY_NOT_NEEDED:
-        exc = KeyNotNeeded()
-    elif rv == CKR_KEY_SIZE_RANGE:
-        exc = KeySizeRange()
-    elif rv == CKR_KEY_NOT_WRAPPABLE:
-        exc = KeyNotWrappable()
-    elif rv == CKR_KEY_TYPE_INCONSISTENT:
-        exc = KeyTypeInconsistent()
-    elif rv == CKR_KEY_UNEXTRACTABLE:
-        exc = KeyUnextractable()
-    elif rv == CKR_GENERAL_ERROR:
-        exc = GeneralError()
-    elif rv == CKR_HOST_MEMORY:
-        exc = HostMemory()
-    elif rv == CKR_MECHANISM_INVALID:
-        exc = MechanismInvalid()
-    elif rv == CKR_MECHANISM_PARAM_INVALID:
-        exc = MechanismParamInvalid()
-    elif rv == CKR_NO_EVENT:
-        exc = NoEvent()
-    elif rv == CKR_OBJECT_HANDLE_INVALID:
-        exc = ObjectHandleInvalid()
-    elif rv == CKR_OPERATION_ACTIVE:
-        exc = OperationActive()
-    elif rv == CKR_OPERATION_NOT_INITIALIZED:
-        exc = OperationNotInitialized()
-    elif rv == CKR_PIN_EXPIRED:
-        exc = PinExpired()
-    elif rv == CKR_PIN_INCORRECT:
-        exc = PinIncorrect()
-    elif rv == CKR_PIN_INVALID:
-        exc = PinInvalid()
-    elif rv == CKR_PIN_LOCKED:
-        exc = PinLocked()
-    elif rv == CKR_PIN_TOO_WEAK:
-        exc = PinTooWeak()
-    elif rv == CKR_PUBLIC_KEY_INVALID:
-        exc = PublicKeyInvalid()
-    elif rv == CKR_RANDOM_NO_RNG:
-        exc = RandomNoRNG()
-    elif rv == CKR_RANDOM_SEED_NOT_SUPPORTED:
-        exc = RandomSeedNotSupported()
-    elif rv == CKR_SESSION_CLOSED:
-        exc = SessionClosed()
-    elif rv == CKR_SESSION_COUNT:
-        exc = SessionCount()
-    elif rv == CKR_SESSION_EXISTS:
-        exc = SessionExists()
-    elif rv == CKR_SESSION_HANDLE_INVALID:
-        exc = SessionHandleInvalid()
-    elif rv == CKR_SESSION_PARALLEL_NOT_SUPPORTED:
-        exc = PKCS11Error("Parallel not supported. Should never see this.")
-    elif rv == CKR_SESSION_READ_ONLY:
-        exc = SessionReadOnly()
-    elif rv == CKR_SESSION_READ_ONLY_EXISTS:
-        exc = SessionReadOnlyExists()
-    elif rv == CKR_SESSION_READ_WRITE_SO_EXISTS:
-        exc = SessionReadWriteSOExists()
-    elif rv == CKR_SIGNATURE_LEN_RANGE:
-        exc = SignatureLenRange()
-    elif rv == CKR_SIGNATURE_INVALID:
-        exc = SignatureInvalid()
-    elif rv == CKR_TEMPLATE_INCOMPLETE:
-        exc = TemplateIncomplete()
-    elif rv == CKR_TEMPLATE_INCONSISTENT:
-        exc = TemplateInconsistent()
-    elif rv == CKR_SLOT_ID_INVALID:
-        exc = SlotIDInvalid()
-    elif rv == CKR_TOKEN_NOT_PRESENT:
-        exc = TokenNotPresent()
-    elif rv == CKR_TOKEN_NOT_RECOGNIZED:
-        exc = TokenNotRecognised()
-    elif rv == CKR_TOKEN_WRITE_PROTECTED:
-        exc = TokenWriteProtected()
-    elif rv == CKR_UNWRAPPING_KEY_HANDLE_INVALID:
-        exc = UnwrappingKeyHandleInvalid()
-    elif rv == CKR_UNWRAPPING_KEY_SIZE_RANGE:
-        exc = UnwrappingKeySizeRange()
-    elif rv == CKR_UNWRAPPING_KEY_TYPE_INCONSISTENT:
-        exc = UnwrappingKeyTypeInconsistent()
-    elif rv == CKR_USER_NOT_LOGGED_IN:
-        exc = UserNotLoggedIn()
-    elif rv == CKR_USER_ALREADY_LOGGED_IN:
-        exc = UserAlreadyLoggedIn()
-    elif rv == CKR_USER_ANOTHER_ALREADY_LOGGED_IN:
-        exc = AnotherUserAlreadyLoggedIn()
-    elif rv == CKR_USER_PIN_NOT_INITIALIZED:
-        exc = UserPinNotInitialized()
-    elif rv == CKR_USER_TOO_MANY_TYPES:
-        exc = UserTooManyTypes()
-    elif rv == CKR_USER_TYPE_INVALID:
-        exc = PKCS11Error("User type invalid. Should never see this.")
-    elif rv == CKR_WRAPPED_KEY_INVALID:
-        exc = WrappedKeyInvalid()
-    elif rv == CKR_WRAPPED_KEY_LEN_RANGE:
-        exc = WrappedKeyLenRange()
-    elif rv == CKR_WRAPPING_KEY_HANDLE_INVALID:
-        exc = WrappingKeyHandleInvalid()
-    elif rv == CKR_WRAPPING_KEY_SIZE_RANGE:
-        exc = WrappingKeySizeRange()
-    elif rv == CKR_WRAPPING_KEY_TYPE_INCONSISTENT:
-        exc = WrappingKeyTypeInconsistent()
-    else:
-        exc = PKCS11Error("Unmapped error code %s" % hex(rv))
-    raise exc
-
+    raise map_rv_to_error(rv)
 
 
 cdef class AttributeList:

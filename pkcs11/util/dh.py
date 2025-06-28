@@ -5,8 +5,8 @@ Key handling utilities for Diffie-Hellman keys.
 from asn1crypto.algos import DHParameters
 from asn1crypto.core import Integer
 
-from ..constants import Attribute
-from . import biginteger
+from pkcs11.constants import Attribute
+from pkcs11.util import biginteger
 
 
 def decode_dh_domain_parameters(der):

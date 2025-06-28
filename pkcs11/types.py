@@ -7,12 +7,12 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 from binascii import hexlify
 from functools import cached_property
 
-from .constants import (
+from pkcs11.constants import (
     Attribute,
     MechanismFlag,
     ObjectClass,
 )
-from .exceptions import (
+from pkcs11.exceptions import (
     ArgumentsBad,
     AttributeTypeInvalid,
     MultipleObjectsReturned,
@@ -20,7 +20,7 @@ from .exceptions import (
     SignatureInvalid,
     SignatureLenRange,
 )
-from .mechanisms import KeyType, Mechanism
+from pkcs11.mechanisms import KeyType, Mechanism
 
 PROTECTED_AUTH = object()
 """Indicate the pin should be supplied via an external mechanism (e.g. pin pad)"""
