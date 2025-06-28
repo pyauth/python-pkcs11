@@ -6,6 +6,7 @@ import os
 import unittest
 
 import pkcs11
+from pkcs11 import PKCS11Error
 
 from . import LIB, TOKEN, Not, Only
 
@@ -57,6 +58,41 @@ class SlotsAndTokensTests(unittest.TestCase):
         slot, *_ = lib.get_slots()
         mechanisms = slot.get_mechanisms()
         self.assertIn(pkcs11.Mechanism.RSA_PKCS, mechanisms)
+
+    def test_reinitialize(self):
+        lib = pkcs11.lib(LIB)
+        slots = lib.get_slots()
+        self.assertGreater(len(slots), 1)
+
+        lib.reinitialize()
+
+        lib = pkcs11.lib(LIB)
+        slots = lib.get_slots()
+        self.assertGreater(len(slots), 1)
+
+    def test_finalize(self):
+        lib = pkcs11.lib(LIB)
+        slots = lib.get_slots()
+        self.assertGreater(len(slots), 1)
+
+        lib.finalize()
+
+        self.assertRaises(PKCS11Error, lib.get_slots)
+
+    def test_auto_reinitialise(self):
+        lib = pkcs11.lib(LIB)
+        lib.finalize()
+        lib = pkcs11.lib(LIB)
+        slots = lib.get_slots()
+        self.assertGreater(len(slots), 1)
+
+    def test_unload_reload(self):
+        pkcs11.lib(LIB)
+        pkcs11.unload(LIB)
+
+        lib = pkcs11.lib(LIB)
+        slots = lib.get_slots()
+        self.assertGreater(len(slots), 1)
 
     def test_get_mechanism_info(self):
         lib = pkcs11.lib(LIB)

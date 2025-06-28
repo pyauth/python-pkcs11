@@ -1827,7 +1827,6 @@ cdef class lib(HasFuncList):
 
         assertRV(populate_function_list(&self.funclist))
 
-
     def __cinit__(self, so):
         cdef CK_RV retval
         self._p11_handle = NULL
@@ -1938,7 +1937,7 @@ cdef class lib(HasFuncList):
             try:
                 token = slot.get_token()
                 token_mechanisms = slot.get_mechanisms()
-            
+
                 if token_label is not None and \
                         token.label != token_label:
                     continue
@@ -2003,8 +2002,12 @@ cdef class lib(HasFuncList):
         return Slot(self, slot_id, slotDescription, manufacturerID,
                  info.hardwareVersion, info.firmwareVersion, info.flags)
 
-    def __dealloc__(self):
+    def unload(self):
         self.finalize()
         self.funclist = NULL
         if self._p11_handle != NULL:
             p11_close(self._p11_handle)
+            self._p11_handle = NULL
+
+    def __dealloc__(self):
+        self.unload()

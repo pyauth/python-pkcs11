@@ -32,3 +32,13 @@ def lib(so):
     _loaded[so] = _lib
 
     return _lib
+
+
+def unload(so):
+    global _loaded
+    try:
+        loaded_lib = _loaded[so]
+    except KeyError:
+        return
+    del _loaded[so]
+    loaded_lib.unload()
