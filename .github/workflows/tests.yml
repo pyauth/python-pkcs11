@@ -11,6 +11,8 @@ jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
+      # Our test suite is pretty fast, so fail-fast: false allows for better troubleshooting.
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
