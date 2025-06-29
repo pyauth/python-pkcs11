@@ -4,6 +4,7 @@ PKCS#11 Sessions
 
 import pkcs11
 from pkcs11 import Attribute, AttributeSensitive, AttributeTypeInvalid, ObjectClass, PKCS11Error
+from pkcs11.attributes import AttributeMapper, handle_str
 
 from . import FIXME, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
 
@@ -245,3 +246,13 @@ class SessionTests(TestCase):
 
             result = key.get_attributes([])
             self.assertDictEqual({}, result)
+
+    def test_custom_attribute_mapper(self):
+        custom_mapper = AttributeMapper()
+        custom_mapper.register_handler(Attribute.ID, *handle_str)
+
+        with self.token.open(user_pin=TOKEN_PIN, attribute_mapper=custom_mapper) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, id="SAMPLE KEY")
+            id_attr = key[Attribute.ID]
+            self.assertIsInstance(id_attr, str)
+            self.assertEqual("SAMPLE KEY", id_attr)
