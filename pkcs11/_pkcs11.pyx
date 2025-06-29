@@ -18,6 +18,7 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from libc.string cimport memcpy
 
 from pkcs11 import types
+from pkcs11.attributes import AttributeMapper
 from pkcs11.defaults import *
 from pkcs11.exceptions import *
 from pkcs11.constants import *
@@ -67,54 +68,61 @@ cdef class AttributeList:
         lst.count = count
         return lst
 
-    def __init__(self, attrs):
-        attrs = dict(attrs)
-        self.count = count = <CK_ULONG> len(attrs)
+    @staticmethod
+    cdef AttributeList from_template(dict template, object attribute_mapper):
+        cdef AttributeList lst = AttributeList.__new__(AttributeList, ())
 
-        self.data = <CK_ATTRIBUTE *> PyMem_Malloc(count * sizeof(CK_ATTRIBUTE))
-        if self.data is NULL:
+        lst.count = count = <CK_ULONG> len(template)
+
+        lst.data = <CK_ATTRIBUTE *> PyMem_Malloc(count * sizeof(CK_ATTRIBUTE))
+        if lst.data is NULL:
             raise MemoryError()
 
         cdef bytes value_bytes
         cdef CK_CHAR * value_ptr
         cdef Py_ssize_t value_len
-        for index, (key, value) in enumerate(attrs.items()):
-            self.data[index].type = key
-            value_bytes = _pack_attribute(key, value)
+        for index, (key, value) in enumerate(template.items()):
+            lst.data[index].type = key
+            value_bytes = attribute_mapper.pack_attribute(key, value)
             value_len = len(value_bytes)
             # copy the result into a pointer that we manage, for consistency with the other init method
             value_ptr = <CK_CHAR *> PyMem_Malloc(value_len)
             if value_ptr is NULL:
                 raise MemoryError()
             memcpy(value_ptr, <CK_CHAR *> value_bytes, <size_t> value_len)
-            self.data[index].pValue = <CK_CHAR *> value_ptr
-            self.data[index].ulValueLen = <CK_ULONG> value_len
+            lst.data[index].pValue = <CK_CHAR *> value_ptr
+            lst.data[index].ulValueLen = <CK_ULONG> value_len
 
-    cdef at_index(self, CK_ULONG index):
+        return lst
+
+    def __init__(self, attrs):
+        raise TypeError
+
+    cdef at_index(self, CK_ULONG index, object attribute_mapper):
         cdef CK_ATTRIBUTE * attr
         if index < self.count:
             attr = &self.data[index]
-            return _unpack_attributes(
+            return attribute_mapper.unpack_attributes(
                 attr.type,
                 PyBytes_FromStringAndSize(<char *> attr.pValue, <Py_ssize_t> attr.ulValueLen)
             )
         else:
             raise IndexError()
 
-    def as_dict(self):
+    def as_dict(self, attribute_mapper):
         cdef CK_ATTRIBUTE * attr
         result = {}
         for index in range(self.count):
             attr = &self.data[index]
-            result[attr.type] = self.at_index(index)
+            result[attr.type] = self.at_index(index, attribute_mapper)
         return result
 
-    def __getitem__(self, item):
+    def get(self, item, attribute_mapper):
         cdef CK_ULONG index = 0
         cdef CK_ATTRIBUTE_TYPE key = item
         for index in range(self.count):
             if self.data[index].type == key:
-                return self.at_index(index)
+                return self.at_index(index, attribute_mapper)
         raise KeyError(item)
 
     def __dealloc__(self):
@@ -440,7 +448,7 @@ cdef class Token(HasFuncList, types.Token):
         """Firmware version (:class:`tuple`)."""
         return _CK_VERSION_to_tuple(self.fw_version)
 
-    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None):
+    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None, attribute_mapper=None):
         cdef CK_SLOT_ID slot_id = self.slot.slot_id
         cdef CK_SESSION_HANDLE handle
         cdef CK_FLAGS flags = CKF_SERIAL_SESSION
@@ -490,7 +498,9 @@ cdef class Token(HasFuncList, types.Token):
                 retval = self.funclist.C_Login(handle, c_user_type, pin_data, pin_length)
             assertRV(retval)
 
-        return Session.make(self, handle, rw=<bint> rw, user_type=c_user_type)
+        return Session.make(
+            self, handle, rw=<bint> rw, user_type=c_user_type, mapper=attribute_mapper or AttributeMapper()
+        )
 
     def __str__(self):
         return self.label
@@ -660,10 +670,11 @@ cdef class SearchIter(OperationContext):
     cdef CK_ULONG batch_size
 
     def __init__(self, session, attrs, batch_size):
-        cdef AttributeList template = AttributeList(attrs)
+        cdef Session _session = session
+        cdef AttributeList template = _session.make_attribute_list(attrs)
         self.template = template
         self.batch_size = batch_size
-        super().__init__(session)
+        super().__init__(_session)
 
     def __iter__(self):
         return self
@@ -796,9 +807,10 @@ cdef class Session(HasFuncList, types.Session):
     """True if this is a read/write session."""
     cdef CK_USER_TYPE _user_type
     cdef object operation_lock
+    cdef object attribute_mapper
 
     @staticmethod
-    cdef Session make(Token token, CK_SESSION_HANDLE handle, bint rw, CK_USER_TYPE user_type):
+    cdef Session make(Token token, CK_SESSION_HANDLE handle, bint rw, CK_USER_TYPE user_type, object mapper):
         cdef Session session = Session.__new__(Session)
 
         session.funclist = token.funclist
@@ -812,6 +824,7 @@ cdef class Session(HasFuncList, types.Session):
 
         session.rw = rw
         session._user_type = user_type
+        session.attribute_mapper = mapper
         return session
 
     def __init__(self):
@@ -857,7 +870,7 @@ cdef class Session(HasFuncList, types.Session):
         assertRV(retval)
 
     def create_object(self, attrs):
-        template = AttributeList(attrs)
+        template = self.make_attribute_list(attrs)
 
         cdef CK_OBJECT_HANDLE handle = self.handle
         cdef CK_ATTRIBUTE *attr_data = template.data
@@ -904,9 +917,12 @@ cdef class Session(HasFuncList, types.Session):
             Attribute.TOKEN: store,
             Attribute.PRIME_BITS: param_length,
         }
-        attrs = AttributeList(merge_templates(template_, template))
+        attrs = self.make_attribute_list(merge_templates(template_, template))
 
         return self.generate_key_from_attrs(attrs, mech)
+
+    cdef AttributeList make_attribute_list(self, template):
+        return AttributeList.from_template(dict(template), self.attribute_mapper)
 
     def generate_key(self, key_type, key_length=None,
                      id=None, label=None,
@@ -931,8 +947,8 @@ cdef class Session(HasFuncList, types.Session):
             key_type, DEFAULT_GENERATE_MECHANISMS,
             mechanism, mechanism_param)
 
-        template_ = _default_secret_key_template(
-            capabilities, id, label, store,
+        template_ = self.attribute_mapper.secret_key_template(
+            capabilities=capabilities, id_=id, label=label, store=store,
         )
         # Build attributes
         if key_type not in (KeyType.DES2, KeyType.DES3, KeyType.GOST28147, KeyType.SEED):
@@ -941,7 +957,7 @@ cdef class Session(HasFuncList, types.Session):
 
             template_[Attribute.VALUE_LEN] = key_length // 8  # In bytes
 
-        attrs = AttributeList(merge_templates(template_, template))
+        attrs = self.make_attribute_list(merge_templates(template_, template))
 
         return self.generate_key_from_attrs(attrs, mech)
 
@@ -984,8 +1000,8 @@ cdef class Session(HasFuncList, types.Session):
             key_type, DEFAULT_GENERATE_MECHANISMS,
             mechanism, mechanism_param)
 
-        public_template_ = _default_public_key_template(
-            id=id, label=label, store=store, capabilities=capabilities,
+        public_template_ = self.attribute_mapper.public_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
         )
 
         if key_type is KeyType.RSA:
@@ -999,12 +1015,12 @@ cdef class Session(HasFuncList, types.Session):
                 Attribute.MODULUS_BITS: key_length,
             })
 
-        public_attrs = AttributeList(merge_templates(public_template_, public_template))
+        public_attrs = self.make_attribute_list(merge_templates(public_template_, public_template))
 
-        private_template_ = _default_private_key_template(
-            id=id, label=label, store=store, capabilities=capabilities,
+        private_template_ = self.attribute_mapper.private_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
         )
-        private_attrs = AttributeList(merge_templates(private_template_, private_template))
+        private_attrs = self.make_attribute_list(merge_templates(private_template_, private_template))
         return self.generate_keypair_from_attrs(public_attrs, private_attrs, mech)
 
     cdef tuple generate_keypair_from_attrs(
@@ -1143,7 +1159,7 @@ cdef class ObjectHandleWrapper(HasFuncList):
 
     def __getitem__(self, key):
         cdef CK_ATTRIBUTE_TYPE key_t = key
-        return self.get_attribute_list(&key_t, 1).at_index(0)
+        return self.get_attribute_list(&key_t, 1).at_index(0, self.session.attribute_mapper)
 
     def __setitem__(self, key, value):
         cdef CK_SESSION_HANDLE handle = self.session.handle
@@ -1151,7 +1167,7 @@ cdef class ObjectHandleWrapper(HasFuncList):
         cdef CK_ATTRIBUTE template
         cdef CK_RV retval
 
-        value = _pack_attribute(key, value)
+        value = self.session.attribute_mapper.pack_attribute(key, value)
 
         template.type = key
         template.pValue = <CK_CHAR *> value
@@ -1171,7 +1187,7 @@ cdef class ObjectHandleWrapper(HasFuncList):
         assertRV(retval)
 
     def copy(self, attrs):
-        template = AttributeList(attrs)
+        template = self.session.make_attribute_list(attrs)
 
         cdef CK_SESSION_HANDLE handle = self.session.handle
         cdef CK_OBJECT_HANDLE obj = self.handle
@@ -1210,7 +1226,7 @@ class Object(types.Object):
             key_ptr[ix] = <CK_ATTRIBUTE_TYPE> key
 
         try:
-            result = wrapper.get_attribute_list(key_ptr, total).as_dict()
+            result = wrapper.get_attribute_list(key_ptr, total).as_dict(wrapper.session.attribute_mapper)
         finally:
             PyMem_Free(key_ptr)
         return result
@@ -1258,7 +1274,7 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
         except (AttributeTypeInvalid, FunctionFailed) as e:
             attributes = {}
 
-        object_class = attributes[Attribute.CLASS]
+        object_class = attributes.get(Attribute.CLASS, session.attribute_mapper)
         bases = (_CLASS_MAP[object_class],)
 
         # Build a list of mixins for this new class
@@ -1272,7 +1288,7 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
                 (Attribute.DERIVE, DeriveMixin),
         ):
             try:
-                if attributes[attribute]:
+                if attributes.get(attribute, session.attribute_mapper):
                     bases += (mixin,)
             except KeyError:
                 pass
@@ -1307,6 +1323,7 @@ class GenerateWithParametersMixin(types.DomainParameters):
                          mechanism=None, mechanism_param=None,
                          public_template=None, private_template=None):
 
+        cdef Session session = self.session
         if capabilities is None:
             try:
                 capabilities = DEFAULT_KEY_CAPABILITIES[self.key_type]
@@ -1319,8 +1336,8 @@ class GenerateWithParametersMixin(types.DomainParameters):
             mechanism, mechanism_param)
 
         # Build attributes
-        public_template_ = _default_public_key_template(
-            id=id, label=label, store=store, capabilities=capabilities,
+        public_template_ = session.attribute_mapper.public_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
         )
 
         # Copy in our domain parameters.
@@ -1339,14 +1356,12 @@ class GenerateWithParametersMixin(types.DomainParameters):
         except (AttributeTypeInvalid, FunctionFailed):
             pass
 
-        public_attrs = AttributeList(merge_templates(public_template_, public_template))
+        public_attrs = session.make_attribute_list(merge_templates(public_template_, public_template))
 
-        private_template_ = _default_private_key_template(
-            id=id, label=label, store=store, capabilities=capabilities,
+        private_template_ = session.attribute_mapper.private_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
         )
-        private_attrs = AttributeList(merge_templates(private_template_, private_template))
-
-        cdef Session session = self.session
+        private_attrs = session.make_attribute_list(merge_templates(private_template_, private_template))
 
         return session.generate_keypair_from_attrs(public_attrs, private_attrs, mech)
 
@@ -1776,9 +1791,9 @@ class UnwrapMixin(types.UnwrapMixin):
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
-        attrs = AttributeList(merge_templates(template_, template))
 
         cdef Session session = self.session
+        cdef AttributeList attrs = session.make_attribute_list(merge_templates(template_, template))
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE unwrapping_key = self.handle
         cdef CK_BYTE *wrapped_key_ptr = key_data
@@ -1840,9 +1855,9 @@ class DeriveMixin(types.DeriveMixin):
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
-        attrs = AttributeList(merge_templates(template_, template))
 
         cdef Session session = self.session
+        cdef AttributeList attrs = session.make_attribute_list(merge_templates(template_, template))
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE src_key = self.handle
         cdef CK_ATTRIBUTE *attr_data = attrs.data
