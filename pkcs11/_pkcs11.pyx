@@ -612,31 +612,39 @@ cdef class SearchIter(OperationContext):
     """Iterate a search for objects on a session."""
 
     cdef AttributeList template
+    cdef CK_ULONG batch_size
 
-    def __init__(self, session, attrs):
+    def __init__(self, session, attrs, batch_size):
         cdef AttributeList template = AttributeList(attrs)
         self.template = template
+        self.batch_size = batch_size
         super().__init__(session)
 
     def __iter__(self):
         return self
 
+    def _batch_iter(self, results, count):
+        for ix in range(count):
+            yield make_object(self.session, results[ix])
+
     def __next__(self):
-        """Get the next object."""
+        """Get the next batch of objects."""
         cdef CK_SESSION_HANDLE handle = self.session.handle
         cdef CK_OBJECT_HANDLE obj
         cdef CK_ULONG count
         cdef CK_RV retval
 
+        cdef CK_OBJECT_HANDLE [:] results = CK_ULONG_buffer(self.batch_size)
+
         with nogil:
-            retval = self.session.funclist.C_FindObjects(handle, &obj, 1, &count)
+            retval = self.session.funclist.C_FindObjects(handle, &results[0], self.batch_size, &count)
         assertRV(retval)
 
         if count == 0:
             self._finalize()
             raise StopIteration()
         else:
-            return make_object(self.session, obj)
+            return self._batch_iter(results, count)
 
     def _initiate(self):
         cdef CK_SESSION_HANDLE handle = self.session.handle
@@ -785,9 +793,10 @@ cdef class Session(HasFuncList, types.Session):
             retval = self.funclist.C_CloseSession(handle)
         assertRV(retval)
 
-    def get_objects(self, attrs=None):
-        with SearchIter(self, attrs or {}) as op:
-            yield from op
+    def get_objects(self, attrs=None, batch_size=10):
+        with SearchIter(self, attrs or {}, batch_size) as op:
+            for batch in op:
+                yield from batch
 
     def reaffirm_credentials(self, pin):
         cdef CK_UTF8CHAR *pin_data
