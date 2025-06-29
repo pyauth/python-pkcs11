@@ -85,6 +85,8 @@ class Attribute(IntEnum):
     """
     LABEL = 0x00000003
     """Object label (:class:`str`)."""
+    UNIQUE_ID = 0x00000004
+    """Unique identifier (:class:`str`)."""
     APPLICATION = 0x00000010
     VALUE = 0x00000011
     """

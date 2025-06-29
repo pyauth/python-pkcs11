@@ -182,6 +182,7 @@ ATTRIBUTE_TYPES = {
     Attribute.SUBPRIME_BITS: _ulong,
     Attribute.TOKEN: _bool,
     Attribute.TRUSTED: _bool,
+    Attribute.UNIQUE_ID: _str,
     Attribute.UNWRAP: _bool,
     Attribute.URL: _str,
     Attribute.VALUE: _biginteger,
