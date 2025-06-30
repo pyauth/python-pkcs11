@@ -14,8 +14,11 @@ from __future__ import (absolute_import, unicode_literals,
 from threading import RLock
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from cpython.bytes cimport PyBytes_FromStringAndSize
+from libc.string cimport memcpy
 
 from pkcs11 import types
+from pkcs11.attributes import AttributeMapper
 from pkcs11.defaults import *
 from pkcs11.exceptions import *
 from pkcs11.constants import *
@@ -54,30 +57,80 @@ cdef class AttributeList:
     cdef CK_ULONG count
     """Length of `data`."""
 
-    cdef _values
-
     def __cinit__(self, attrs):
-        attrs = dict(attrs)
-        self.count = count = <CK_ULONG> len(attrs)
+        self.data = NULL
+        self.count = 0
 
-        self.data = <CK_ATTRIBUTE *> PyMem_Malloc(count * sizeof(CK_ATTRIBUTE))
-        if not self.data:
+    @staticmethod
+    cdef AttributeList from_owned_pointer(CK_ATTRIBUTE * data, CK_ULONG count):
+        cdef AttributeList lst = AttributeList.__new__(AttributeList, ())
+        lst.data = data
+        lst.count = count
+        return lst
+
+    @staticmethod
+    cdef AttributeList from_template(dict template, object attribute_mapper):
+        cdef AttributeList lst = AttributeList.__new__(AttributeList, ())
+
+        lst.count = count = <CK_ULONG> len(template)
+
+        lst.data = <CK_ATTRIBUTE *> PyMem_Malloc(count * sizeof(CK_ATTRIBUTE))
+        if lst.data is NULL:
             raise MemoryError()
 
-        # Turn the values into bytes and store them so we have pointers
-        # to them.
-        self._values = [
-            (key, _pack_attribute(key, value))
-            for key, value in attrs.items()
-        ]
+        cdef bytes value_bytes
+        cdef CK_CHAR * value_ptr
+        cdef Py_ssize_t value_len
+        for index, (key, value) in enumerate(template.items()):
+            lst.data[index].type = key
+            value_bytes = attribute_mapper.pack_attribute(key, value)
+            value_len = len(value_bytes)
+            # copy the result into a pointer that we manage, for consistency with the other init method
+            value_ptr = <CK_CHAR *> PyMem_Malloc(value_len)
+            if value_ptr is NULL:
+                raise MemoryError()
+            memcpy(value_ptr, <CK_CHAR *> value_bytes, <size_t> value_len)
+            lst.data[index].pValue = <CK_CHAR *> value_ptr
+            lst.data[index].ulValueLen = <CK_ULONG> value_len
 
-        for index, (key, value) in enumerate(self._values):
-            self.data[index].type = key
-            self.data[index].pValue = <CK_CHAR *> value
-            self.data[index].ulValueLen = <CK_ULONG>len(value)
+        return lst
+
+    def __init__(self, attrs):
+        raise TypeError
+
+    cdef at_index(self, CK_ULONG index, object attribute_mapper):
+        cdef CK_ATTRIBUTE * attr
+        if index < self.count:
+            attr = &self.data[index]
+            return attribute_mapper.unpack_attributes(
+                attr.type,
+                PyBytes_FromStringAndSize(<char *> attr.pValue, <Py_ssize_t> attr.ulValueLen)
+            )
+        else:
+            raise IndexError()
+
+    def as_dict(self, attribute_mapper):
+        cdef CK_ATTRIBUTE * attr
+        result = {}
+        for index in range(self.count):
+            attr = &self.data[index]
+            result[attr.type] = self.at_index(index, attribute_mapper)
+        return result
+
+    def get(self, item, attribute_mapper):
+        cdef CK_ULONG index = 0
+        cdef CK_ATTRIBUTE_TYPE key = item
+        for index in range(self.count):
+            if self.data[index].type == key:
+                return self.at_index(index, attribute_mapper)
+        raise KeyError(item)
 
     def __dealloc__(self):
-        PyMem_Free(self.data)
+        cdef CK_ULONG index = 0
+        if self.data is not NULL:
+            for index in range(self.count):
+                PyMem_Free(self.data[index].pValue)
+            PyMem_Free(self.data)
 
 
 cdef class MechanismWithParam:
@@ -395,7 +448,7 @@ cdef class Token(HasFuncList, types.Token):
         """Firmware version (:class:`tuple`)."""
         return _CK_VERSION_to_tuple(self.fw_version)
 
-    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None):
+    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None, attribute_mapper=None):
         cdef CK_SLOT_ID slot_id = self.slot.slot_id
         cdef CK_SESSION_HANDLE handle
         cdef CK_FLAGS flags = CKF_SERIAL_SESSION
@@ -445,7 +498,9 @@ cdef class Token(HasFuncList, types.Token):
                 retval = self.funclist.C_Login(handle, c_user_type, pin_data, pin_length)
             assertRV(retval)
 
-        return Session.make(self, handle, rw=<bint> rw, user_type=c_user_type)
+        return Session.make(
+            self, handle, rw=<bint> rw, user_type=c_user_type, mapper=attribute_mapper or AttributeMapper()
+        )
 
     def __str__(self):
         return self.label
@@ -612,31 +667,40 @@ cdef class SearchIter(OperationContext):
     """Iterate a search for objects on a session."""
 
     cdef AttributeList template
+    cdef CK_ULONG batch_size
 
-    def __init__(self, session, attrs):
-        cdef AttributeList template = AttributeList(attrs)
+    def __init__(self, session, attrs, batch_size):
+        cdef Session _session = session
+        cdef AttributeList template = _session.make_attribute_list(attrs)
         self.template = template
-        super().__init__(session)
+        self.batch_size = batch_size
+        super().__init__(_session)
 
     def __iter__(self):
         return self
 
+    def _batch_iter(self, results, count):
+        for ix in range(count):
+            yield make_object(self.session, results[ix])
+
     def __next__(self):
-        """Get the next object."""
+        """Get the next batch of objects."""
         cdef CK_SESSION_HANDLE handle = self.session.handle
         cdef CK_OBJECT_HANDLE obj
         cdef CK_ULONG count
         cdef CK_RV retval
 
+        cdef CK_OBJECT_HANDLE [:] results = CK_ULONG_buffer(self.batch_size)
+
         with nogil:
-            retval = self.session.funclist.C_FindObjects(handle, &obj, 1, &count)
+            retval = self.session.funclist.C_FindObjects(handle, &results[0], self.batch_size, &count)
         assertRV(retval)
 
         if count == 0:
             self._finalize()
             raise StopIteration()
         else:
-            return make_object(self.session, obj)
+            return self._batch_iter(results, count)
 
     def _initiate(self):
         cdef CK_SESSION_HANDLE handle = self.session.handle
@@ -743,9 +807,10 @@ cdef class Session(HasFuncList, types.Session):
     """True if this is a read/write session."""
     cdef CK_USER_TYPE _user_type
     cdef object operation_lock
+    cdef object attribute_mapper
 
     @staticmethod
-    cdef Session make(Token token, CK_SESSION_HANDLE handle, bint rw, CK_USER_TYPE user_type):
+    cdef Session make(Token token, CK_SESSION_HANDLE handle, bint rw, CK_USER_TYPE user_type, object mapper):
         cdef Session session = Session.__new__(Session)
 
         session.funclist = token.funclist
@@ -759,6 +824,7 @@ cdef class Session(HasFuncList, types.Session):
 
         session.rw = rw
         session._user_type = user_type
+        session.attribute_mapper = mapper
         return session
 
     def __init__(self):
@@ -785,9 +851,10 @@ cdef class Session(HasFuncList, types.Session):
             retval = self.funclist.C_CloseSession(handle)
         assertRV(retval)
 
-    def get_objects(self, attrs=None):
-        with SearchIter(self, attrs or {}) as op:
-            yield from op
+    def get_objects(self, attrs=None, batch_size=10):
+        with SearchIter(self, attrs or {}, batch_size) as op:
+            for batch in op:
+                yield from batch
 
     def reaffirm_credentials(self, pin):
         cdef CK_UTF8CHAR *pin_data
@@ -803,7 +870,7 @@ cdef class Session(HasFuncList, types.Session):
         assertRV(retval)
 
     def create_object(self, attrs):
-        template = AttributeList(attrs)
+        template = self.make_attribute_list(attrs)
 
         cdef CK_OBJECT_HANDLE handle = self.handle
         cdef CK_ATTRIBUTE *attr_data = template.data
@@ -850,9 +917,12 @@ cdef class Session(HasFuncList, types.Session):
             Attribute.TOKEN: store,
             Attribute.PRIME_BITS: param_length,
         }
-        attrs = AttributeList(merge_templates(template_, template))
+        attrs = self.make_attribute_list(merge_templates(template_, template))
 
         return self.generate_key_from_attrs(attrs, mech)
+
+    cdef AttributeList make_attribute_list(self, template):
+        return AttributeList.from_template(dict(template), self.attribute_mapper)
 
     def generate_key(self, key_type, key_length=None,
                      id=None, label=None,
@@ -877,8 +947,8 @@ cdef class Session(HasFuncList, types.Session):
             key_type, DEFAULT_GENERATE_MECHANISMS,
             mechanism, mechanism_param)
 
-        template_ = _default_secret_key_template(
-            capabilities, id, label, store,
+        template_ = self.attribute_mapper.secret_key_template(
+            capabilities=capabilities, id_=id, label=label, store=store,
         )
         # Build attributes
         if key_type not in (KeyType.DES2, KeyType.DES3, KeyType.GOST28147, KeyType.SEED):
@@ -887,7 +957,7 @@ cdef class Session(HasFuncList, types.Session):
 
             template_[Attribute.VALUE_LEN] = key_length // 8  # In bytes
 
-        attrs = AttributeList(merge_templates(template_, template))
+        attrs = self.make_attribute_list(merge_templates(template_, template))
 
         return self.generate_key_from_attrs(attrs, mech)
 
@@ -930,8 +1000,8 @@ cdef class Session(HasFuncList, types.Session):
             key_type, DEFAULT_GENERATE_MECHANISMS,
             mechanism, mechanism_param)
 
-        public_template_ = _default_public_key_template(
-            id=id, label=label, store=store, capabilities=capabilities,
+        public_template_ = self.attribute_mapper.public_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
         )
 
         if key_type is KeyType.RSA:
@@ -945,12 +1015,12 @@ cdef class Session(HasFuncList, types.Session):
                 Attribute.MODULUS_BITS: key_length,
             })
 
-        public_attrs = AttributeList(merge_templates(public_template_, public_template))
+        public_attrs = self.make_attribute_list(merge_templates(public_template_, public_template))
 
-        private_template_ = _default_private_key_template(
-            id=id, label=label, store=store, capabilities=capabilities,
+        private_template_ = self.attribute_mapper.private_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
         )
-        private_attrs = AttributeList(merge_templates(private_template_, private_template))
+        private_attrs = self.make_attribute_list(merge_templates(private_template_, private_template))
         return self.generate_keypair_from_attrs(public_attrs, private_attrs, mech)
 
     cdef tuple generate_keypair_from_attrs(
@@ -1041,42 +1111,55 @@ cdef class ObjectHandleWrapper(HasFuncList):
     def __init__(self):
         raise TypeError
 
-    def __getitem__(self, key):
+    cdef AttributeList get_attribute_list(self, CK_ATTRIBUTE_TYPE * keys, CK_ULONG total) with gil:
         cdef CK_SESSION_HANDLE handle = self.session.handle
         cdef CK_OBJECT_HANDLE obj = self.handle
-        cdef CK_ATTRIBUTE template
+        cdef CK_ULONG ix = 0
+        cdef CK_ULONG retrievable = 0
+        cdef CK_ATTRIBUTE *tpl = <CK_ATTRIBUTE *> PyMem_Malloc(total * sizeof(CK_ATTRIBUTE))
         cdef CK_RV retval
 
-        template.type = key
-        template.pValue = NULL
-        template.ulValueLen = <CK_ULONG> 0
+        for ix in range(total):
+            tpl[ix].type = keys[ix]
+            tpl[ix].pValue = NULL
+            tpl[ix].ulValueLen = <CK_ULONG> 0
 
-        # Find out the attribute size
         with nogil:
-            retval = self.funclist.C_GetAttributeValue(handle, obj, &template, 1)
-        if retval == CKR_OK and \
-                template.ulValueLen == CK_UNAVAILABLE_INFORMATION:
+            retval = self.funclist.C_GetAttributeValue(handle, obj, tpl, total)
+
+        for ix in range(total):
+            if tpl[ix].ulValueLen != CK_UNAVAILABLE_INFORMATION:
+                # overwrite the template at position 'retrievable' in the buffer
+                tpl[retrievable].type = tpl[ix].type
+                tpl[retrievable].pValue = PyMem_Malloc(tpl[ix].ulValueLen)
+                if tpl[retrievable].pValue is NULL:
+                    raise MemoryError()
+                tpl[retrievable].ulValueLen = tpl[ix].ulValueLen
+                retrievable += 1
             # The spec prohibits returning CK_UNAVAILABLE_INFORMATION
             #  together with CKR_OK, but some tokens do that anyway.
             #  Let's be defensive and map that to a proper error,
-            #  otherwise CK_UNAVAILABLE_INFORMATION will be treated
-            #  as a length value, which causes issues.
-            retval = CKR_FUNCTION_FAILED
+            if tpl[ix].ulValueLen == CK_UNAVAILABLE_INFORMATION and retval == CKR_OK:
+                retval = CKR_FUNCTION_FAILED
+                break
+
+        # when this gets GC'd, the __dealloc__ will clean up our buffers
+        result = AttributeList.from_owned_pointer(tpl, retrievable)
+        if retrievable:
+            with nogil:
+                retval = self.funclist.C_GetAttributeValue(handle, obj, tpl, retrievable)
+            for ix in range(retrievable):
+                # Ensure the data returned from the token is sane
+                if tpl[ix].ulValueLen == CK_UNAVAILABLE_INFORMATION or tpl[ix].pValue is NULL:
+                    retval = CKR_FUNCTION_FAILED
+                    break
         assertRV(retval)
+        return result
 
-        if template.ulValueLen == 0:
-            return _unpack_attributes(key, b'')
 
-        # Put a buffer of the right length in place
-        cdef CK_CHAR [:] value = CK_BYTE_buffer(template.ulValueLen)
-        template.pValue = <CK_CHAR *> &value[0]
-
-        # Request the value
-        with nogil:
-            retval = self.funclist.C_GetAttributeValue(handle, obj, &template, 1)
-        assertRV(retval)
-
-        return _unpack_attributes(key, value)
+    def __getitem__(self, key):
+        cdef CK_ATTRIBUTE_TYPE key_t = key
+        return self.get_attribute_list(&key_t, 1).at_index(0, self.session.attribute_mapper)
 
     def __setitem__(self, key, value):
         cdef CK_SESSION_HANDLE handle = self.session.handle
@@ -1084,7 +1167,7 @@ cdef class ObjectHandleWrapper(HasFuncList):
         cdef CK_ATTRIBUTE template
         cdef CK_RV retval
 
-        value = _pack_attribute(key, value)
+        value = self.session.attribute_mapper.pack_attribute(key, value)
 
         template.type = key
         template.pValue = <CK_CHAR *> value
@@ -1104,7 +1187,7 @@ cdef class ObjectHandleWrapper(HasFuncList):
         assertRV(retval)
 
     def copy(self, attrs):
-        template = AttributeList(attrs)
+        template = self.session.make_attribute_list(attrs)
 
         cdef CK_SESSION_HANDLE handle = self.session.handle
         cdef CK_OBJECT_HANDLE obj = self.handle
@@ -1134,6 +1217,20 @@ class Object(types.Object):
     def __setitem__(self, key, value):
         self.wrapper[key] = value
 
+    def get_attributes(self, keys):
+        cdef ObjectHandleWrapper wrapper = self.wrapper
+        cdef CK_ULONG total = len(keys)
+        cdef CK_ATTRIBUTE_TYPE * key_ptr = <CK_ATTRIBUTE_TYPE *> PyMem_Malloc(total * sizeof(CK_ATTRIBUTE_TYPE))
+        cdef CK_ULONG ix = 0
+        for ix, key in enumerate(keys):
+            key_ptr[ix] = <CK_ATTRIBUTE_TYPE> key
+
+        try:
+            result = wrapper.get_attribute_list(key_ptr, total).as_dict(wrapper.session.attribute_mapper)
+        finally:
+            PyMem_Free(key_ptr)
+        return result
+
     @property
     def session(self):
         return self.wrapper.session
@@ -1159,11 +1256,25 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
     """
     wrapper = ObjectHandleWrapper.wrap(session, handle)
 
+    cdef CK_ATTRIBUTE_TYPE[8] attr_keys = [
+        Attribute.CLASS,
+        Attribute.ENCRYPT,
+        Attribute.DECRYPT,
+        Attribute.SIGN,
+        Attribute.VERIFY,
+        Attribute.WRAP,
+        Attribute.UNWRAP,
+        Attribute.DERIVE
+    ]
+
     try:
         # Determine a list of base classes to manufacture our class with
-        # FIXME: we should really request all of these attributes in
-        # one go
-        object_class = wrapper[Attribute.CLASS]
+        try:
+            attributes = wrapper.get_attribute_list(&attr_keys[0], 8)
+        except (AttributeTypeInvalid, FunctionFailed) as e:
+            attributes = {}
+
+        object_class = attributes.get(Attribute.CLASS, session.attribute_mapper)
         bases = (_CLASS_MAP[object_class],)
 
         # Build a list of mixins for this new class
@@ -1177,11 +1288,9 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
                 (Attribute.DERIVE, DeriveMixin),
         ):
             try:
-                if wrapper[attribute]:
+                if attributes.get(attribute, session.attribute_mapper):
                     bases += (mixin,)
-            # nFast returns FunctionFailed when you request an attribute
-            # it doesn't like.
-            except (AttributeTypeInvalid, FunctionFailed):
+            except KeyError:
                 pass
 
         bases += (Object,)
@@ -1214,6 +1323,7 @@ class GenerateWithParametersMixin(types.DomainParameters):
                          mechanism=None, mechanism_param=None,
                          public_template=None, private_template=None):
 
+        cdef Session session = self.session
         if capabilities is None:
             try:
                 capabilities = DEFAULT_KEY_CAPABILITIES[self.key_type]
@@ -1226,32 +1336,32 @@ class GenerateWithParametersMixin(types.DomainParameters):
             mechanism, mechanism_param)
 
         # Build attributes
-        public_template_ = _default_public_key_template(
-            id=id, label=label, store=store, capabilities=capabilities,
+        public_template_ = session.attribute_mapper.public_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
         )
 
         # Copy in our domain parameters.
         # Not all parameters are appropriate for all domains.
-        for attribute in (
-                Attribute.BASE,
-                Attribute.PRIME,
-                Attribute.SUBPRIME,
-                Attribute.EC_PARAMS,
-        ):
-            try:
-                public_template_[attribute] = self[attribute]
-                # nFast returns FunctionFailed for parameters it doesn't like
-            except (AttributeTypeInvalid, FunctionFailed):
-                pass
+        try:
+            public_template_.update(
+                self.get_attributes(
+                    (
+                        Attribute.BASE,
+                        Attribute.PRIME,
+                        Attribute.SUBPRIME,
+                        Attribute.EC_PARAMS,
+                    )
+                )
+            )
+        except (AttributeTypeInvalid, FunctionFailed):
+            pass
 
-        public_attrs = AttributeList(merge_templates(public_template_, public_template))
+        public_attrs = session.make_attribute_list(merge_templates(public_template_, public_template))
 
-        private_template_ = _default_private_key_template(
-            id=id, label=label, store=store, capabilities=capabilities,
+        private_template_ = session.attribute_mapper.private_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
         )
-        private_attrs = AttributeList(merge_templates(private_template_, private_template))
-
-        cdef Session session = self.session
+        private_attrs = session.make_attribute_list(merge_templates(private_template_, private_template))
 
         return session.generate_keypair_from_attrs(public_attrs, private_attrs, mech)
 
@@ -1681,9 +1791,9 @@ class UnwrapMixin(types.UnwrapMixin):
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
-        attrs = AttributeList(merge_templates(template_, template))
 
         cdef Session session = self.session
+        cdef AttributeList attrs = session.make_attribute_list(merge_templates(template_, template))
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE unwrapping_key = self.handle
         cdef CK_BYTE *wrapped_key_ptr = key_data
@@ -1745,9 +1855,9 @@ class DeriveMixin(types.DeriveMixin):
             Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
             Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
         }
-        attrs = AttributeList(merge_templates(template_, template))
 
         cdef Session session = self.session
+        cdef AttributeList attrs = session.make_attribute_list(merge_templates(template_, template))
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE src_key = self.handle
         cdef CK_ATTRIBUTE *attr_data = attrs.data

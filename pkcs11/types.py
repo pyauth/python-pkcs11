@@ -167,7 +167,7 @@ class Token(IdentifiedBy):
         """Firmware version (:class:`tuple`)."""
         raise NotImplementedError()
 
-    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None):
+    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None, attribute_mapper=None):
         """
         Open a session on the token and optionally log in as a user or
         security officer (pass one of `user_pin` or `so_pin`). Pass PROTECTED_AUTH to
@@ -188,6 +188,8 @@ class Token(IdentifiedBy):
         :param user_type: Sets the userType parameter to C_Login.
             Allows for vendor-defined values. Defaults to UserType.SO if
             so_pin is set, otherwise UserType.USER.
+        :param attribute_mapper:
+            Optionally pass in a custom :class:`pkcs11.attributes.AttributeMapper`.
 
         :rtype: Session
         """
@@ -539,6 +541,9 @@ class Object(IdentifiedBy):
     def __setitem__(self, key, value):
         raise NotImplementedError()
 
+    def get_attributes(self, keys):
+        raise NotImplementedError()
+
     def copy(self, attrs):
         """
         Make a copy of the object with new attributes `attrs`.
@@ -638,6 +643,9 @@ class LocalDomainParameters(DomainParameters):
             return self.params[key]
         except KeyError as ex:
             raise AttributeTypeInvalid from ex
+
+    def get_attributes(self, keys):
+        return {key: self.params[key] for key in keys if key in self.params}
 
     def __setitem__(self, key, value):
         self.params[key] = value
