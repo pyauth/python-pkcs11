@@ -7,3 +7,6 @@ __pycache__
 /docs/_build
 /python_pkcs11.egg-info/
 /.eggs/
+.coverage
+*coverage.xml
+*.html

@@ -4,7 +4,6 @@ Definitions imported from PKCS11 C headers.
 
 from cython.view cimport array
 
-from pkcs11.defaults import *
 from pkcs11.exceptions import *
 
 cdef extern from '../extern/cryptoki.h':

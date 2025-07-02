@@ -1,0 +1,72 @@
+name: Coverage
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+env:
+  UV_PYTHON_PREFERENCE: only-system
+  UV_NO_SYNC: "1"
+  PKCS11_TOKEN_LABEL: "TEST"
+  PKCS11_TOKEN_PIN: "1234"
+  PKCS11_TOKEN_SO_PIN: "5678"
+jobs:
+  # For now, we run the coverage as a separate job.
+  # At the time of writing, the latest version of Cython's line tracing
+  # seems to lead to segfaults in Python 3.13 -> TODO: investigate
+  pytest-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acquire sources
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - uses: ./.github/actions/install-softhsm
+        id: softhsm
+        with:
+          os: ubuntu-latest
+          token-label: ${{ env.PKCS11_TOKEN_LABEL }}
+          token-so-pin: ${{ env.PKCS11_TOKEN_SO_PIN }}
+          token-user-pin: ${{ env.PKCS11_TOKEN_PIN }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          python-version: 3.12
+      - name: Install testing dependencies
+        run: uv sync --no-dev --exact --group coverage
+        env:
+          CFLAGS: "-DCYTHON_TRACE_NOGIL=1"
+          EXT_BUILD_DEBUG: "1"
+      - name: Run tests
+        run: uv run pytest -v --cov=pkcs11 --cov-branch --cov-report=xml:python-coverage.xml
+        env:
+          PKCS11_MODULE: ${{ steps.softhsm.outputs.module }}
+      - name: Stash coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: "*-coverage.xml"
+  codecov-upload:
+    permissions:
+      actions: write
+      contents: read
+    runs-on: ubuntu-latest
+    needs: [pytest-coverage]
+    steps:
+      # checkout necessary to ensure the uploaded report contains the correct paths
+      - uses: actions/checkout@v4
+      - name: Retrieve coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: ./reports/
+      - name: Upload all coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./reports/
+          flags: unittests
+          env_vars: OS,PYTHON
+          name: codecov-umbrella
