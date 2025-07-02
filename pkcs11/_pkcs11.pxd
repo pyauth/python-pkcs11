@@ -710,6 +710,8 @@ cdef inline object map_rv_to_error(
         exc = PinIncorrect()
     elif rv == CKR_PIN_INVALID:
         exc = PinInvalid()
+    elif rv == CKR_PIN_LEN_RANGE:
+        exc = PinLenRange()
     elif rv == CKR_PIN_LOCKED:
         exc = PinLocked()
     elif rv == CKR_PIN_TOO_WEAK:
