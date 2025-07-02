@@ -116,6 +116,26 @@ class Slot(IdentifiedBy):
         """Firmware version (:class:`tuple`)."""
         raise NotImplementedError()
 
+    @property
+    def cryptoki_version(self):
+        """PKCS#11 API version (:class: `tuple`)"""
+        raise NotImplementedError()
+
+    @property
+    def slot_id(self):
+        """Slot identifier (opaque)."""
+        raise NotImplementedError()
+
+    @property
+    def slot_description(self):
+        """Slot name (:class:`str`)."""
+        raise NotImplementedError()
+
+    @property
+    def manufacturer_id(self):
+        """Slot/device manufacturer's name (:class:`str`)."""
+        raise NotImplementedError()
+
     def get_token(self):
         """
         Returns the token loaded into this slot.
@@ -167,6 +187,31 @@ class Token(IdentifiedBy):
         """Firmware version (:class:`tuple`)."""
         raise NotImplementedError()
 
+    @property
+    def slot(self):
+        """The :class:`Slot` this token is installed in."""
+        raise NotImplementedError()
+
+    @property
+    def label(self):
+        """Label of this token (:class:`str`)."""
+        raise NotImplementedError()
+
+    @property
+    def serial(self):
+        """Serial number of this token (:class:`bytes`)."""
+        raise NotImplementedError()
+
+    @property
+    def manufacturer_id(self):
+        """Manufacturer ID (:class:`str`)."""
+        raise NotImplementedError()
+
+    @property
+    def model(self):
+        """Model name (:class:`str`)."""
+        raise NotImplementedError()
+
     def open(self, rw=False, user_pin=None, so_pin=None, user_type=None, attribute_mapper=None):
         """
         Open a session on the token and optionally log in as a user or
@@ -214,6 +259,16 @@ class Session(IdentifiedBy):
 
     def __exit__(self, type_, value, traceback):
         self.close()
+
+    @property
+    def token(self):
+        """:class:`Token` this session is on."""
+        raise NotImplementedError()
+
+    @property
+    def rw(self):
+        """True if this is a read/write session."""
+        raise NotImplementedError()
 
     def close(self):
         """Close the session."""

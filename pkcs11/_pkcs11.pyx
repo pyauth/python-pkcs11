@@ -286,30 +286,27 @@ cdef class Slot(HasFuncList, types.Slot):
     """Extend Slot with implementation."""
 
     cdef readonly CK_SLOT_ID slot_id
-    """Slot identifier (opaque)."""
     cdef readonly str slot_description
-    """Slot name (:class:`str`)."""
     cdef readonly str manufacturer_id
-    """Slot/device manufacturer's name (:class:`str`)."""
-    cdef readonly tuple cryptoki_version
     cdef CK_FLAGS slot_flags
-    cdef CK_VERSION hw_version
-    cdef CK_VERSION fw_version
+    cdef CK_VERSION _hw_version
+    cdef CK_VERSION _fw_version
+    cdef CK_VERSION _cryptoki_version
 
     @staticmethod
-    cdef Slot make(CK_FUNCTION_LIST *funclist, CK_SLOT_ID slot_id, CK_SLOT_INFO info, tuple cryptoki_version):
+    cdef Slot make(CK_FUNCTION_LIST *funclist, CK_SLOT_ID slot_id, CK_SLOT_INFO info, CK_VERSION cryptoki_version):
         description = info.slotDescription[:sizeof(info.slotDescription)]
         manufacturer_id = info.manufacturerID[:sizeof(info.manufacturerID)]
 
         cdef Slot slot = Slot.__new__(Slot)
         slot.funclist = funclist
-        slot.cryptoki_version = cryptoki_version
 
         slot.slot_id = slot_id
         slot.slot_description = _CK_UTF8CHAR_to_str(description)
         slot.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturer_id)
-        slot.hw_version = info.hardwareVersion
-        slot.fw_version = info.firmwareVersion
+        slot._hw_version = info.hardwareVersion
+        slot._fw_version = info.firmwareVersion
+        slot._cryptoki_version = cryptoki_version
         slot.slot_flags = info.flags
         return slot
 
@@ -324,12 +321,17 @@ cdef class Slot(HasFuncList, types.Slot):
     @property
     def hardware_version(self):
         """Hardware version (:class:`tuple`)."""
-        return _CK_VERSION_to_tuple(self.hw_version)
+        return _CK_VERSION_to_tuple(self._hw_version)
 
     @property
     def firmware_version(self):
         """Firmware version (:class:`tuple`)."""
-        return _CK_VERSION_to_tuple(self.fw_version)
+        return _CK_VERSION_to_tuple(self._fw_version)
+
+    @property
+    def cryptoki_version(self):
+        """PKCS#11 (cryptoki) API version (:class:`tuple`)."""
+        return _CK_VERSION_to_tuple(self._cryptoki_version)
 
     def get_token(self):
         cdef CK_SLOT_ID slot_id = self.slot_id
@@ -398,18 +400,13 @@ cdef class Token(HasFuncList, types.Token):
     """Extend Token with implementation."""
 
     cdef readonly Slot slot
-    """The :class:`Slot` this token is installed in."""
     cdef readonly str label
-    """Label of this token (:class:`str`)."""
     cdef readonly bytes serial
-    """Serial number of this token (:class:`bytes`)."""
     cdef readonly str manufacturer_id
-    """Manufacturer ID."""
     cdef readonly str model
-    """Model name."""
     cdef CK_FLAGS token_flags
-    cdef CK_VERSION hw_version
-    cdef CK_VERSION fw_version
+    cdef CK_VERSION _hw_version
+    cdef CK_VERSION _fw_version
 
     @staticmethod
     cdef Token make(Slot slot, CK_TOKEN_INFO info):
@@ -425,8 +422,8 @@ cdef class Token(HasFuncList, types.Token):
         token.serial = serial_number.rstrip()
         token.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturer_id)
         token.model = _CK_UTF8CHAR_to_str(model)
-        token.hw_version = info.hardwareVersion
-        token.fw_version = info.firmwareVersion
+        token._hw_version = info.hardwareVersion
+        token._fw_version = info.firmwareVersion
         token.token_flags = info.flags
         return token
 
@@ -441,12 +438,12 @@ cdef class Token(HasFuncList, types.Token):
     @property
     def hardware_version(self):
         """Hardware version (:class:`tuple`)."""
-        return _CK_VERSION_to_tuple(self.hw_version)
+        return _CK_VERSION_to_tuple(self._hw_version)
 
     @property
     def firmware_version(self):
         """Firmware version (:class:`tuple`)."""
-        return _CK_VERSION_to_tuple(self.fw_version)
+        return _CK_VERSION_to_tuple(self._fw_version)
 
     def open(self, rw=False, user_pin=None, so_pin=None, user_type=None, attribute_mapper=None):
         cdef CK_SLOT_ID slot_id = self.slot.slot_id
@@ -802,9 +799,7 @@ cdef class Session(HasFuncList, types.Session):
 
     cdef CK_SESSION_HANDLE handle
     cdef readonly Token token
-    """:class:`Token` this session is on."""
     cdef readonly bint rw
-    """True if this is a read/write session."""
     cdef CK_USER_TYPE _user_type
     cdef object operation_lock
     cdef object attribute_mapper
@@ -1900,9 +1895,9 @@ cdef class lib(HasFuncList):
     cdef readonly str so
     cdef readonly str manufacturer_id
     cdef readonly str library_description
-    cdef readonly tuple cryptoki_version
-    cdef readonly tuple library_version
     cdef readonly bint initialized
+    cdef CK_VERSION _cryptoki_version
+    cdef CK_VERSION _library_version
     cdef P11_HANDLE *_p11_handle
 
     cdef _load_pkcs11_lib(self, so) with gil:
@@ -1917,7 +1912,7 @@ cdef class lib(HasFuncList):
 
         :param so: the path to a valid PKCS#11 library
         :type so: str
-        :raises: RuntimeError or PKCS11Error
+        :raises: PKCS11Error
         :rtype: None
         """
 
@@ -1929,9 +1924,9 @@ cdef class lib(HasFuncList):
         if handle == NULL:
             err = <str> p11_error()
             if err:
-                raise RuntimeError(f"OS exception while loading {so}: {err}")
+                raise PKCS11Error(f"OS exception while loading {so}: {err}")
             else:
-                raise RuntimeError(f"Unknown exception while loading {so}")
+                raise PKCS11Error(f"Unknown exception while loading {so}")
         populate_function_list = <C_GetFunctionList_ptr> handle.get_function_list_ptr
         self._p11_handle = handle
 
@@ -1981,8 +1976,18 @@ cdef class lib(HasFuncList):
 
         self.manufacturer_id = _CK_UTF8CHAR_to_str(manufacturerID)
         self.library_description = _CK_UTF8CHAR_to_str(libraryDescription)
-        self.cryptoki_version = _CK_VERSION_to_tuple(info.cryptokiVersion)
-        self.library_version = _CK_VERSION_to_tuple(info.libraryVersion)
+        self._cryptoki_version = info.cryptokiVersion
+        self._library_version = info.libraryVersion
+
+    @property
+    def library_version(self):
+        """Hardware version (:class:`tuple`)."""
+        return _CK_VERSION_to_tuple(self._library_version)
+
+    @property
+    def cryptoki_version(self):
+        """PKCS#11 (cryptoki) API version (:class:`tuple`)."""
+        return _CK_VERSION_to_tuple(self._cryptoki_version)
 
     def __str__(self):
         return '\n'.join((
@@ -2029,7 +2034,7 @@ cdef class lib(HasFuncList):
             assertRV(retval)
 
             slots.append(
-                Slot.make(self.funclist, slot_id, info, self.cryptoki_version)
+                Slot.make(self.funclist, slot_id, info, self._cryptoki_version)
             )
 
         return slots
