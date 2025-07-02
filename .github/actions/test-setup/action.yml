@@ -1,0 +1,87 @@
+name: test-setup
+author: Matthias Valvekens
+description: Perform set-up for python-pkcs11 CI
+inputs:
+  os:
+    description: OS to target
+    required: true
+  python-version:
+    description: Python version to target
+    required: true
+  dependency-group:
+    description: UV dependency group to install
+    required: true
+  pkcs11-platform:
+    description: PKCS#11 platform to target
+    required: true
+  token-label:
+    description: Label assigned to the token
+    required: true
+  token-user-pin:
+    description: User PIN to configure on the token
+    required: true
+  token-so-pin:
+    description: Security officer PIN to configure on the token
+    required: true
+outputs:
+  module:
+    description: Path to PKCS#11 module
+    value: ${{ steps.install-result.outputs.module }}
+  module2:
+    description: Path to alternative PKCS#11 module ('multi' only)
+    value: ${{ steps.install-result.outputs.module2 }}
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - uses: ./.github/actions/install-softhsm
+      if: inputs.pkcs11-platform == 'softhsm' || inputs.pkcs11-platform == 'multi'
+      id: softhsm
+      with:
+        os: ${{ inputs.os }}
+        token-label: ${{ inputs.token-label }}
+        token-so-pin: ${{ inputs.token-so-pin }}
+        token-user-pin: ${{ inputs.token-user-pin }}
+    - uses: ./.github/actions/install-opencryptoki
+      # only run opencryptoki tests on ubuntu
+      # (macos and windows don't seem to be supported)
+      if: inputs.pkcs11-platform == 'opencryptoki' || inputs.pkcs11-platform == 'multi'
+      id: opencryptoki
+      with:
+        os: ${{ inputs.os }}
+        token-label: ${{ inputs.token-label }}
+        token-so-pin: ${{ inputs.token-so-pin }}
+        token-user-pin: ${{ inputs.token-user-pin }}
+    - name: Set module path
+      id: install-result
+      shell: bash
+      run: |
+        if [[ "$PLATFORM" == 'opencryptoki' ]]; then
+          echo "module=${{ steps.opencryptoki.outputs.module }}" >> "$GITHUB_OUTPUT"
+        elif [[ "$PLATFORM" == 'softhsm' ]]; then
+          echo "module=${{ steps.softhsm.outputs.module }}" >> "$GITHUB_OUTPUT"
+        elif [[ "$PLATFORM" == 'multi' ]]; then
+          # NOTE: the 'multi' platform is only used for testing the code that
+          # swaps between multiple PKCS#11 implementations. As such, any two
+          # PKCS#11 implementations will do. If we add a 3rd platform
+          # to the CI at a later stage that is faster to install than opencryptoki,
+          # switching is an option.
+          echo "module=${{ steps.softhsm.outputs.module }}" >> "$GITHUB_OUTPUT"
+          echo "module2=${{ steps.opencryptoki.outputs.module }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "$PLATFORM is not a valid PKCS#11 platform choice"
+          exit 1
+        fi
+      env:
+        PLATFORM: ${{ inputs.pkcs11-platform }}
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
+        python-version: ${{ inputs.python-version }}
+    - name: Install testing dependencies
+      shell: bash
+      run: uv sync --no-dev --exact --group "${{ inputs.dependency-group }}"

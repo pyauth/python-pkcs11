@@ -4,7 +4,6 @@ Definitions imported from PKCS11 C headers.
 
 from cython.view cimport array
 
-from pkcs11.defaults import *
 from pkcs11.exceptions import *
 
 cdef extern from '../extern/cryptoki.h':
@@ -638,10 +637,11 @@ cdef inline CK_ULONG_buffer(length):
     return array(shape=(length,), itemsize=sizeof(CK_ULONG), format='L')
 
 
-cdef inline object map_rv_to_error(
-        CK_RV rv
-):
+# Note: this `cdef inline` declaration doesn't seem to be consistently labelled
+# as executed by Cython's line tracing, so we flag it as nocover
+# to avoid noise in the metrics.
 
+cdef inline object map_rv_to_error(CK_RV rv):  # pragma: nocover
     if rv == CKR_ATTRIBUTE_TYPE_INVALID:
         exc = AttributeTypeInvalid()
     elif rv == CKR_ATTRIBUTE_VALUE_INVALID:

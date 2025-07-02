@@ -67,11 +67,34 @@ archs = ["universal2"]
 [tool.setuptools.packages.find]
 include = ["pkcs11*"]
 
+[tool.coverage.run]
+plugins = ["Cython.Coverage"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "pragma: nocover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "raise MemoryError",
+    "raise TypeError",
+    "TYPE_CHECKING",
+    "^\\s*\\.\\.\\.",
+    "noqa"
+]
+precision = 2
+
 [dependency-groups]
 testing = [
     "cryptography>=44.0.0",
     "parameterized>=0.9.0",
     "pytest>=8.3.4",
+]
+coverage = [
+    { include-group = "testing" },
+    "coverage>=7.9.1",
+    "pytest-cov>=4.0,<6.3",
+    "cython",
 ]
 docs = [
     "sphinx>=7.4.7",

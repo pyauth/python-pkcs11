@@ -11,7 +11,7 @@ env:
   PKCS11_TOKEN_PIN: "1234"
   PKCS11_TOKEN_SO_PIN: "5678"
 jobs:
-  run:
+  tests:
     runs-on: ${{ matrix.os }}
     strategy:
       # Our test suite is pretty fast, so fail-fast: false allows for better troubleshooting.
@@ -27,46 +27,59 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+        pkcs11-platform:
+          - softhsm
+          - opencryptoki
+        exclude:
+          # only run opencryptoki tests on ubuntu
+          # (macos and windows don't seem to be supported)
+          - pkcs11-platform: opencryptoki
+            os: windows-latest
+          - pkcs11-platform: opencryptoki
+            os: macos-latest
     steps:
       - name: Acquire sources
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: ./.github/actions/install-softhsm
-        id: softhsm
+      - uses: ./.github/actions/test-setup
+        id: setup
         with:
           os: ${{ matrix.os }}
           token-label: ${{ env.PKCS11_TOKEN_LABEL }}
           token-so-pin: ${{ env.PKCS11_TOKEN_SO_PIN }}
           token-user-pin: ${{ env.PKCS11_TOKEN_PIN }}
-      - uses: ./.github/actions/install-opencryptoki
-        # only run opencryptoki tests on ubuntu
-        # (macos and windows don't seem to be supported)
-        if: matrix.os == 'ubuntu-latest'
-        id: opencryptoki
+          python-version: ${{ matrix.python-version }}
+          pkcs11-platform: ${{ matrix.pkcs11-platform }}
+          dependency-group: testing
+      - name: Run tests
+        run: uv run pytest -v
+        env:
+          PKCS11_MODULE: ${{ steps.setup.outputs.module }}
+  multilib-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+    steps:
+      - name: Acquire sources
+        uses: actions/checkout@v4
+      - uses: ./.github/actions/test-setup
+        id: setup
         with:
-          os: ${{ matrix.os }}
+          os: ubuntu-latest
+          pkcs11-platform: multi
           token-label: ${{ env.PKCS11_TOKEN_LABEL }}
           token-so-pin: ${{ env.PKCS11_TOKEN_SO_PIN }}
           token-user-pin: ${{ env.PKCS11_TOKEN_PIN }}
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
           python-version: ${{ matrix.python-version }}
-      - name: Install testing dependencies
-        run: uv sync --no-dev --exact --group testing
-      - name: Run tests with SoftHSM
-        run: uv run pytest -v
+          dependency-group: testing
+      - name: Run tests
+        run: uv run pytest -v tests/test_multilib.py
         env:
-          PKCS11_MODULE: ${{ steps.softhsm.outputs.module }}
-      - name: Run tests with opencryptoki
-        if: matrix.os == 'ubuntu-latest'
-        run: uv run pytest -v
-        env:
-          PKCS11_MODULE: ${{ steps.opencryptoki.outputs.module }}
-          # For testing logic around swapping PKCS#11 libs
-          PKCS11_MODULE2: ${{ steps.softhsm.outputs.module }}
+          PKCS11_MODULE: ${{ steps.setup.outputs.module }}
+          PKCS11_MODULE2: ${{ steps.setup.outputs.module2 }}
