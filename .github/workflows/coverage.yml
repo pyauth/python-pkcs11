@@ -17,7 +17,12 @@ jobs:
     steps:
       - name: Acquire sources
         uses: actions/checkout@v4
-
+      - name: Arm coverage-only compiler directives
+        # Unfortunately, it doesn't seem to be possible to pass directives
+        # to Cython through environment variables: https://github.com/cython/cython/issues/3930
+        # Doing it here is still better than introducing a non-declarative setup.py into the
+        # build again.
+        run: sed -i 's/#coverage#cython/#cython/g' pkcs11/*.pyx
       - name: Setup Python
         uses: actions/setup-python@v5
         with:

@@ -1,6 +1,5 @@
-#!python
 #cython: language_level=3
-#cython: linetrace=True
+#coverage#cython: linetrace=True
 """
 High-level Python PKCS#11 Wrapper.
 
