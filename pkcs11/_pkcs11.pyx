@@ -775,9 +775,8 @@ cdef class DigestOperation(OperationWithBinaryOutput):
     def _finalize(self, silent=False):
         cdef Session session = self.session
         if self.active:
-            self.active = False
-            session.operation_lock.release()
             self.execute_resizing_output(session.funclist.C_DigestFinal)
+        super()._finalize(silent=silent)
 
 
 def merge_templates(default_template, *user_templates):
@@ -1326,9 +1325,7 @@ class GenerateWithParametersMixin(types.DomainParameters):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_GENERATE_MECHANISMS,
-            mechanism, mechanism_param)
+        mech = MechanismWithParam(self.key_type, DEFAULT_GENERATE_MECHANISMS, mechanism, mechanism_param)
 
         # Build attributes
         public_template_ = session.attribute_mapper.public_key_template(
@@ -1418,9 +1415,8 @@ cdef class KeyOperation(OperationWithBinaryOutput):
 
     def _finalize(self, silent=False):
         if self.active:
-            self.active = False
-            self.session.operation_lock.release()
             self._cancel_operation(silent)
+        super()._finalize(silent=silent)
 
 
 cdef class DataCryptOperation(KeyOperation):
@@ -1487,9 +1483,7 @@ class EncryptMixin(types.EncryptMixin):
 
     def __encrypt_operation(self, mechanism, mechanism_param, buffer_size):
 
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
-            mechanism, mechanism_param)
+        mech = MechanismWithParam(self.key_type, DEFAULT_ENCRYPT_MECHANISMS, mechanism, mechanism_param)
 
         return DataCryptOperation.setup_encrypt(self.session, mech, self.handle, buffer_size)
 
@@ -1522,9 +1516,7 @@ class DecryptMixin(types.DecryptMixin):
 
     def __decrypt_operation(self, mechanism, mechanism_param, buffer_size):
 
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_ENCRYPT_MECHANISMS,
-            mechanism, mechanism_param)
+        mech = MechanismWithParam(self.key_type, DEFAULT_ENCRYPT_MECHANISMS, mechanism, mechanism_param)
 
         return DataCryptOperation.setup_decrypt(self.session, mech, self.handle, buffer_size)
 
@@ -1606,9 +1598,7 @@ class SignMixin(types.SignMixin):
     """Expand SignMixin with an implementation."""
 
     def __sign_operation(self, mechanism, mechanism_param, buffer_size):
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_SIGN_MECHANISMS,
-            mechanism, mechanism_param)
+        mech = MechanismWithParam(self.key_type, DEFAULT_SIGN_MECHANISMS, mechanism, mechanism_param)
         return DataSignOperation.setup(self.session, mech, self.handle, buffer_size)
 
     def _sign(self, data,
@@ -1681,9 +1671,7 @@ class VerifyMixin(types.VerifyMixin):
     """Expand VerifyMixin with an implementation."""
 
     def __verify_operation(self, mechanism, mechanism_param):
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_SIGN_MECHANISMS,
-            mechanism, mechanism_param)
+        mech = MechanismWithParam(self.key_type, DEFAULT_SIGN_MECHANISMS, mechanism, mechanism_param)
         return DataVerifyOperation.setup(self.session, mech, self.handle)
 
     def _verify(self, data, signature,
@@ -1719,9 +1707,7 @@ class WrapMixin(types.WrapMixin):
         if not isinstance(key, types.Key):
             raise ArgumentsBad("`key` must be a Key.")
 
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_WRAP_MECHANISMS,
-            mechanism, mechanism_param)
+        mech = MechanismWithParam(self.key_type, DEFAULT_WRAP_MECHANISMS, mechanism, mechanism_param)
 
         cdef Session session = self.session
         cdef CK_MECHANISM *mech_data = mech.data
@@ -1766,9 +1752,7 @@ class UnwrapMixin(types.UnwrapMixin):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_WRAP_MECHANISMS,
-            mechanism, mechanism_param)
+        mech = MechanismWithParam(self.key_type, DEFAULT_WRAP_MECHANISMS, mechanism, mechanism_param)
 
         cdef Session session = self.session
 
@@ -1822,9 +1806,7 @@ class DeriveMixin(types.DeriveMixin):
                 raise ArgumentsBad("No default capabilities for this key "
                                    "type. Please specify `capabilities`.")
 
-        mech = MechanismWithParam(
-            self.key_type, DEFAULT_DERIVE_MECHANISMS,
-            mechanism, mechanism_param)
+        mech = MechanismWithParam(self.key_type, DEFAULT_DERIVE_MECHANISMS, mechanism, mechanism_param)
 
         cdef Session session = self.session
 

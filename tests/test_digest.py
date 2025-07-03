@@ -73,3 +73,30 @@ class DigestTests(TestCase):
         m.update(data[1][Attribute.VALUE])
 
         self.assertEqual(digest, m.digest())
+
+    @requires(Mechanism.SHA256)
+    def test_digest_stream_interrupt_releases_operation(self):
+        data = (
+            b"I" * 16,
+            b"N" * 16,
+            b"P" * 16,
+            b"U" * 16,
+            b"T" * 10,
+        )
+
+        def _data_with_error():
+            yield data[0]
+            yield data[1]
+            yield data[2]
+            raise ValueError
+
+        def attempt_digest():
+            self.session.digest(_data_with_error(), mechanism=Mechanism.SHA256)
+
+        self.assertRaises(ValueError, attempt_digest)
+        # ...try again
+        digest = self.session.digest(data, mechanism=Mechanism.SHA256)
+        m = hashlib.sha256()
+        for d in data:
+            m.update(d)
+        self.assertEqual(digest, m.digest())
