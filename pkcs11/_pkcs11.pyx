@@ -1770,24 +1770,19 @@ class UnwrapMixin(types.UnwrapMixin):
             self.key_type, DEFAULT_WRAP_MECHANISMS,
             mechanism, mechanism_param)
 
-        # Build attributes
-        template_ = {
-            Attribute.CLASS: object_class,
-            Attribute.KEY_TYPE: key_type,
-            Attribute.ID: id or b'',
-            Attribute.LABEL: label or '',
-            Attribute.TOKEN: store,
-            # Capabilities
-            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
-            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
-            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
-            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
-            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
-            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
-            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
-        }
-
         cdef Session session = self.session
+
+        # Build attributes
+        template_ = session.attribute_mapper.generic_key_template(
+            {
+                Attribute.CLASS: object_class,
+                Attribute.KEY_TYPE: key_type,
+            },
+            id_=id,
+            label=label,
+            store=store,
+            capabilities=capabilities,
+        )
         cdef AttributeList attrs = session.make_attribute_list(merge_templates(template_, template))
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE unwrapping_key = self.handle
@@ -1831,27 +1826,13 @@ class DeriveMixin(types.DeriveMixin):
             self.key_type, DEFAULT_DERIVE_MECHANISMS,
             mechanism, mechanism_param)
 
-        # Build attributes
-        template_ = {
-            Attribute.CLASS: ObjectClass.SECRET_KEY,
-            Attribute.KEY_TYPE: key_type,
-            Attribute.ID: id or b'',
-            Attribute.LABEL: label or '',
-            Attribute.TOKEN: store,
-            Attribute.VALUE_LEN: key_length // 8,  # In bytes
-            Attribute.PRIVATE: True,
-            Attribute.SENSITIVE: True,
-            # Capabilities
-            Attribute.ENCRYPT: MechanismFlag.ENCRYPT & capabilities,
-            Attribute.DECRYPT: MechanismFlag.DECRYPT & capabilities,
-            Attribute.WRAP: MechanismFlag.WRAP & capabilities,
-            Attribute.UNWRAP: MechanismFlag.UNWRAP & capabilities,
-            Attribute.SIGN: MechanismFlag.SIGN & capabilities,
-            Attribute.VERIFY: MechanismFlag.VERIFY & capabilities,
-            Attribute.DERIVE: MechanismFlag.DERIVE & capabilities,
-        }
-
         cdef Session session = self.session
+
+        template_ = session.attribute_mapper.secret_key_template(
+            capabilities=capabilities, id_=id, label=label, store=store,
+        )
+        template_[Attribute.KEY_TYPE] = key_type
+        template_[Attribute.VALUE_LEN] = key_length // 8  # In bytes
         cdef AttributeList attrs = session.make_attribute_list(merge_templates(template_, template))
         cdef CK_MECHANISM *mech_data = mech.data
         cdef CK_OBJECT_HANDLE src_key = self.handle

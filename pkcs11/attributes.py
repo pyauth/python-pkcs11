@@ -94,6 +94,16 @@ ATTRIBUTE_TYPES = {
 Map of attributes to (serialize, deserialize) functions.
 """
 
+ALL_CAPABILITIES = (
+    Attribute.ENCRYPT,
+    Attribute.DECRYPT,
+    Attribute.WRAP,
+    Attribute.UNWRAP,
+    Attribute.SIGN,
+    Attribute.VERIFY,
+    Attribute.DERIVE,
+)
+
 
 def _apply_common(template, id_, label, store):
     if id_:
@@ -206,19 +216,24 @@ class AttributeMapper:
         label,
         store,
     ):
-        template = self.default_secret_key_template
-        _apply_capabilities(
-            template,
-            (
-                Attribute.ENCRYPT,
-                Attribute.DECRYPT,
-                Attribute.WRAP,
-                Attribute.UNWRAP,
-                Attribute.SIGN,
-                Attribute.VERIFY,
-                Attribute.DERIVE,
-            ),
-            capabilities,
+        return self.generic_key_template(
+            self.default_secret_key_template,
+            capabilities=capabilities,
+            id_=id_,
+            label=label,
+            store=store,
         )
+
+    def generic_key_template(
+        self,
+        base_template,
+        *,
+        capabilities,
+        id_,
+        label,
+        store,
+    ):
+        template = dict(base_template)
+        _apply_capabilities(template, ALL_CAPABILITIES, capabilities)
         _apply_common(template, id_, label, store)
         return template
