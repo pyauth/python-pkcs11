@@ -66,6 +66,7 @@ class SlotsAndTokensTests(unittest.TestCase):
 
         lib.reinitialize()
 
+        self.assertTrue(lib.initialized)
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()
         self.assertGreater(len(slots), 1)
@@ -76,12 +77,13 @@ class SlotsAndTokensTests(unittest.TestCase):
         self.assertGreater(len(slots), 1)
 
         lib.finalize()
-
+        self.assertFalse(lib.initialized)
         self.assertRaises(PKCS11Error, lib.get_slots)
 
     def test_auto_reinitialise(self):
         lib = pkcs11.lib(LIB)
         lib.finalize()
+        self.assertFalse(lib.initialized)
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()
         self.assertGreater(len(slots), 1)

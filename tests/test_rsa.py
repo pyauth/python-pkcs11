@@ -15,6 +15,10 @@ class RSATests(TestCase):
 
         self.public, self.private = self.session.generate_keypair(KeyType.RSA, 1024)
 
+    def test_key_length(self):
+        self.assertEqual(1024, self.private.key_length)
+        self.assertEqual(1024, self.public.key_length)
+
     @requires(Mechanism.RSA_PKCS)
     def test_sign_pkcs_v15(self):
         data = b"00000000"
@@ -227,7 +231,6 @@ class RSATests(TestCase):
     def test_sign_pss_undersized_buffer(self):
         data = b"SOME DATA"
 
-        # These are the default params
         signature = self.private.sign(
             data,
             mechanism=Mechanism.SHA1_RSA_PKCS_PSS,

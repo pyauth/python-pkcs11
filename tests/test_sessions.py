@@ -3,8 +3,14 @@ PKCS#11 Sessions
 """
 
 import pkcs11
-from pkcs11 import Attribute, AttributeSensitive, AttributeTypeInvalid, ObjectClass, PKCS11Error
-from pkcs11.attributes import AttributeMapper, handle_str
+from pkcs11 import (
+    Attribute,
+    AttributeSensitive,
+    AttributeTypeInvalid,
+    ObjectClass,
+    PKCS11Error,
+)
+from pkcs11.attributes import AttributeMapper, handle_bool, handle_str
 
 from . import FIXME, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
 
@@ -147,6 +153,15 @@ class SessionTests(TestCase):
             with self.assertRaises(pkcs11.MultipleObjectsReturned):
                 session.get_key(key_type=pkcs11.KeyType.AES)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
+    def test_key_search_by_id(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key1 = session.generate_key(pkcs11.KeyType.AES, 128, label="KEY", id=b"1")
+            key2 = session.generate_key(pkcs11.KeyType.AES, 128, label="KEY", id=b"2")
+            self.assertEqual(session.get_key(id=b"1"), key1)
+            self.assertEqual(session.get_key(id=b"2"), key2)
+            self.assertNotEqual(session.get_key(id=b"1"), session.get_key(id=b"2"))
+
     @Not.nfast  # Not supported
     @Not.opencryptoki  # Not supported
     def test_seed_random(self):
@@ -160,40 +175,32 @@ class SessionTests(TestCase):
             # Ensure we didn't get 16 bytes of zeros
             self.assertTrue(all(c != "\0" for c in random))
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_attribute_reading_failures(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
 
-            def try_read_value():
-                return key[Attribute.VALUE]
+            with self.assertRaises(AttributeSensitive):
+                key.__getitem__(Attribute.VALUE)
 
-            self.assertRaises(AttributeSensitive, try_read_value)
+            with self.assertRaises(AttributeTypeInvalid):
+                key.__getitem__(Attribute.CERTIFICATE_TYPE)
 
-            def try_read_irrelevant():
-                return key[Attribute.CERTIFICATE_TYPE]
-
-            self.assertRaises(AttributeTypeInvalid, try_read_irrelevant)
-
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_bulk_attribute_raise_error_if_no_result(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
 
-            def try_read_value():
-                return key.get_attributes([Attribute.VALUE])
+            with self.assertRaises(AttributeSensitive):
+                key.get_attributes([Attribute.VALUE])
 
-            self.assertRaises(AttributeSensitive, try_read_value)
-
-            def try_read_irrelevant():
-                return key.get_attributes([Attribute.CERTIFICATE_TYPE])
-
-            self.assertRaises(AttributeTypeInvalid, try_read_irrelevant)
-
-            def try_read_both_inaccessible():
-                return key.get_attributes([Attribute.VALUE, Attribute.CERTIFICATE_TYPE])
-
+            with self.assertRaises(AttributeTypeInvalid):
+                key.get_attributes([Attribute.CERTIFICATE_TYPE])
             # we can't know which error code the token will choose here
-            self.assertRaises(PKCS11Error, try_read_both_inaccessible)
+            with self.assertRaises(PKCS11Error):
+                key.get_attributes([Attribute.VALUE, Attribute.CERTIFICATE_TYPE])
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_bulk_attribute_partial_success_sensitive_attribute(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
@@ -201,6 +208,7 @@ class SessionTests(TestCase):
             expected = {Attribute.LABEL: "SAMPLE KEY", Attribute.CLASS: ObjectClass.SECRET_KEY}
             self.assertDictEqual(expected, result)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_bulk_attribute_partial_success_irrelevant_attribute(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY", id=b"a")
@@ -215,6 +223,7 @@ class SessionTests(TestCase):
             }
             self.assertDictEqual(expected, result)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_bulk_attribute_partial_success_with_some_empty_attrs(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, label="", id=b"")
@@ -229,6 +238,7 @@ class SessionTests(TestCase):
             }
             self.assertDictEqual(expected, result)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_bulk_attribute_only_empty_attrs(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, label="", id=b"")
@@ -240,6 +250,7 @@ class SessionTests(TestCase):
             }
             self.assertDictEqual(expected, result)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_bulk_attribute_empty_key_list(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.generate_key(pkcs11.KeyType.AES, 128, label="SAMPLE KEY")
@@ -247,6 +258,7 @@ class SessionTests(TestCase):
             result = key.get_attributes([])
             self.assertDictEqual({}, result)
 
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_custom_attribute_mapper(self):
         custom_mapper = AttributeMapper()
         custom_mapper.register_handler(Attribute.ID, *handle_str)
@@ -256,3 +268,27 @@ class SessionTests(TestCase):
             id_attr = key[Attribute.ID]
             self.assertIsInstance(id_attr, str)
             self.assertEqual("SAMPLE KEY", id_attr)
+
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
+    def test_set_unsupported_attribute(self):
+        with self.token.open(user_pin=TOKEN_PIN) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, label="TEST")
+
+            with self.assertRaises(NotImplementedError):
+                key[0xDEADBEEF] = b"1234"
+
+    @requires(pkcs11.Mechanism.AES_KEY_GEN)
+    def test_treat_empty_bool_as_false(self):
+        class CustomMapper(AttributeMapper):
+            # contrived handler that decodes the 'ID' attribute as a bool
+            def _handler(self, key):
+                orig = super()._handler(key)
+                if key == Attribute.ID:
+                    return orig[0], handle_bool[1]
+                return orig
+
+        with self.token.open(user_pin=TOKEN_PIN, attribute_mapper=CustomMapper()) as session:
+            key = session.generate_key(pkcs11.KeyType.AES, 128, id=b"")
+            bool_read = key[Attribute.ID]
+            self.assertIsInstance(bool_read, bool)
+            self.assertFalse(bool_read, False)

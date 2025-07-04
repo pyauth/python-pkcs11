@@ -10,7 +10,7 @@ from pkcs11.constants import (
 from pkcs11.mechanisms import KeyType, Mechanism
 
 # (Pack Function, Unpack Function) functions
-handle_bool = (Struct("?").pack, lambda v: Struct("?").unpack(v)[0])
+handle_bool = (Struct("?").pack, lambda v: False if len(v) == 0 else Struct("?").unpack(v)[0])
 handle_ulong = (Struct("L").pack, lambda v: Struct("L").unpack(v)[0])
 handle_str = (lambda s: s.encode("utf-8"), lambda b: b.decode("utf-8"))
 handle_date = (
@@ -159,22 +159,21 @@ class AttributeMapper:
     def register_handler(self, key, pack, unpack):
         self.attribute_types[key] = (pack, unpack)
 
+    def _handler(self, key):
+        try:
+            return self.attribute_types[key]
+        except KeyError as e:
+            raise NotImplementedError(f"Can't handle attribute type {hex(key)}.") from e
+
     def pack_attribute(self, key, value):
         """Pack a Attribute value into a bytes array."""
-        try:
-            pack, _ = self.attribute_types[key]
-            return pack(value)
-        except KeyError as e:
-            raise NotImplementedError(f"Can't pack this {key}.") from e
+        pack, _ = self._handler(key)
+        return pack(value)
 
     def unpack_attributes(self, key, value):
         """Unpack a Attribute bytes array into a Python value."""
-
-        try:
-            _, unpack = self.attribute_types[key]
-            return unpack(value)
-        except KeyError as e:
-            raise NotImplementedError(f"Can't unpack this {key}.") from e
+        _, unpack = self._handler(key)
+        return unpack(value)
 
     def public_key_template(
         self,

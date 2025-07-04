@@ -1910,13 +1910,15 @@ cdef class lib(HasFuncList):
             assertRV(retval)
             self.initialized = True
 
-    cpdef finalize(self):
-        cdef CK_RV retval
+    cdef CK_RV _finalize(self):
+        cdef CK_RV retval = CKR_OK
         if self.funclist != NULL and self.initialized:
-            with nogil:
-                retval = self.funclist.C_Finalize(NULL)
-            assertRV(retval)
+            retval = self.funclist.C_Finalize(NULL)
             self.initialized = False
+        return retval
+
+    def finalize(self):
+        assertRV(self._finalize())
 
     def reinitialize(self):
         if self.funclist != NULL:
@@ -2081,7 +2083,7 @@ cdef class lib(HasFuncList):
                  info.hardwareVersion, info.firmwareVersion, info.flags)
 
     def unload(self):
-        self.finalize()
+        self._finalize()
         self.funclist = NULL
         if self._p11_handle != NULL:
             p11_close(self._p11_handle)
