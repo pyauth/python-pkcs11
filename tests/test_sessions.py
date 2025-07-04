@@ -12,7 +12,7 @@ from pkcs11 import (
 )
 from pkcs11.attributes import AttributeMapper, handle_bool, handle_str
 
-from . import FIXME, TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
+from . import TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
 
 
 class SessionTests(TestCase):
@@ -94,7 +94,6 @@ class SessionTests(TestCase):
             self.assertEqual(len(search), 1)
             self.assertEqual(key, search[0])
 
-    @FIXME.opencryptoki
     def test_create_object(self):
         with self.token.open(user_pin=TOKEN_PIN) as session:
             key = session.create_object(
