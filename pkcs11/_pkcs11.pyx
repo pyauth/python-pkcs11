@@ -1243,6 +1243,10 @@ class Object(types.Object):
     def get_attributes(self, keys):
         cdef ObjectHandleWrapper wrapper = self.wrapper
         cdef CK_ULONG total = len(keys)
+
+        if not total:
+            return {}
+
         cdef CK_ATTRIBUTE_TYPE * key_ptr = <CK_ATTRIBUTE_TYPE *> PyMem_Malloc(total * sizeof(CK_ATTRIBUTE_TYPE))
         cdef CK_ULONG ix = 0
         for ix, key in enumerate(keys):
