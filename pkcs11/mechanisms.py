@@ -1,5 +1,7 @@
 from enum import IntEnum
 
+from pkcs11.exceptions import ArgumentsBad
+
 
 class KeyType(IntEnum):
     """
@@ -794,3 +796,22 @@ class MGF(IntEnum):
 
     def __repr__(self):
         return "<MGF.%s>" % self.name
+
+
+class GCMParams:
+    def __init__(self, nonce, aad=None, tag_bits=128):
+        if len(nonce) > 12:
+            raise ArgumentsBad("IV must be less than 12 bytes")
+        self.nonce = nonce
+        self.aad = aad
+        self.tag_bits = tag_bits
+
+
+class CTRParams:
+    def __init__(self, nonce):
+        if len(nonce) >= 16:
+            raise ArgumentsBad(
+                f"{nonce.hex()} is too long to serve as a CTR nonce, must be 15 bytes or less "
+                f"to leave room for the block counter."
+            )
+        self.nonce = nonce

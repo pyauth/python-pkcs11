@@ -5,7 +5,7 @@ PKCS#11 AES Secret Keys
 from parameterized import parameterized
 
 import pkcs11
-from pkcs11 import Mechanism
+from pkcs11 import ArgumentsBad, CTRParams, GCMParams, Mechanism, PKCS11Error
 
 from . import FIXME, TestCase, requires
 
@@ -462,3 +462,152 @@ class AESTests(TestCase):
         text = self.key.decrypt(crypttext, mechanism_param=iv)
 
         self.assertEqual(text, data)
+
+    @requires(Mechanism.AES_GCM)
+    def test_encrypt_gcm(self):
+        data = b"INPUT DATA"
+        nonce = b"0" * 12
+
+        crypttext = self.key.encrypt(
+            data, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce)
+        )
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        text = self.key.decrypt(
+            crypttext, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce)
+        )
+        self.assertEqual(data, text)
+
+    def test_gcm_nonce_size_limit(self):
+        def _inst():
+            return GCMParams(nonce=b"0" * 13)
+
+        self.assertRaises(ArgumentsBad, _inst)
+
+    @requires(Mechanism.AES_GCM)
+    def test_encrypt_gcm_with_aad(self):
+        data = b"INPUT DATA"
+        nonce = b"0" * 12
+
+        crypttext = self.key.encrypt(
+            data, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce, b"foo")
+        )
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        text = self.key.decrypt(
+            crypttext, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce, b"foo")
+        )
+        self.assertEqual(data, text)
+
+    @requires(Mechanism.AES_GCM)
+    def test_encrypt_gcm_with_mismatching_nonces(self):
+        data = b"INPUT DATA"
+        nonce1 = b"0" * 12
+        nonce2 = b"1" * 12
+
+        crypttext = self.key.encrypt(
+            data, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce1, b"foo")
+        )
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        # This should be EncryptedDataInvalid, but in practice not all tokens support this
+        with self.assertRaises(PKCS11Error):
+            self.key.decrypt(
+                crypttext, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce2, b"foo")
+            )
+
+    @requires(Mechanism.AES_GCM)
+    def test_encrypt_gcm_with_mismatching_aad(self):
+        data = b"INPUT DATA"
+        nonce = b"0" * 12
+
+        crypttext = self.key.encrypt(
+            data, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce, b"foo")
+        )
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        with self.assertRaises(PKCS11Error):
+            self.key.decrypt(
+                crypttext, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce, b"bar")
+            )
+
+    @requires(Mechanism.AES_GCM)
+    def test_encrypt_gcm_with_custom_tag_length(self):
+        data = b"INPUT DATA"
+        nonce = b"0" * 12
+
+        crypttext = self.key.encrypt(
+            data, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce, b"foo", 120)
+        )
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        text = self.key.decrypt(
+            crypttext, mechanism=Mechanism.AES_GCM, mechanism_param=GCMParams(nonce, b"foo", 120)
+        )
+        self.assertEqual(data, text)
+
+        # This should be EncryptedDataInvalid, but in practice not all tokens support this
+        with self.assertRaises(PKCS11Error):
+            text = self.key.decrypt(
+                crypttext,
+                mechanism=Mechanism.AES_GCM,
+                mechanism_param=GCMParams(nonce, b"foo", 128),
+            )
+
+    @parameterized.expand(
+        [
+            (b""),
+            (b"0" * 12),
+            (b"0" * 15),
+        ]
+    )
+    @requires(Mechanism.AES_CTR)
+    @FIXME.opencryptoki  # opencryptoki incorrectly forces AES-CTR input to be padded
+    def test_encrypt_ctr(self, nonce):
+        data = b"INPUT DATA SEVERAL BLOCKS LONG SO THE COUNTER GOES UP A FEW TIMES" * 20
+
+        crypttext = self.key.encrypt(
+            data, mechanism=Mechanism.AES_CTR, mechanism_param=CTRParams(nonce)
+        )
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        text = self.key.decrypt(
+            crypttext, mechanism=Mechanism.AES_CTR, mechanism_param=CTRParams(nonce)
+        )
+        self.assertEqual(data, text)
+
+    @requires(Mechanism.AES_CTR)
+    def test_encrypt_ctr_exactly_padded(self):
+        # let's still verify the "restricted" AES-CTR supported by opencryptoki
+        data = b"PADDED INPUT DATA TO MAKE OPENCRYPTOKI HAPPY" * 16
+        nonce = b"0" * 15
+
+        crypttext = self.key.encrypt(
+            data, mechanism=Mechanism.AES_CTR, mechanism_param=CTRParams(nonce)
+        )
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        text = self.key.decrypt(
+            crypttext, mechanism=Mechanism.AES_CTR, mechanism_param=CTRParams(nonce)
+        )
+        self.assertEqual(data, text)
+
+    def test_ctr_nonce_size_limit(self):
+        def _inst():
+            return CTRParams(nonce=b"0" * 16)
+
+        self.assertRaises(ArgumentsBad, _inst)
+
+    @requires(Mechanism.AES_CTR)
+    @FIXME.opencryptoki  # opencryptoki incorrectly forces AES-CTR input to be padded
+    def test_encrypt_ctr_nonce_mismatch(self):
+        data = b"INPUT DATA SEVERAL BLOCKS LONG SO THE COUNTER GOES UP A FEW TIMES" * 20
+        crypttext = self.key.encrypt(
+            data, mechanism=Mechanism.AES_CTR, mechanism_param=CTRParams(b"0" * 12)
+        )
+        self.assertIsInstance(crypttext, bytes)
+        self.assertNotEqual(data, crypttext)
+        text = self.key.decrypt(
+            crypttext, mechanism=Mechanism.AES_CTR, mechanism_param=CTRParams(b"1" * 12)
+        )
+        self.assertNotEqual(data, text)
