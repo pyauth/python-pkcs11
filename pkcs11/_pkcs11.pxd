@@ -255,6 +255,18 @@ cdef extern from '../extern/cryptoki.h':
         CK_ULONG ulPublicDataLen
         CK_BYTE *pPublicData
 
+    ctypedef struct CK_AES_CTR_PARAMS:
+        CK_ULONG ulCounterBits
+        CK_BYTE[16] cb
+
+    ctypedef struct CK_GCM_PARAMS:
+        CK_BYTE *pIv
+        CK_ULONG ulIvLen
+        CK_ULONG ulIvBits
+        CK_BYTE *pAAD
+        CK_ULONG ulAADLen
+        CK_ULONG ulTagBits
+
     ctypedef struct CK_KEY_DERIVATION_STRING_DATA:
         CK_BYTE *pData
         CK_ULONG ulLen
