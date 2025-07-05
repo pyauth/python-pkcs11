@@ -514,3 +514,28 @@ class TokenFlag(IntFlag):
     """
 
     ERROR_STATE = 0x01000000
+
+
+@unique
+class CancelStrategy(IntEnum):
+    """
+    Strategy to cancel cryptographic operations
+    """
+
+    DEFAULT = 0
+    """
+    Default strategy: attempt to cancel by finalising the operation using dummy data,
+    regardless of whether the operation is successful or not.
+    This approach should work universally, but is semantically difficult to identify
+    as a cancellation.
+    """
+
+    CANCEL_WITH_INIT = 1
+    """
+    Attempt to cancel by calling the ``C_XYZInit`` function of the running operation
+    with a ``NULL`` mechanism.
+
+    This usage is defined in PKCS#11 3.0 but not universally implemented.
+    """
+
+    # TODO support cancelling with C_SessionCancel on PKCS#11 3.0 and up

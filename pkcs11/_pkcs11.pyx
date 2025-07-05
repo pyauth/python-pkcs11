@@ -445,7 +445,15 @@ cdef class Token(HasFuncList, types.Token):
         """Firmware version (:class:`tuple`)."""
         return _CK_VERSION_to_tuple(self._fw_version)
 
-    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None, attribute_mapper=None):
+    def open(
+            self,
+            rw=False,
+            user_pin=None,
+            so_pin=None,
+            user_type=None,
+            attribute_mapper=None,
+            cancel_strategy=CancelStrategy.DEFAULT
+    ):
         cdef CK_SLOT_ID slot_id = self.slot.slot_id
         cdef CK_SESSION_HANDLE handle
         cdef CK_FLAGS flags = CKF_SERIAL_SESSION
@@ -496,7 +504,11 @@ cdef class Token(HasFuncList, types.Token):
             assertRV(retval)
 
         return Session.make(
-            self, handle, rw=<bint> rw, user_type=c_user_type, mapper=attribute_mapper or AttributeMapper()
+            self, handle,
+            rw=<bint> rw,
+            user_type=c_user_type,
+            mapper=attribute_mapper or AttributeMapper(),
+            cancel_strategy=<unsigned int> cancel_strategy
         )
 
     def __str__(self):
@@ -810,9 +822,17 @@ cdef class Session(HasFuncList, types.Session):
     cdef CK_USER_TYPE _user_type
     cdef object operation_lock
     cdef object attribute_mapper
+    cdef unsigned int cancel_strategy
 
     @staticmethod
-    cdef Session make(Token token, CK_SESSION_HANDLE handle, bint rw, CK_USER_TYPE user_type, object mapper):
+    cdef Session make(
+            Token token,
+            CK_SESSION_HANDLE handle,
+            bint rw,
+            CK_USER_TYPE user_type,
+            object mapper,
+            unsigned int cancel_strategy
+    ):
         cdef Session session = Session.__new__(Session)
 
         session.funclist = token.funclist
@@ -827,6 +847,7 @@ cdef class Session(HasFuncList, types.Session):
         session.rw = rw
         session._user_type = user_type
         session.attribute_mapper = mapper
+        session.cancel_strategy = cancel_strategy
         return session
 
     def __init__(self):
@@ -1409,7 +1430,7 @@ cdef class KeyOperation(OperationWithBinaryOutput):
 
     def _cancel_operation(self, silent):
         cdef CK_RV retval
-        if self.session.token.slot.cryptoki_version >= (3, 0):
+        if self.session.cancel_strategy == CancelStrategy.CANCEL_WITH_INIT:
             # cancel the operation if still active
             # This is a PKCS#11 3.x feature
             with nogil:

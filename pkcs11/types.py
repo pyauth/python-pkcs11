@@ -7,6 +7,7 @@ This module provides stubs that are overrideen in pkcs11._pkcs11.
 from binascii import hexlify
 from functools import cached_property
 
+from pkcs11 import CancelStrategy
 from pkcs11.constants import (
     Attribute,
     MechanismFlag,
@@ -212,7 +213,15 @@ class Token(IdentifiedBy):
         """Model name (:class:`str`)."""
         raise NotImplementedError()
 
-    def open(self, rw=False, user_pin=None, so_pin=None, user_type=None, attribute_mapper=None):
+    def open(
+        self,
+        rw=False,
+        user_pin=None,
+        so_pin=None,
+        user_type=None,
+        attribute_mapper=None,
+        cancel_strategy=CancelStrategy.DEFAULT,
+    ):
         """
         Open a session on the token and optionally log in as a user or
         security officer (pass one of `user_pin` or `so_pin`). Pass PROTECTED_AUTH to
@@ -235,6 +244,8 @@ class Token(IdentifiedBy):
             so_pin is set, otherwise UserType.USER.
         :param attribute_mapper:
             Optionally pass in a custom :class:`pkcs11.attributes.AttributeMapper`.
+        :param cancel_strategy:
+            Cancellation strategy for interrupted cryptographic operations.
 
         :rtype: Session
         """
