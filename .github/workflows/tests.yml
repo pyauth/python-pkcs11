@@ -7,6 +7,9 @@ on:
 env:
   UV_PYTHON_PREFERENCE: only-system
   UV_NO_SYNC: "1"
+  PKCS11_TOKEN_LABEL: "TEST"
+  PKCS11_TOKEN_PIN: "1234"
+  PKCS11_TOKEN_SO_PIN: "5678"
 jobs:
   run:
     runs-on: ${{ matrix.os }}
@@ -34,8 +37,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - uses: ./.github/actions/install-softhsm
+        id: softhsm
         with:
           os: ${{ matrix.os }}
+          token-label: ${{ env.PKCS11_TOKEN_LABEL }}
+          token-so-pin: ${{ env.PKCS11_TOKEN_SO_PIN }}
+          token-user-pin: ${{ env.PKCS11_TOKEN_PIN }}
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
@@ -45,3 +52,5 @@ jobs:
         run: uv sync --no-dev --exact --group testing
       - name: Run tests
         run: uv run pytest -v
+        env:
+          PKCS11_MODULE: ${{ steps.softhsm.outputs.module }}
