@@ -16,7 +16,7 @@ from pkcs11.util.ec import (
     encode_named_curve_parameters,
 )
 
-from . import TestCase, requires
+from . import Only, TestCase, requires
 
 
 class ECCTests(TestCase):
@@ -69,8 +69,10 @@ class ECCTests(TestCase):
         plaintext = bob_session.decrypt(crypttext, mechanism_param=iv)
         self.assertEqual(plaintext, b"HI BOB!")
 
-    @requires(Mechanism.ECDSA)
+    @Only.softhsm2
     def test_import_key_params(self):
+        # Using explicit curve params is bad practice and many HSMs
+        # don't support this usage, so we only test it on SoftHSM
         der = base64.b64decode("""
         MIICXDCCAc8GByqGSM49AgEwggHCAgEBME0GByqGSM49AQECQgH/////////////
         ////////////////////////////////////////////////////////////////
@@ -116,37 +118,15 @@ class ECCTests(TestCase):
     @requires(Mechanism.ECDSA)
     def test_import_key_pair(self):
         priv = base64.b64decode("""
-        MIICnAIBAQRB9JsyE7khj/d2jm5RkE9T2DKgr/y3gn4Ju+8oWfdIpurNKM4hh3Oo
-        0T+ilc0BEy/SfJ5iqUxU5TocdFRpOUzfUIKgggHGMIIBwgIBATBNBgcqhkjOPQEB
-        AkIB////////////////////////////////////////////////////////////
-        //////////////////////////8wgZ4EQgH/////////////////////////////
-        /////////////////////////////////////////////////////////ARBUZU+
-        uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex+k3sWUsC9O7G/BzVz
-        34g9LDTx70Uf1GtQPwADFQDQnogAKRy4U5bMZxc5MoSqoNpkugSBhQQAxoWOBrcE
-        BOnNnj7LZiOVtEKcZIE5BT+1Ifgor2BrTT26oUted+/nWSj+HcEnov+o3jNIs8GF
-        akKb+X5+McLlvWYBGDkpaniaO8AEXIpftCx9G9mY9URJV5tEaBevvRcnPmYsl+5y
-        mV70JkDFULkBP60HYTU8cIaicsJAiL6Udp/RZlACQgH/////////////////////
-        //////////////////////pRhoeDvy+Wa3/MAUj3CaXQO7XJuImcR667b7cekThk
-        CQIBAaGBiQOBhgAEATC4LYExQRq9H+2K1sGbAj6S8WlEL1Cr89guoIYhZsXNhMwY
-        MQ2PssJ5huE/vhFWYSR0z3iDp1UXB114r5EXvmDEAWx/32cqnwnuNbyJd/W8IapY
-        vN/QAI/1qMV2bopaSmlwabxm8dt/NFCIa3nNYxYyLTjoP16fXTnnI0GSu2dMFatV
+        MHcCAQEEIMu1c8rEExH5jAfFy9bIS8RbMoHaKqoyvzrRz5rTUip2oAoGCCqGSM49
+        AwEHoUQDQgAEdrKww7nWyfHoT2jqgGK3wFaJGssJJZD0bIY7RsIISqeaT88bU/HK
+        44HxKoBkOs/JWHX5m/zrblnz40kjOuPZeA==
         """)
         priv = self.session.create_object(decode_ec_private_key(priv))
 
         pub = base64.b64decode("""
-        MIICXDCCAc8GByqGSM49AgEwggHCAgEBME0GByqGSM49AQECQgH/////////////
-        ////////////////////////////////////////////////////////////////
-        /////////zCBngRCAf//////////////////////////////////////////////
-        ///////////////////////////////////////8BEFRlT65YY4cmh+SmiGgtoVA
-        7qLacluZsxXzuLSJkY7xCeFWGTlR7H6TexZSwL07sb8HNXPfiD0sNPHvRR/Ua1A/
-        AAMVANCeiAApHLhTlsxnFzkyhKqg2mS6BIGFBADGhY4GtwQE6c2ePstmI5W0Qpxk
-        gTkFP7Uh+CivYGtNPbqhS1537+dZKP4dwSei/6jeM0izwYVqQpv5fn4xwuW9ZgEY
-        OSlqeJo7wARcil+0LH0b2Zj1RElXm0RoF6+9Fyc+ZiyX7nKZXvQmQMVQuQE/rQdh
-        NTxwhqJywkCIvpR2n9FmUAJCAf//////////////////////////////////////
-        ////+lGGh4O/L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJAgEBA4GGAAQBMLgt
-        gTFBGr0f7YrWwZsCPpLxaUQvUKvz2C6ghiFmxc2EzBgxDY+ywnmG4T++EVZhJHTP
-        eIOnVRcHXXivkRe+YMQBbH/fZyqfCe41vIl39bwhqli839AAj/WoxXZuilpKaXBp
-        vGbx2380UIhrec1jFjItOOg/Xp9dOecjQZK7Z0wVq1U=
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdrKww7nWyfHoT2jqgGK3wFaJGssJ
+        JZD0bIY7RsIISqeaT88bU/HK44HxKoBkOs/JWHX5m/zrblnz40kjOuPZeA==
         """)
         pub = self.session.create_object(decode_ec_public_key(pub))
 
