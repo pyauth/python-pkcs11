@@ -2,6 +2,7 @@
 Certificate handling utilities for X.509 (SSL) certificates.
 """
 
+from asn1crypto.core import OctetString
 from asn1crypto.x509 import Certificate
 
 from pkcs11.constants import Attribute, CertificateType, ObjectClass
@@ -55,6 +56,10 @@ def decode_x509_public_key(der):
     elif key_type is KeyType.EC:
         params = key_info["algorithm"]["parameters"].dump()
 
+        # bytes(key_info['public_key']) returns the binary encoding
+        # of the EC point itself (decoded from its BitString representation in X.509),
+        # but PKCS#11 expects this as a DER OctetString.
+        key = OctetString(key).dump()
         attrs.update(
             {
                 Attribute.EC_PARAMS: params,
