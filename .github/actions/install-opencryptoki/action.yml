@@ -1,0 +1,58 @@
+name: install-opencryptoki
+author: Matthias Valvekens
+description: Install opencryptoki and configure an empty token
+inputs:
+  os:
+    description: OS to target
+    required: true
+  token-label:
+    description: Label assigned to the token
+    required: true
+  token-user-pin:
+    description: User PIN to configure on the token
+    required: true
+  token-so-pin:
+    description: Security officer PIN to configure on the token
+    required: true
+outputs:
+  module:
+    description: Path to PKCS#11 module
+    value: ${{ steps.install.outputs.module }}
+runs:
+  using: "composite"
+  steps:
+    - name: Install opencryptoki
+      id: install
+      shell: bash
+      run: |
+        if [[ "${OS_NAME:0:6}" == 'ubuntu' ]]; then
+          sudo apt install libcap-dev libldap-dev
+          git clone https://github.com/opencryptoki/opencryptoki
+          cd opencryptoki
+          ./bootstrap.sh
+          ./configure --prefix=/usr --sysconfdir=/etc \
+            --with-pkcs-group=users \
+            --disable-tpmtok --disable-ccatok --disable-ep11tok --disable-icsftok \
+            --disable-p11sak --disable-pkcstok_migrate --disable-pkcsstats
+          make
+          sudo make install
+          sudo ldconfig
+          echo -e "slot 0\n{\nstdll = libpkcs11_sw.so\ntokversion = 3.12\n}" > /tmp/opencryptoki.conf
+          sudo cp /tmp/opencryptoki.conf /etc/opencryptoki/
+          sudo chown root:root /etc/opencryptoki/opencryptoki.conf
+          echo "module=/usr/lib/opencryptoki/libopencryptoki.so" >> "$GITHUB_OUTPUT"
+        else
+          echo "$OS_NAME is not a supported target system"
+          exit 1
+        fi
+      env:
+        OS_NAME: ${{ inputs.os }}
+    - name: Run opencryptoki daemon
+      shell: bash
+      run: sudo -u pkcsslotd pkcsslotd
+    - name: Initialize token
+      shell: bash
+      run: |
+        echo "${{ inputs.token-label }}" | pkcsconf -I -c 0 -S 87654321
+        pkcsconf -P -c 0 -S 87654321 -n "${{ inputs.token-so-pin }}"
+        pkcsconf -u -c 0 -S "${{ inputs.token-so-pin }}" -n "${{ inputs.token-user-pin }}"

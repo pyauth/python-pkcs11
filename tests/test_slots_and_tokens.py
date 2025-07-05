@@ -34,8 +34,8 @@ class SlotsAndTokensTests(unittest.TestCase):
         slots1 = lib1.get_slots()
         slots2 = lib2.get_slots()
 
-        self.assertGreater(len(slots1), 0)
-        self.assertGreater(len(slots2), 0)
+        self.assertGreaterEqual(len(slots1), 1)
+        self.assertGreaterEqual(len(slots2), 1)
 
     def test_double_initialise_nonexistent_lib(self):
         self.assertIsNotNone(pkcs11.lib(LIB))
@@ -62,19 +62,19 @@ class SlotsAndTokensTests(unittest.TestCase):
     def test_reinitialize(self):
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()
-        self.assertGreater(len(slots), 1)
+        self.assertGreaterEqual(len(slots), 1)
 
         lib.reinitialize()
 
         self.assertTrue(lib.initialized)
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()
-        self.assertGreater(len(slots), 1)
+        self.assertGreaterEqual(len(slots), 1)
 
     def test_finalize(self):
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()
-        self.assertGreater(len(slots), 1)
+        self.assertGreaterEqual(len(slots), 1)
 
         lib.finalize()
         self.assertFalse(lib.initialized)
@@ -86,7 +86,7 @@ class SlotsAndTokensTests(unittest.TestCase):
         self.assertFalse(lib.initialized)
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()
-        self.assertGreater(len(slots), 1)
+        self.assertGreaterEqual(len(slots), 1)
 
     def test_unload_reload(self):
         pkcs11.lib(LIB)
@@ -94,7 +94,7 @@ class SlotsAndTokensTests(unittest.TestCase):
 
         lib = pkcs11.lib(LIB)
         slots = lib.get_slots()
-        self.assertGreater(len(slots), 1)
+        self.assertGreaterEqual(len(slots), 1)
 
     def test_get_mechanism_info(self):
         lib = pkcs11.lib(LIB)
