@@ -142,12 +142,19 @@ cdef class MechanismWithParam:
     """The mechanism."""
     cdef void *param
     """Reference to a pointer we might need to free."""
+    cdef object _python_param
+    """
+    Hold a reference to the original parameter object so it doesn't get
+    GC'd before this one.
+    """
 
     def __cinit__(self, *args):
         self.data = <CK_MECHANISM *> PyMem_Malloc(sizeof(CK_MECHANISM))
         self.param = NULL
+        self._python_param = None
 
     def __init__(self, key_type, mapping, mechanism=None, param=None):
+        self._python_param = param
         if mechanism is None:
             try:
                 mechanism = mapping[key_type]
@@ -166,6 +173,8 @@ cdef class MechanismWithParam:
         cdef CK_ECDH1_DERIVE_PARAMS *ecdh1_params
         cdef CK_KEY_DERIVATION_STRING_DATA *aes_ecb_params
         cdef CK_AES_CBC_ENCRYPT_DATA_PARAMS *aes_cbc_params
+        cdef CK_GCM_PARAMS *gcm_params
+        cdef CK_AES_CTR_PARAMS *aes_ctr_params
 
         # Unpack mechanism parameters
 
@@ -263,6 +272,31 @@ cdef class MechanismWithParam:
             aes_cbc_params.iv = iv[:16]
             aes_cbc_params.pData = <CK_BYTE *> data
             aes_cbc_params.length = <CK_ULONG> len(data)
+
+        elif mechanism == Mechanism.AES_GCM:
+            paramlen = sizeof(CK_GCM_PARAMS)
+            if not isinstance(param, GCMParams):
+                raise TypeError
+            self.param = gcm_params = <CK_GCM_PARAMS *> PyMem_Malloc(paramlen)
+            gcm_params.pIv = <CK_BYTE *> param.nonce
+            gcm_params.ulIvLen = <CK_ULONG> len(param.nonce)
+            gcm_params.ulIvBits = <CK_ULONG> len(param.nonce) * 8
+            if param.aad is not None:
+                gcm_params.pAAD = <CK_BYTE *> param.aad
+                gcm_params.ulAADLen = <CK_ULONG> len(param.aad)
+            else:
+                gcm_params.pAAD = NULL
+                gcm_params.ulAADLen = 0
+            gcm_params.ulTagBits = <CK_ULONG> param.tag_bits
+
+        elif mechanism == Mechanism.AES_CTR:
+            paramlen = sizeof(CK_AES_CTR_PARAMS)
+            self.param = aes_ctr_params = <CK_AES_CTR_PARAMS *> PyMem_Malloc(paramlen)
+            # use a wrapper type to not break the forwards compat rule for params specified as `bytes`
+            if not isinstance(param, CTRParams):
+                raise TypeError
+            aes_ctr_params.ulCounterBits = (16 - len(param.nonce)) * 8
+            aes_ctr_params.cb = param.nonce + b"\x00" * (15 - len(param.nonce)) + b"\x01"
 
         elif param is None:
             self.data.pParameter = NULL
