@@ -598,16 +598,20 @@ cdef class OperationWithBinaryOutput(OperationContext):
 
         with nogil:
             retval = op_update(
-                self.session.handle, data, data_len, output_buf_loc, &length
+                self.session.handle, data, data_len, NULL, &length
             )
 
-        if retval == CKR_BUFFER_TOO_SMALL:
+        if retval != CKR_OK:
+            return retval
+
+        if length > self.buffer_size:
             self.resize_buffer(length)
             output_buf_loc = &self.output_buf[0]
-            with nogil:
-                retval = op_update(
-                    self.session.handle, data, data_len, output_buf_loc, &length
-                )
+
+        with nogil:
+            retval = op_update(
+                self.session.handle, data, data_len, output_buf_loc, &length
+            )
         self.buffer_data_length = length
         return retval
 
@@ -618,14 +622,18 @@ cdef class OperationWithBinaryOutput(OperationContext):
         cdef CK_RV retval
 
         with nogil:
-            retval = op(self.session.handle, output_buf_loc, &length)
+            retval = op(self.session.handle, NULL, &length)
 
-        if retval == CKR_BUFFER_TOO_SMALL:
+        if retval != CKR_OK:
+            return retval
+
+        if length > self.buffer_size:
             self.resize_buffer(length)
             output_buf_loc = &self.output_buf[0]
-            with nogil:
-                retval = op(self.session.handle, output_buf_loc, &length)
 
+
+        with nogil:
+            retval = op(self.session.handle, output_buf_loc, &length)
         self.buffer_data_length = length
         return retval
 
