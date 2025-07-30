@@ -1148,6 +1148,40 @@ cdef class Session(HasFuncList, types.Session):
             op.ingest_chunks(data)
             return op.finish()
 
+    def set_pin(self, old_pin, new_pin):
+        cdef CK_ULONG old_pin_length
+        cdef CK_ULONG new_pin_length
+        cdef CK_OBJECT_HANDLE handle = self.handle
+        cdef CK_UTF8CHAR *old_pin_data
+        cdef CK_UTF8CHAR *new_pin_data
+        cdef CK_RV retval
+
+        pin_old = old_pin.encode('utf-8')
+        pin_new = new_pin.encode('utf-8')
+
+        old_pin_data = pin_old
+        new_pin_data = pin_new
+        old_pin_length = len(pin_old)
+        new_pin_length = len(pin_new)
+
+        with nogil:
+            retval = self.funclist.C_SetPIN(handle, old_pin_data, old_pin_length, new_pin_data, new_pin_length)
+        assertRV(retval)
+
+    def init_pin(self, pin):
+        cdef CK_OBJECT_HANDLE handle = self.handle
+        cdef CK_UTF8CHAR *pin_data
+        cdef CK_ULONG pin_length
+        cdef CK_RV retval
+
+        pin = pin.encode('utf-8')
+
+        pin_data = pin
+        pin_length = len(pin)
+
+        with nogil:
+            retval = self.funclist.C_InitPIN(handle, pin_data, pin_length)
+        assertRV(retval)
 
 cdef class ObjectHandleWrapper(HasFuncList):
     """

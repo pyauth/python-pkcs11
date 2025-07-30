@@ -11,6 +11,7 @@ from pkcs11 import (
     PKCS11Error,
 )
 from pkcs11.attributes import AttributeMapper, handle_bool, handle_str
+from pkcs11.exceptions import PinIncorrect, PinLenRange
 
 from . import TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
 
@@ -291,3 +292,52 @@ class SessionTests(TestCase):
             bool_read = key[Attribute.ID]
             self.assertIsInstance(bool_read, bool)
             self.assertFalse(bool_read, False)
+
+    @Only.softhsm2
+    def test_set_pin(self):
+        old_token_pin = TOKEN_PIN
+        new_token_pin = f"{TOKEN_PIN}56"
+
+        with self.token.open(rw=True, user_pin=old_token_pin) as session:
+            session.set_pin(old_token_pin, new_token_pin)
+
+        with self.token.open(user_pin=new_token_pin) as session:
+            self.assertIsInstance(session, pkcs11.Session)
+
+        with self.token.open(rw=True, user_pin=new_token_pin) as session:
+            session.set_pin(new_token_pin, old_token_pin)
+
+        with self.token.open(user_pin=old_token_pin) as session:
+            self.assertIsInstance(session, pkcs11.Session)
+
+        with self.token.open(rw=True, user_pin=old_token_pin) as session:
+            with self.assertRaises(AttributeError):
+                session.set_pin(None, new_token_pin)
+            with self.assertRaises(AttributeError):
+                session.set_pin(old_token_pin, None)
+            with self.assertRaises(PinLenRange):
+                session.set_pin(old_token_pin, "")
+            with self.assertRaises(PinIncorrect):
+                session.set_pin("", new_token_pin)
+
+    @Only.softhsm2
+    def test_init_pin(self):
+        new_token_pin = f"{TOKEN_PIN}56"
+
+        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
+            session.init_pin(new_token_pin)
+
+        with self.token.open(rw=True, user_pin=new_token_pin) as session:
+            self.assertIsInstance(session, pkcs11.Session)
+
+        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
+            session.init_pin(TOKEN_PIN)
+
+        with self.token.open(rw=True, user_pin=TOKEN_PIN) as session:
+            self.assertIsInstance(session, pkcs11.Session)
+
+        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
+            with self.assertRaises(AttributeError):
+                session.init_pin(None)
+            with self.assertRaises(PinLenRange):
+                session.init_pin("")

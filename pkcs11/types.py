@@ -576,6 +576,19 @@ class Session(IdentifiedBy):
 
         return self._digest_generator(data, **kwargs)
 
+    def set_pin(self, old_pin, new_pin):
+        """Change the user pin."""
+        raise NotImplementedError()
+
+    def init_pin(self, pin):
+        """
+        Initializes the user PIN.
+
+        Differs from set_pin in that it sets the user PIN for the first time.
+        Once set, the pin can be changed using set_pin.
+        """
+        raise NotImplementedError()
+
     def _digest(self, data, mechanism=None, mechanism_param=None):
         raise NotImplementedError()
 
