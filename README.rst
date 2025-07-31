@@ -20,7 +20,8 @@ features.
 
 Historically, this project used to run continuous integration tests against several
 HSM platforms, but this test setup has not been maintained over time. Currently,
-the integration tests in GitHub Actions use SoftHSMv2 as a baseline. If you would like
+the integration tests in GitHub Actions use SoftHSMv2 as a baseline.
+We also test against `opencryptoki` in CI. If you would like
 to contribute some CI setup with additional PKCS#11 implementations or actual HSMs,
 let's chat!
 
