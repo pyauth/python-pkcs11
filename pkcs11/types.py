@@ -41,8 +41,13 @@ class IdentifiedBy:
 
 
 def _CK_UTF8CHAR_to_str(data):
-    """Convert CK_UTF8CHAR to string."""
-    return data.rstrip(b"\0").decode("utf-8").rstrip()
+    """
+    Convert CK_UTF8CHAR to string.
+
+    Substitutes invalid bytes with the replacement character to make usage more
+    robust with non-compliant tokens.
+    """
+    return data.rstrip(b"\0").decode("utf-8", errors="replace").rstrip()
 
 
 def _CK_VERSION_to_tuple(data):
