@@ -89,6 +89,8 @@ ATTRIBUTE_TYPES = {
     Attribute.VERIFY_RECOVER: handle_bool,
     Attribute.WRAP: handle_bool,
     Attribute.WRAP_WITH_TRUSTED: handle_bool,
+    Attribute.GOSTR3410_PARAMS: handle_bytes,
+    Attribute.GOSTR3411_PARAMS: handle_bytes,
 }
 """
 Map of attributes to (serialize, deserialize) functions.
