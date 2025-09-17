@@ -47,6 +47,16 @@ cdef assertRV(rv) with gil:
     raise map_rv_to_error(rv)
 
 
+cdef inline CK_BBOOL _is_template_attr(CK_ATTRIBUTE_TYPE type):
+    cdef CK_ULONG mask = 0xf
+    cdef CK_ULONG mask_result = (type ^ ATTR_TEMPLATE_ATTRIBUTE) & ~mask
+    return <CK_BBOOL> (not mask_result)
+
+
+def template_as_attribute_list(template, attribute_mapper=None):
+    return AttributeList.from_template(template, attribute_mapper or AttributeMapper())
+
+
 cdef class AttributeList:
     """
     A list of CK_ATTRIBUTE objects.
@@ -81,15 +91,22 @@ cdef class AttributeList:
         cdef bytes value_bytes
         cdef CK_CHAR * value_ptr
         cdef Py_ssize_t value_len
+        cdef AttributeList template_list
         for index, (key, value) in enumerate(template.items()):
             lst.data[index].type = key
-            value_bytes = attribute_mapper.pack_attribute(key, value)
-            value_len = len(value_bytes)
-            # copy the result into a pointer that we manage, for consistency with the other init method
-            value_ptr = <CK_CHAR *> PyMem_Malloc(value_len)
-            if value_ptr is NULL:
-                raise MemoryError()
-            memcpy(value_ptr, <CK_CHAR *> value_bytes, <size_t> value_len)
+            if _is_template_attr(key):
+                template_list = AttributeList.from_template(value, attribute_mapper)
+                value_len = <Py_ssize_t> template_list.count * sizeof(CK_ATTRIBUTE)
+                value_ptr = <CK_CHAR *> template_list.data
+                template_list.data = NULL
+            else:
+                value_bytes = attribute_mapper.pack_attribute(key, value)
+                value_len = len(value_bytes)
+                # copy the result into a pointer that we manage, for consistency with the other init method
+                value_ptr = <CK_CHAR *> PyMem_Malloc(value_len)
+                if value_ptr is NULL:
+                    raise MemoryError()
+                memcpy(value_ptr, <CK_CHAR *> value_bytes, <size_t> value_len)
             lst.data[index].pValue = <CK_CHAR *> value_ptr
             lst.data[index].ulValueLen = <CK_ULONG> value_len
 
@@ -102,10 +119,21 @@ cdef class AttributeList:
         cdef CK_ATTRIBUTE * attr
         if index < self.count:
             attr = &self.data[index]
-            return attribute_mapper.unpack_attributes(
-                attr.type,
-                PyBytes_FromStringAndSize(<char *> attr.pValue, <Py_ssize_t> attr.ulValueLen)
-            )
+            if _is_template_attr(attr.type):
+                template_lst = AttributeList.from_owned_pointer(
+                    <CK_ATTRIBUTE *> attr.pValue,
+                    attr.ulValueLen // sizeof(CK_ATTRIBUTE)
+                )
+                result = template_lst.as_dict(attribute_mapper)
+                # prevent __dealloc__ from cleaning up this memory,
+                # we just needed the .as_dict(...)
+                template_lst.data = NULL
+                return result
+            else:
+                return attribute_mapper.unpack_attributes(
+                    attr.type,
+                    PyBytes_FromStringAndSize(<char *> attr.pValue, <Py_ssize_t> attr.ulValueLen)
+                )
         else:
             raise IndexError()
 
@@ -125,12 +153,25 @@ cdef class AttributeList:
                 return self.at_index(index, attribute_mapper)
         raise KeyError(item)
 
-    def __dealloc__(self):
+    cdef _free(self):
         cdef CK_ULONG index = 0
+        cdef CK_ATTRIBUTE current
         if self.data is not NULL:
             for index in range(self.count):
-                PyMem_Free(self.data[index].pValue)
+                current = self.data[index]
+                if _is_template_attr(current.type):
+                    # ensure template lists are cleaned up
+                    AttributeList.from_owned_pointer(
+                        <CK_ATTRIBUTE *> current.pValue,
+                        current.ulValueLen // sizeof(CK_ATTRIBUTE)
+                    )._free()
+                else:
+                    PyMem_Free(current.pValue)
             PyMem_Free(self.data)
+            self.data = NULL
+
+    def __dealloc__(self):
+        self._free()
 
 
 cdef class MechanismWithParam:
