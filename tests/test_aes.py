@@ -5,7 +5,7 @@ PKCS#11 AES Secret Keys
 from parameterized import parameterized
 
 import pkcs11
-from pkcs11 import ArgumentsBad, CTRParams, GCMParams, Mechanism, PKCS11Error
+from pkcs11 import ArgumentsBad, CTRParams, GCMParams, Mechanism, PKCS11Error, TemplateInconsistent
 
 from . import FIXME, TestCase, requires
 
@@ -202,6 +202,38 @@ class AESTests(TestCase):
         )
 
         self.assertEqual(key[pkcs11.Attribute.VALUE], key2[pkcs11.Attribute.VALUE])
+
+    @requires(Mechanism.AES_KEY_WRAP)
+    def test_wrap_with_unwrap_template(self):
+        wrapping_key = self.session.generate_key(
+            pkcs11.KeyType.AES,
+            128,
+            template={
+                pkcs11.Attribute.UNWRAP_TEMPLATE: {
+                    pkcs11.Attribute.EXTRACTABLE: False,
+                }
+            },
+        )
+        key = self.session.generate_key(
+            pkcs11.KeyType.AES,
+            128,
+            template={
+                pkcs11.Attribute.EXTRACTABLE: True,
+                pkcs11.Attribute.SENSITIVE: False,
+            },
+        )
+        data = wrapping_key.wrap_key(key)
+
+        with self.assertRaises(TemplateInconsistent):
+            wrapping_key.unwrap_key(
+                pkcs11.ObjectClass.SECRET_KEY,
+                pkcs11.KeyType.AES,
+                data,
+                template={
+                    # forbidden by the unwrapping template
+                    pkcs11.Attribute.EXTRACTABLE: True,
+                },
+            )
 
     @parameterized.expand(
         [
