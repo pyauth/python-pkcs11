@@ -1,6 +1,8 @@
 name: Coverage
 on:
   pull_request: {}
+  push:
+    branches: ["master"]
   workflow_dispatch: {}
 env:
   UV_PYTHON_PREFERENCE: only-system
@@ -80,7 +82,7 @@ jobs:
       actions: write
       contents: read
     runs-on: ubuntu-latest
-    needs: [pytest-coverage]
+    needs: [pytest-coverage,pytest-coverage-multilib]
     steps:
       # checkout necessary to ensure the uploaded report contains the correct paths
       - uses: actions/checkout@v4
