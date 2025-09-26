@@ -850,7 +850,7 @@ def merge_templates(default_template, *user_templates):
 cdef class Session(HasFuncList, types.Session):
     """Extend Session with implementation."""
 
-    cdef CK_SESSION_HANDLE handle
+    cdef readonly CK_SESSION_HANDLE handle
     cdef readonly Token token
     cdef readonly bint rw
     cdef CK_USER_TYPE _user_type
