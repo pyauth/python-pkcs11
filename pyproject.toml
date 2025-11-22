@@ -56,6 +56,9 @@ ext-modules = [
     {name = "pkcs11._pkcs11", sources = ["pkcs11/_pkcs11.pyx"]}
 ]
 
+[tool.cibuildwheel]
+skip = "cp3??t-*"
+
 [tool.cibuildwheel.linux]
 archs = ["auto64"]
 
