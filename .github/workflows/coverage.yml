@@ -23,7 +23,7 @@ jobs:
           - opencryptoki
     steps:
       - name: Acquire sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Arm coverage-only compiler directives
         # Unfortunately, it doesn't seem to be possible to pass directives
         # to Cython through environment variables: https://github.com/cython/cython/issues/3930
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Acquire sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: ./.github/actions/test-setup
         id: setup
         with:
@@ -85,7 +85,7 @@ jobs:
     needs: [pytest-coverage,pytest-coverage-multilib]
     steps:
       # checkout necessary to ensure the uploaded report contains the correct paths
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Retrieve coverage reports
         uses: actions/download-artifact@v4
         with:
