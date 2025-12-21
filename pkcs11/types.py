@@ -4,14 +4,21 @@ Types for high level PKCS#11 wrapper.
 This module provides stubs that are overrideen in pkcs11._pkcs11.
 """
 
+from __future__ import annotations
+
 from binascii import hexlify
 from functools import cached_property
+from typing import TYPE_CHECKING, Any, Final, Iterator
 
 from pkcs11 import CancelStrategy
 from pkcs11.constants import (
     Attribute,
+    CertificateType,
     MechanismFlag,
     ObjectClass,
+    SlotFlag,
+    TokenFlag,
+    UserType,
 )
 from pkcs11.exceptions import (
     ArgumentsBad,
@@ -23,24 +30,27 @@ from pkcs11.exceptions import (
 )
 from pkcs11.mechanisms import KeyType, Mechanism
 
-PROTECTED_AUTH = object()
+if TYPE_CHECKING:
+    from pkcs11.attributes import AttributeMapper
+
+PROTECTED_AUTH: Final[object] = object()
 """Indicate the pin should be supplied via an external mechanism (e.g. pin pad)"""
 
 
 class IdentifiedBy:
     __slots__ = ()
 
-    def _identity(self):
+    def _identity(self) -> Any:
         raise NotImplementedError()
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, IdentifiedBy) and self._identity() == other._identity()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._identity())
 
 
-def _CK_UTF8CHAR_to_str(data):
+def _CK_UTF8CHAR_to_str(data: bytes) -> str:
     """
     Convert CK_UTF8CHAR to string.
 
@@ -50,12 +60,12 @@ def _CK_UTF8CHAR_to_str(data):
     return data.rstrip(b"\0").decode("utf-8", errors="replace").rstrip()
 
 
-def _CK_VERSION_to_tuple(data):
+def _CK_VERSION_to_tuple(data: dict[str, int]) -> tuple[int, int]:
     """Convert CK_VERSION to tuple."""
     return (data["major"], data["minor"])
 
 
-def _CK_MECHANISM_TYPE_to_enum(mechanism):
+def _CK_MECHANISM_TYPE_to_enum(mechanism: int) -> Mechanism | int:
     """Convert CK_MECHANISM_TYPE to enum or be okay."""
     try:
         return Mechanism(mechanism)
@@ -70,7 +80,21 @@ class MechanismInfo:
     See :meth:`pkcs11.Slot.get_mechanism_info`.
     """
 
-    def __init__(self, slot, mechanism, ulMinKeySize=None, ulMaxKeySize=None, flags=None, **kwargs):
+    slot: Slot
+    mechanism: Mechanism | int
+    min_key_length: int | None
+    max_key_length: int | None
+    flags: MechanismFlag
+
+    def __init__(
+        self,
+        slot: Slot,
+        mechanism: Mechanism | int,
+        ulMinKeySize: int | None = None,
+        ulMaxKeySize: int | None = None,
+        flags: int | None = None,
+        **kwargs: Any,
+    ) -> None:
         self.slot = slot
         """:class:`pkcs11.Slot` this information is for."""
         self.mechanism = mechanism
@@ -79,10 +103,10 @@ class MechanismInfo:
         """Minimum key length in bits (:class:`int`)."""
         self.max_key_length = ulMaxKeySize
         """Maximum key length in bits (:class:`int`)."""
-        self.flags = MechanismFlag(flags)
+        self.flags = MechanismFlag(flags) if flags is not None else MechanismFlag(0)
         """Mechanism capabilities (:class:`pkcs11.constants.MechanismFlag`)."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "\n".join(
             (
                 "Supported key lengths: [%s, %s]" % (self.min_key_length, self.max_key_length),
@@ -90,7 +114,7 @@ class MechanismInfo:
             )
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<{klass} (mechanism={mechanism}, flags={flags})>".format(
             klass=type(self).__name__, mechanism=str(self.mechanism), flags=str(self.flags)
         )
@@ -108,41 +132,41 @@ class Slot(IdentifiedBy):
     __slots__ = ()
 
     @property
-    def flags(self):
+    def flags(self) -> SlotFlag:
         """Capabilities of this slot (:class:`SlotFlag`)."""
         raise NotImplementedError()
 
     @property
-    def hardware_version(self):
+    def hardware_version(self) -> tuple[int, int]:
         """Hardware version (:class:`tuple`)."""
         raise NotImplementedError()
 
     @property
-    def firmware_version(self):
+    def firmware_version(self) -> tuple[int, int]:
         """Firmware version (:class:`tuple`)."""
         raise NotImplementedError()
 
     @property
-    def cryptoki_version(self):
+    def cryptoki_version(self) -> tuple[int, int]:
         """PKCS#11 API version (:class: `tuple`)"""
         raise NotImplementedError()
 
     @property
-    def slot_id(self):
+    def slot_id(self) -> int:
         """Slot identifier (opaque)."""
         raise NotImplementedError()
 
     @property
-    def slot_description(self):
+    def slot_description(self) -> str:
         """Slot name (:class:`str`)."""
         raise NotImplementedError()
 
     @property
-    def manufacturer_id(self):
+    def manufacturer_id(self) -> str:
         """Slot/device manufacturer's name (:class:`str`)."""
         raise NotImplementedError()
 
-    def get_token(self):
+    def get_token(self) -> Token:
         """
         Returns the token loaded into this slot.
 
@@ -150,7 +174,7 @@ class Slot(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def get_mechanisms(self):
+    def get_mechanisms(self) -> set[Mechanism]:
         """
         Returns the mechanisms supported by this device.
 
@@ -158,7 +182,7 @@ class Slot(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def get_mechanism_info(self, mechanism):
+    def get_mechanism_info(self, mechanism: Mechanism) -> MechanismInfo:
         """
         Returns information about the mechanism.
 
@@ -179,54 +203,54 @@ class Token(IdentifiedBy):
     __slots__ = ()
 
     @property
-    def flags(self):
+    def flags(self) -> TokenFlag:
         """Capabilities of this token (:class:`TokenFlag`)."""
         raise NotImplementedError()
 
     @property
-    def hardware_version(self):
+    def hardware_version(self) -> tuple[int, int]:
         """Hardware version (:class:`tuple`)."""
         raise NotImplementedError()
 
     @property
-    def firmware_version(self):
+    def firmware_version(self) -> tuple[int, int]:
         """Firmware version (:class:`tuple`)."""
         raise NotImplementedError()
 
     @property
-    def slot(self):
+    def slot(self) -> Slot:
         """The :class:`Slot` this token is installed in."""
         raise NotImplementedError()
 
     @property
-    def label(self):
+    def label(self) -> str:
         """Label of this token (:class:`str`)."""
         raise NotImplementedError()
 
     @property
-    def serial(self):
+    def serial(self) -> bytes:
         """Serial number of this token (:class:`bytes`)."""
         raise NotImplementedError()
 
     @property
-    def manufacturer_id(self):
+    def manufacturer_id(self) -> str:
         """Manufacturer ID (:class:`str`)."""
         raise NotImplementedError()
 
     @property
-    def model(self):
+    def model(self) -> str:
         """Model name (:class:`str`)."""
         raise NotImplementedError()
 
     def open(
         self,
-        rw=False,
-        user_pin=None,
-        so_pin=None,
-        user_type=None,
-        attribute_mapper=None,
-        cancel_strategy=CancelStrategy.DEFAULT,
-    ):
+        rw: bool = False,
+        user_pin: str | bytes | object | None = None,
+        so_pin: str | bytes | object | None = None,
+        user_type: UserType | None = None,
+        attribute_mapper: AttributeMapper | None = None,
+        cancel_strategy: CancelStrategy = CancelStrategy.DEFAULT,
+    ) -> Session:
         """
         Open a session on the token and optionally log in as a user or
         security officer (pass one of `user_pin` or `so_pin`). Pass PROTECTED_AUTH to
@@ -270,30 +294,41 @@ class Session(IdentifiedBy):
 
     __slots__ = ()
 
-    def __enter__(self):
+    def __enter__(self) -> Session:
         return self
 
-    def __exit__(self, type_, value, traceback):
+    def __exit__(
+        self,
+        type_: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: Any,
+    ) -> None:
         self.close()
 
     @property
-    def token(self):
+    def token(self) -> Token:
         """:class:`Token` this session is on."""
         raise NotImplementedError()
 
     @property
-    def rw(self):
+    def rw(self) -> bool:
         """True if this is a read/write session."""
         raise NotImplementedError()
 
-    def close(self):
+    def close(self) -> None:
         """Close the session."""
         raise NotImplementedError()
 
-    def reaffirm_credentials(self, pin):
+    def reaffirm_credentials(self, pin: str | bytes) -> None:
         raise NotImplementedError()
 
-    def get_key(self, object_class=None, key_type=None, label=None, id=None):
+    def get_key(
+        self,
+        object_class: ObjectClass | None = None,
+        key_type: KeyType | None = None,
+        label: str | None = None,
+        id: bytes | None = None,
+    ) -> Key:
         """
         Search for a key with any of `key_type`, `label` and/or `id`.
 
@@ -314,7 +349,7 @@ class Session(IdentifiedBy):
         if object_class is None and key_type is None and label is None and id is None:
             raise ArgumentsBad("Must specify at least one search parameter.")
 
-        attrs = {}
+        attrs: dict[Attribute, Any] = {}
 
         if object_class is not None:
             attrs[Attribute.CLASS] = object_class
@@ -330,7 +365,7 @@ class Session(IdentifiedBy):
 
         iterator = self.get_objects(attrs)
         try:
-            key = next(iterator)
+            obj = next(iterator)
         except StopIteration as ex:
             raise NoSuchKey("No key matching %s" % attrs) from ex
 
@@ -339,9 +374,11 @@ class Session(IdentifiedBy):
             raise MultipleObjectsReturned("More than 1 key matches %s" % attrs)
         except StopIteration:
             pass
-        return key
+        # The caller expects a Key, but get_objects returns Object
+        # This is a runtime assumption that the returned object is a Key
+        return obj  # type: ignore[return-value]
 
-    def get_objects(self, attrs=None):
+    def get_objects(self, attrs: dict[Attribute, Any] | None = None) -> Iterator[Object]:
         """
         Search for objects matching `attrs`. Returns a generator.
 
@@ -362,7 +399,7 @@ class Session(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def create_object(self, attrs):
+    def create_object(self, attrs: dict[Attribute, Any]) -> Object:
         """
         Create a new object on the :class:`Token`. This is a low-level
         interface to create any type of object and can be used for importing
@@ -389,7 +426,13 @@ class Session(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def create_domain_parameters(self, key_type, attrs, local=False, store=False):
+    def create_domain_parameters(
+        self,
+        key_type: KeyType,
+        attrs: dict[Attribute, Any],
+        local: bool = False,
+        store: bool = False,
+    ) -> DomainParameters:
         """
         Create a domain parameters object from known parameters.
 
@@ -421,13 +464,13 @@ class Session(IdentifiedBy):
 
     def generate_domain_parameters(
         self,
-        key_type,
-        param_length,
-        store=False,
-        mechanism=None,
-        mechanism_param=None,
-        template=None,
-    ):
+        key_type: KeyType,
+        param_length: int,
+        store: bool = False,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        template: dict[Attribute, Any] | None = None,
+    ) -> DomainParameters:
         """
         Generate domain parameters.
 
@@ -455,16 +498,16 @@ class Session(IdentifiedBy):
 
     def generate_key(
         self,
-        key_type,
-        key_length=None,
-        id=None,
-        label=None,
-        store=False,
-        capabilities=None,
-        mechanism=None,
-        mechanism_param=None,
-        template=None,
-    ):
+        key_type: KeyType,
+        key_length: int | None = None,
+        id: bytes | None = None,
+        label: str | None = None,
+        store: bool = False,
+        capabilities: MechanismFlag | None = None,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        template: dict[Attribute, Any] | None = None,
+    ) -> SecretKey:
         """
         Generate a single key (e.g. AES, DES).
 
@@ -498,7 +541,12 @@ class Session(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def generate_keypair(self, key_type, key_length=None, **kwargs):
+    def generate_keypair(
+        self,
+        key_type: KeyType,
+        key_length: int | None = None,
+        **kwargs: Any,
+    ) -> tuple[PublicKey, PrivateKey]:
         """
         Generate a asymmetric keypair (e.g. RSA).
 
@@ -527,10 +575,15 @@ class Session(IdentifiedBy):
         else:
             return self._generate_keypair(key_type, key_length=key_length, **kwargs)
 
-    def _generate_keypair(self, key_type, key_length=None, **kwargs):
+    def _generate_keypair(
+        self,
+        key_type: KeyType,
+        key_length: int | None = None,
+        **kwargs: Any,
+    ) -> tuple[PublicKey, PrivateKey]:
         raise NotImplementedError()
 
-    def seed_random(self, seed):
+    def seed_random(self, seed: bytes) -> None:
         """
         Mix additional seed material into the RNG (if supported).
 
@@ -538,7 +591,7 @@ class Session(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def generate_random(self, nbits):
+    def generate_random(self, nbits: int) -> bytes:
         """
         Generate `length` bits of random or pseudo-random data (if supported).
 
@@ -547,7 +600,7 @@ class Session(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def digest(self, data, **kwargs):
+    def digest(self, data: str | bytes | Key | Iterator[bytes | Key], **kwargs: Any) -> bytes:
         """
         Digest `data` using `mechanism`.
 
@@ -572,15 +625,15 @@ class Session(IdentifiedBy):
             return self._digest(data, **kwargs)
 
         elif isinstance(data, Key):
-            data = (data,)
+            return self._digest_generator(iter((data,)), **kwargs)
 
         return self._digest_generator(data, **kwargs)
 
-    def set_pin(self, old_pin, new_pin):
+    def set_pin(self, old_pin: str | bytes, new_pin: str | bytes) -> None:
         """Change the user pin."""
         raise NotImplementedError()
 
-    def init_pin(self, pin):
+    def init_pin(self, pin: str | bytes) -> None:
         """
         Initializes the user PIN.
 
@@ -589,10 +642,20 @@ class Session(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def _digest(self, data, mechanism=None, mechanism_param=None):
+    def _digest(
+        self,
+        data: bytes,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+    ) -> bytes:
         raise NotImplementedError()
 
-    def _digest_generator(self, data, mechanism=None, mechanism_param=None):
+    def _digest_generator(
+        self,
+        data: Iterator[bytes | Key],
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+    ) -> bytes:
         raise NotImplementedError()
 
 
@@ -608,27 +671,27 @@ class Object(IdentifiedBy):
     :exc:`pkcs11.exceptions.AttributeTypeInvalid`.
     """
 
-    object_class = None
+    object_class: ObjectClass | None = None
     """:class:`pkcs11.constants.ObjectClass` of this Object."""
 
     @property
-    def session(self):
+    def session(self) -> Session:
         raise NotImplementedError()
 
     @property
-    def handle(self):
+    def handle(self) -> int | None:
         raise NotImplementedError()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Attribute) -> Any:
         raise NotImplementedError()
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Attribute, value: Any) -> None:
         raise NotImplementedError()
 
-    def get_attributes(self, keys):
+    def get_attributes(self, keys: list[Attribute]) -> dict[Attribute, Any]:
         raise NotImplementedError()
 
-    def copy(self, attrs):
+    def copy(self, attrs: dict[Attribute, Any]) -> Object:
         """
         Make a copy of the object with new attributes `attrs`.
 
@@ -649,7 +712,7 @@ class Object(IdentifiedBy):
         """
         raise NotImplementedError()
 
-    def destroy(self):
+    def destroy(self) -> None:
         """
         Destroy the object.
 
@@ -672,7 +735,7 @@ class DomainParameters(Object):
     """
 
     @cached_property
-    def key_type(self):
+    def key_type(self) -> KeyType:
         """
         Key type (:class:`pkcs11.mechanisms.KeyType`) these parameters
         can be used to generate.
@@ -681,15 +744,15 @@ class DomainParameters(Object):
 
     def generate_keypair(
         self,
-        id=None,
-        label=None,
-        store=False,
-        capabilities=None,
-        mechanism=None,
-        mechanism_param=None,
-        public_template=None,
-        private_template=None,
-    ):
+        id: bytes | None = None,
+        label: str | None = None,
+        store: bool = False,
+        capabilities: MechanismFlag | None = None,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        public_template: dict[Attribute, Any] | None = None,
+        private_template: dict[Attribute, Any] | None = None,
+    ) -> tuple[PublicKey, PrivateKey]:
         """
         Generate a key pair from these domain parameters (e.g. for
         Diffie-Hellman.
@@ -710,34 +773,37 @@ class DomainParameters(Object):
 
 
 class LocalDomainParameters(DomainParameters):
-    def __init__(self, session, params):
+    _session: Session
+    params: dict[Attribute, Any]
+
+    def __init__(self, session: Session, params: dict[Attribute, Any]) -> None:
         self._session = session
         self.params = params
 
     @property
-    def session(self):
+    def session(self) -> Session:
         return self._session
 
     @property
-    def handle(self):
+    def handle(self) -> None:
         return None
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Attribute) -> Any:
         try:
             return self.params[key]
         except KeyError as ex:
             raise AttributeTypeInvalid from ex
 
-    def get_attributes(self, keys):
+    def get_attributes(self, keys: list[Attribute]) -> dict[Attribute, Any]:
         return {key: self.params[key] for key in keys if key in self.params}
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Attribute, value: Any) -> None:
         self.params[key] = value
 
 
 class HasKeyType(Object):
     @cached_property
-    def key_type(self):
+    def key_type(self) -> KeyType:
         """Key type (:class:`pkcs11.mechanisms.KeyType`)."""
         return self[Attribute.KEY_TYPE]
 
@@ -746,29 +812,29 @@ class Key(HasKeyType):
     """Base class for all key :class:`Object` types."""
 
     @property
-    def key_length(self):
+    def key_length(self) -> int:
         """Key length in bits."""
         raise NotImplementedError
 
     @cached_property
-    def id(self):
+    def id(self) -> bytes:
         """Key id (:class:`bytes`)."""
         return self[Attribute.ID]
 
     @cached_property
-    def label(self):
+    def label(self) -> str:
         """Key label (:class:`str`)."""
         return self[Attribute.LABEL]
 
     @cached_property
-    def _key_description(self):
+    def _key_description(self) -> str:
         """A description of the key."""
         try:
             return "%s-bit %s" % (self.key_length, self.key_type.name)
         except AttributeTypeInvalid:
             return self.key_type.name
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<%s label='%s' id='%s' %s>" % (
             type(self).__name__,
             self.label,
@@ -783,10 +849,10 @@ class SecretKey(Key):
     (symmetric encryption key).
     """
 
-    object_class = ObjectClass.SECRET_KEY
+    object_class: ObjectClass = ObjectClass.SECRET_KEY
 
     @cached_property
-    def key_length(self):
+    def key_length(self) -> int:
         """Key length in bits."""
         return self[Attribute.VALUE_LEN] * 8
 
@@ -801,10 +867,10 @@ class PublicKey(Key):
     :func:`pkcs11.util.rsa.encode_rsa_public_key` respectively.
     """
 
-    object_class = ObjectClass.PUBLIC_KEY
+    object_class: ObjectClass = ObjectClass.PUBLIC_KEY
 
     @cached_property
-    def key_length(self):
+    def key_length(self) -> int:
         """Key length in bits."""
         return self[Attribute.MODULUS_BITS]
 
@@ -823,10 +889,10 @@ class PrivateKey(Key):
         private key should be considered insecure.
     """
 
-    object_class = ObjectClass.PRIVATE_KEY
+    object_class: ObjectClass = ObjectClass.PRIVATE_KEY
 
     @cached_property
-    def key_length(self):
+    def key_length(self) -> int:
         """Key length in bits."""
         return len(self[Attribute.MODULUS]) * 8
 
@@ -844,10 +910,10 @@ class Certificate(Object):
     from a certificate to create the object.
     """
 
-    object_class = ObjectClass.CERTIFICATE
+    object_class: ObjectClass = ObjectClass.CERTIFICATE
 
     @cached_property
-    def certificate_type(self):
+    def certificate_type(self) -> CertificateType:
         """
         The type of certificate.
 
@@ -861,7 +927,12 @@ class EncryptMixin(HasKeyType):
     This :class:`Object` supports the encrypt capability.
     """
 
-    def encrypt(self, data, buffer_size=8192, **kwargs):
+    def encrypt(
+        self,
+        data: str | bytes | Iterator[bytes],
+        buffer_size: int = 8192,
+        **kwargs: Any,
+    ) -> bytes | Iterator[bytes]:
         """
         Encrypt some `data`.
 
@@ -940,13 +1011,36 @@ class EncryptMixin(HasKeyType):
         else:
             return self._encrypt_generator(data, buffer_size=buffer_size, **kwargs)
 
+    def _encrypt(
+        self,
+        data: bytes,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        buffer_size: int = 8192,
+    ) -> bytes:
+        raise NotImplementedError()
+
+    def _encrypt_generator(
+        self,
+        data: Iterator[bytes],
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        buffer_size: int = 8192,
+    ) -> Iterator[bytes]:
+        raise NotImplementedError()
+
 
 class DecryptMixin(HasKeyType):
     """
     This :class:`Object` supports the decrypt capability.
     """
 
-    def decrypt(self, data, buffer_size=8192, **kwargs):
+    def decrypt(
+        self,
+        data: bytes | Iterator[bytes],
+        buffer_size: int = 8192,
+        **kwargs: Any,
+    ) -> bytes | Iterator[bytes]:
         """
         Decrypt some `data`.
 
@@ -972,13 +1066,33 @@ class DecryptMixin(HasKeyType):
         else:
             return self._decrypt_generator(data, buffer_size=buffer_size, **kwargs)
 
+    def _decrypt(
+        self,
+        data: bytes,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        pin: str | bytes | None = None,
+        buffer_size: int = 8192,
+    ) -> bytes:
+        raise NotImplementedError()
+
+    def _decrypt_generator(
+        self,
+        data: Iterator[bytes],
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        pin: str | bytes | None = None,
+        buffer_size: int = 8192,
+    ) -> Iterator[bytes]:
+        raise NotImplementedError()
+
 
 class SignMixin(HasKeyType):
     """
     This :class:`Object` supports the sign capability.
     """
 
-    def sign(self, data, **kwargs):
+    def sign(self, data: str | bytes | Iterator[bytes], **kwargs: Any) -> bytes:
         """
         Sign some `data`.
 
@@ -1009,13 +1123,37 @@ class SignMixin(HasKeyType):
         else:
             return self._sign_generator(data, **kwargs)
 
+    def _sign(
+        self,
+        data: bytes,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        pin: str | bytes | None = None,
+        buffer_size: int = 8192,
+    ) -> bytes:
+        raise NotImplementedError()
+
+    def _sign_generator(
+        self,
+        data: Iterator[bytes],
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        pin: str | bytes | None = None,
+    ) -> bytes:
+        raise NotImplementedError()
+
 
 class VerifyMixin(HasKeyType):
     """
     This :class:`Object` supports the verify capability.
     """
 
-    def verify(self, data, signature, **kwargs):
+    def verify(
+        self,
+        data: str | bytes | Iterator[bytes],
+        signature: bytes,
+        **kwargs: Any,
+    ) -> bool:
         """
         Verify some `data`.
 
@@ -1053,13 +1191,36 @@ class VerifyMixin(HasKeyType):
         except (SignatureInvalid, SignatureLenRange):
             return False
 
+    def _verify(
+        self,
+        data: bytes,
+        signature: bytes,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+    ) -> None:
+        raise NotImplementedError()
+
+    def _verify_generator(
+        self,
+        data: Iterator[bytes],
+        signature: bytes,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+    ) -> None:
+        raise NotImplementedError()
+
 
 class WrapMixin(HasKeyType):
     """
     This :class:`Object` supports the wrap capability.
     """
 
-    def wrap_key(self, key, mechanism=None, mechanism_param=None):
+    def wrap_key(
+        self,
+        key: Key,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+    ) -> bytes:
         """
         Use this key to wrap (i.e. encrypt) `key` for export. Returns
         an encrypted version of `key`.
@@ -1082,17 +1243,17 @@ class UnwrapMixin(HasKeyType):
 
     def unwrap_key(
         self,
-        object_class,
-        key_type,
-        key_data,
-        id=None,
-        label=None,
-        mechanism=None,
-        mechanism_param=None,
-        store=False,
-        capabilities=None,
-        template=None,
-    ):
+        object_class: ObjectClass,
+        key_type: KeyType,
+        key_data: bytes,
+        id: bytes | None = None,
+        label: str | None = None,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        store: bool = False,
+        capabilities: MechanismFlag | None = None,
+        template: dict[Attribute, Any] | None = None,
+    ) -> Key:
         """
         Use this key to unwrap (i.e. decrypt) and import `key_data`.
 
@@ -1121,16 +1282,16 @@ class DeriveMixin(HasKeyType):
 
     def derive_key(
         self,
-        key_type,
-        key_length,
-        id=None,
-        label=None,
-        store=False,
-        capabilities=None,
-        mechanism=None,
-        mechanism_param=None,
-        template=None,
-    ):
+        key_type: KeyType,
+        key_length: int,
+        id: bytes | None = None,
+        label: str | None = None,
+        store: bool = False,
+        capabilities: MechanismFlag | None = None,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | tuple[Any, ...] | None = None,
+        template: dict[Attribute, Any] | None = None,
+    ) -> SecretKey:
         """
         Derive a new key from this key. Used to create session
         keys from a PKCS key exchange.

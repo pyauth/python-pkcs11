@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import IntEnum
 
 from pkcs11.exceptions import ArgumentsBad
@@ -107,7 +109,7 @@ class KeyType(IntEnum):
 
     _VENDOR_DEFINED = 0x80000000
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<KeyType.%s>" % self.name
 
 
@@ -751,7 +753,7 @@ class Mechanism(IntEnum):
 
     _VENDOR_DEFINED = 0x80000000
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Mechanism.%s>" % self.name
 
 
@@ -775,7 +777,7 @@ class KDF(IntEnum):
     SHA3_384_KDF = 0x0000000C
     SHA3_512_KDF = 0x0000000D
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<KDF.%s>" % self.name
 
 
@@ -794,12 +796,18 @@ class MGF(IntEnum):
     SHA3_384 = 0x00000008
     SHA3_512 = 0x00000009
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<MGF.%s>" % self.name
 
 
 class GCMParams:
-    def __init__(self, nonce, aad=None, tag_bits=128):
+    """Parameters for AES-GCM mode."""
+
+    nonce: bytes
+    aad: bytes | None
+    tag_bits: int
+
+    def __init__(self, nonce: bytes, aad: bytes | None = None, tag_bits: int = 128) -> None:
         if len(nonce) > 12:
             raise ArgumentsBad("IV must be less than 12 bytes")
         self.nonce = nonce
@@ -808,7 +816,11 @@ class GCMParams:
 
 
 class CTRParams:
-    def __init__(self, nonce):
+    """Parameters for AES-CTR mode."""
+
+    nonce: bytes
+
+    def __init__(self, nonce: bytes) -> None:
         if len(nonce) >= 16:
             raise ArgumentsBad(
                 f"{nonce.hex()} is too long to serve as a CTR nonce, must be 15 bytes or less "

@@ -1,4 +1,9 @@
-def biginteger(value):
+from __future__ import annotations
+
+from typing import SupportsInt
+
+
+def biginteger(value: SupportsInt) -> bytes:
     """
     Returns a PKCS#11 biginteger bytestream from a Python integer or
     similar type (e.g. :class:`asn1crypto.core.Integer`).
@@ -7,6 +12,6 @@ def biginteger(value):
     :rtype: bytes
     """
 
-    value = int(value)  # In case it's a asn1 type or similar
+    value_int = int(value)  # In case it's a asn1 type or similar
 
-    return value.to_bytes((value.bit_length() + 7) // 8, byteorder="big")
+    return value_int.to_bytes((value_int.bit_length() + 7) // 8, byteorder="big")

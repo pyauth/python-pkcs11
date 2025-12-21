@@ -2,6 +2,10 @@
 Certificate handling utilities for X.509 (SSL) certificates.
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 from asn1crypto.core import OctetString
 from asn1crypto.x509 import Certificate
 
@@ -9,7 +13,7 @@ from pkcs11.constants import Attribute, CertificateType, ObjectClass
 from pkcs11.mechanisms import KeyType
 
 
-def decode_x509_public_key(der):
+def decode_x509_public_key(der: bytes) -> dict[Attribute, Any]:
     """
     Decode a DER-encoded X.509 certificate's public key into a set of
     attributes able to be passed to :meth:`pkcs11.Session.create_object`.
@@ -33,7 +37,7 @@ def decode_x509_public_key(der):
         "ec": KeyType.EC,
     }[key_info.algorithm]
 
-    attrs = {
+    attrs: dict[Attribute, Any] = {
         Attribute.CLASS: ObjectClass.PUBLIC_KEY,
         Attribute.KEY_TYPE: key_type,
     }
@@ -72,7 +76,10 @@ def decode_x509_public_key(der):
     return attrs
 
 
-def decode_x509_certificate(der, extended_set=False):
+def decode_x509_certificate(
+    der: bytes,
+    extended_set: bool = False,
+) -> dict[Attribute, Any]:
     """
     Decode a DER-encoded X.509 certificate into a dictionary of
     attributes able to be passed to :meth:`pkcs11.Session.create_object`.
@@ -95,7 +102,7 @@ def decode_x509_certificate(der, extended_set=False):
     issuer = x509.issuer
     serial = x509["tbs_certificate"]["serial_number"]
 
-    template = {
+    template: dict[Attribute, Any] = {
         Attribute.CLASS: ObjectClass.CERTIFICATE,
         Attribute.CERTIFICATE_TYPE: CertificateType.X_509,
         Attribute.SUBJECT: subject.dump(),

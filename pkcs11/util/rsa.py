@@ -2,6 +2,10 @@
 Key handling utilities for RSA keys (PKCS#1).
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from asn1crypto.keys import RSAPrivateKey, RSAPublicKey
 
 from pkcs11.constants import Attribute, MechanismFlag, ObjectClass
@@ -9,8 +13,14 @@ from pkcs11.defaults import DEFAULT_KEY_CAPABILITIES
 from pkcs11.mechanisms import KeyType
 from pkcs11.util import biginteger
 
+if TYPE_CHECKING:
+    from pkcs11.types import PublicKey
 
-def decode_rsa_private_key(der, capabilities=None):
+
+def decode_rsa_private_key(
+    der: bytes,
+    capabilities: MechanismFlag | int | None = None,
+) -> dict[Attribute, Any]:
     """
     Decode a RFC2437 (PKCS#1) DER-encoded RSA private key into a dictionary of
     attributes able to be passed to :meth:`pkcs11.Session.create_object`.
@@ -19,8 +29,7 @@ def decode_rsa_private_key(der, capabilities=None):
     :param MechanismFlag capabilities: Optional key capabilities
     :rtype: dict(Attribute,*)
     """
-    if capabilities is None:
-        capabilities = DEFAULT_KEY_CAPABILITIES[KeyType.RSA]
+    caps: MechanismFlag | int = capabilities or DEFAULT_KEY_CAPABILITIES[KeyType.RSA]
 
     key = RSAPrivateKey.load(der)
 
@@ -35,13 +44,16 @@ def decode_rsa_private_key(der, capabilities=None):
         Attribute.EXPONENT_1: biginteger(key["exponent1"]),
         Attribute.EXPONENT_2: biginteger(key["exponent2"]),
         Attribute.COEFFICIENT: biginteger(key["coefficient"]),
-        Attribute.DECRYPT: MechanismFlag.DECRYPT in capabilities,
-        Attribute.SIGN: MechanismFlag.SIGN in capabilities,
-        Attribute.UNWRAP: MechanismFlag.UNWRAP in capabilities,
+        Attribute.DECRYPT: MechanismFlag.DECRYPT & caps != 0,
+        Attribute.SIGN: MechanismFlag.SIGN & caps != 0,
+        Attribute.UNWRAP: MechanismFlag.UNWRAP & caps != 0,
     }
 
 
-def decode_rsa_public_key(der, capabilities=None):
+def decode_rsa_public_key(
+    der: bytes,
+    capabilities: MechanismFlag | int | None = None,
+) -> dict[Attribute, Any]:
     """
     Decode a RFC2437 (PKCS#1) DER-encoded RSA public key into a dictionary of
     attributes able to be passed to :meth:`pkcs11.Session.create_object`.
@@ -50,9 +62,7 @@ def decode_rsa_public_key(der, capabilities=None):
     :param MechanismFlag capabilities: Optional key capabilities
     :rtype: dict(Attribute,*)
     """
-
-    if capabilities is None:
-        capabilities = DEFAULT_KEY_CAPABILITIES[KeyType.RSA]
+    caps: MechanismFlag | int = capabilities or DEFAULT_KEY_CAPABILITIES[KeyType.RSA]
 
     key = RSAPublicKey.load(der)
     return {
@@ -60,13 +70,13 @@ def decode_rsa_public_key(der, capabilities=None):
         Attribute.KEY_TYPE: KeyType.RSA,
         Attribute.MODULUS: biginteger(key["modulus"]),
         Attribute.PUBLIC_EXPONENT: biginteger(key["public_exponent"]),
-        Attribute.ENCRYPT: MechanismFlag.ENCRYPT in capabilities,
-        Attribute.VERIFY: MechanismFlag.VERIFY in capabilities,
-        Attribute.WRAP: MechanismFlag.WRAP in capabilities,
+        Attribute.ENCRYPT: MechanismFlag.ENCRYPT & caps != 0,
+        Attribute.VERIFY: MechanismFlag.VERIFY & caps != 0,
+        Attribute.WRAP: MechanismFlag.WRAP & caps != 0,
     }
 
 
-def encode_rsa_public_key(key):
+def encode_rsa_public_key(key: PublicKey) -> bytes:
     """
     Encode an RSA public key into PKCS#1 DER-encoded format.
 

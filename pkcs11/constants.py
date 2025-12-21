@@ -5,9 +5,12 @@ See the Python :mod:`enum` documentation for more information on how to
 use these classes.
 """
 
-from enum import IntEnum, IntFlag, unique
+from __future__ import annotations
 
-DEFAULT = object()
+from enum import IntEnum, IntFlag, unique
+from typing import Final
+
+DEFAULT: Final[object] = object()
 """Sentinel value used in templates.
 
 Not all pkcs11 attribute sets are accepted by HSMs.
@@ -55,11 +58,11 @@ class ObjectClass(IntEnum):
 
     _VENDOR_DEFINED = 0x80000000
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<ObjectClass.%s>" % self.name
 
 
-_ARRAY_ATTRIBUTE = 0x40000000
+_ARRAY_ATTRIBUTE: Final[int] = 0x40000000
 """Attribute consists of an array of values."""
 
 
@@ -343,7 +346,7 @@ class Attribute(IntEnum):
 
     _VENDOR_DEFINED = 0x80000000
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Attribute.%s>" % self.name
 
 

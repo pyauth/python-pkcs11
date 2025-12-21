@@ -71,6 +71,9 @@ archs = ["universal2"]
 [tool.setuptools.packages.find]
 include = ["pkcs11*"]
 
+[tool.setuptools.package-data]
+pkcs11 = ["py.typed"]
+
 [tool.coverage.run]
 plugins = ["Cython.Coverage"]
 
@@ -106,6 +109,7 @@ docs = [
 ]
 lint = [
     "ruff>=0.8.3",
+    "ty>=0.0.5",
 ]
 release = [
     "setuptools>=80.8",

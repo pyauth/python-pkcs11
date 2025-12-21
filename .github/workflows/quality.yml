@@ -31,3 +31,9 @@ jobs:
 
       - name: ruff check
         run: uv run ruff check --diff .
+
+      - name: Install project dependencies for type checking
+        run: uv pip install asn1crypto
+
+      - name: ty type check
+        run: uv run ty check pkcs11/
