@@ -3,6 +3,8 @@ PKCS#11 return codes are exposed as Python exceptions inheriting from
 :class:`PKCS11Error`.
 """
 
+from __future__ import annotations
+
 
 class PKCS11Error(RuntimeError):
     """

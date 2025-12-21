@@ -1,36 +1,46 @@
-from datetime import datetime
-from struct import Struct
+from __future__ import annotations
 
-from pkcs11.constants import (
-    Attribute,
-    CertificateType,
-    MechanismFlag,
-    ObjectClass,
-)
+from datetime import datetime
+from enum import IntEnum
+from struct import Struct
+from typing import Any, Callable, Final
+
+from pkcs11.constants import Attribute, CertificateType, MechanismFlag, ObjectClass
 from pkcs11.mechanisms import KeyType, Mechanism
 
+# Type aliases for pack/unpack function pairs
+PackFunc = Callable[[Any], bytes]
+UnpackFunc = Callable[[bytes], Any]
+Handler = tuple[PackFunc, UnpackFunc]
+
 # (Pack Function, Unpack Function) functions
-handle_bool = (Struct("?").pack, lambda v: False if len(v) == 0 else Struct("?").unpack(v)[0])
-handle_ulong = (Struct("L").pack, lambda v: Struct("L").unpack(v)[0])
-handle_str = (lambda s: s.encode("utf-8"), lambda b: b.decode("utf-8"))
-handle_date = (
+_bool_struct = Struct("?")
+_ulong_struct = Struct("L")
+
+handle_bool: Handler = (
+    _bool_struct.pack,
+    lambda v: False if len(v) == 0 else _bool_struct.unpack(v)[0],
+)
+handle_ulong: Handler = (_ulong_struct.pack, lambda v: _ulong_struct.unpack(v)[0])
+handle_str: Handler = (lambda s: s.encode("utf-8"), lambda b: b.decode("utf-8"))
+handle_date: Handler = (
     lambda s: s.strftime("%Y%m%d").encode("ascii"),
     lambda s: datetime.strptime(s.decode("ascii"), "%Y%m%d").date(),
 )
-handle_bytes = (bytes, bytes)
+handle_bytes: Handler = (bytes, bytes)
 # The PKCS#11 biginteger type is an array of bytes in network byte order.
 # If you have an int type, wrap it in biginteger()
-handle_biginteger = handle_bytes
+handle_biginteger: Handler = handle_bytes
 
 
-def _enum(type_):
+def _enum(type_: type[IntEnum]) -> Handler:
     """Factory to pack/unpack ints into IntEnums."""
     pack, unpack = handle_ulong
 
     return (lambda v: pack(int(v)), lambda v: type_(unpack(v)))
 
 
-ATTRIBUTE_TYPES = {
+ATTRIBUTE_TYPES: dict[Attribute, Handler] = {
     Attribute.ALWAYS_AUTHENTICATE: handle_bool,
     Attribute.ALWAYS_SENSITIVE: handle_bool,
     Attribute.APPLICATION: handle_str,
@@ -96,7 +106,7 @@ ATTRIBUTE_TYPES = {
 Map of attributes to (serialize, deserialize) functions.
 """
 
-ALL_CAPABILITIES = (
+ALL_CAPABILITIES: Final[tuple[Attribute, ...]] = (
     Attribute.ENCRYPT,
     Attribute.DECRYPT,
     Attribute.WRAP,
@@ -107,7 +117,12 @@ ALL_CAPABILITIES = (
 )
 
 
-def _apply_common(template, id_, label, store):
+def _apply_common(
+    template: dict[Attribute, Any],
+    id_: bytes | None,
+    label: str | None,
+    store: bool,
+) -> None:
     if id_:
         template[Attribute.ID] = id_
     if label:
@@ -115,12 +130,16 @@ def _apply_common(template, id_, label, store):
     template[Attribute.TOKEN] = bool(store)
 
 
-def _apply_capabilities(template, possible_capas, capabilities):
+def _apply_capabilities(
+    template: dict[Attribute, Any],
+    possible_capas: tuple[Attribute, ...],
+    capabilities: MechanismFlag | int,
+) -> None:
     for attr in possible_capas:
         template[attr] = _capa_attr_to_mechanism_flag[attr] & capabilities
 
 
-_capa_attr_to_mechanism_flag = {
+_capa_attr_to_mechanism_flag: Final[dict[Attribute, MechanismFlag]] = {
     Attribute.ENCRYPT: MechanismFlag.ENCRYPT,
     Attribute.DECRYPT: MechanismFlag.DECRYPT,
     Attribute.WRAP: MechanismFlag.WRAP,
@@ -136,7 +155,12 @@ class AttributeMapper:
     Class mapping PKCS#11 attributes to and from Python values.
     """
 
-    def __init__(self):
+    attribute_types: dict[Attribute, Handler]
+    default_secret_key_template: dict[Attribute, Any]
+    default_public_key_template: dict[Attribute, Any]
+    default_private_key_template: dict[Attribute, Any]
+
+    def __init__(self) -> None:
         self.attribute_types = dict(ATTRIBUTE_TYPES)
         self.default_secret_key_template = {
             Attribute.CLASS: ObjectClass.SECRET_KEY,
@@ -158,21 +182,21 @@ class AttributeMapper:
             Attribute.SENSITIVE: True,
         }
 
-    def register_handler(self, key, pack, unpack):
+    def register_handler(self, key: Attribute, pack: PackFunc, unpack: UnpackFunc) -> None:
         self.attribute_types[key] = (pack, unpack)
 
-    def _handler(self, key):
+    def _handler(self, key: Attribute) -> Handler:
         try:
             return self.attribute_types[key]
         except KeyError as e:
             raise NotImplementedError(f"Can't handle attribute type {hex(key)}.") from e
 
-    def pack_attribute(self, key, value):
+    def pack_attribute(self, key: Attribute, value: Any) -> bytes:
         """Pack a Attribute value into a bytes array."""
         pack, _ = self._handler(key)
         return pack(value)
 
-    def unpack_attributes(self, key, value):
+    def unpack_attributes(self, key: Attribute, value: bytes) -> Any:
         """Unpack a Attribute bytes array into a Python value."""
         _, unpack = self._handler(key)
         return unpack(value)
@@ -180,11 +204,11 @@ class AttributeMapper:
     def public_key_template(
         self,
         *,
-        capabilities,
-        id_,
-        label,
-        store,
-    ):
+        capabilities: MechanismFlag | int,
+        id_: bytes | None,
+        label: str | None,
+        store: bool,
+    ) -> dict[Attribute, Any]:
         template = self.default_public_key_template
         _apply_capabilities(
             template, (Attribute.ENCRYPT, Attribute.WRAP, Attribute.VERIFY), capabilities
@@ -195,11 +219,11 @@ class AttributeMapper:
     def private_key_template(
         self,
         *,
-        capabilities,
-        id_,
-        label,
-        store,
-    ):
+        capabilities: MechanismFlag | int,
+        id_: bytes | None,
+        label: str | None,
+        store: bool,
+    ) -> dict[Attribute, Any]:
         template = self.default_private_key_template
         _apply_capabilities(
             template,
@@ -212,11 +236,11 @@ class AttributeMapper:
     def secret_key_template(
         self,
         *,
-        capabilities,
-        id_,
-        label,
-        store,
-    ):
+        capabilities: MechanismFlag | int,
+        id_: bytes | None,
+        label: str | None,
+        store: bool,
+    ) -> dict[Attribute, Any]:
         return self.generic_key_template(
             self.default_secret_key_template,
             capabilities=capabilities,
@@ -227,13 +251,13 @@ class AttributeMapper:
 
     def generic_key_template(
         self,
-        base_template,
+        base_template: dict[Attribute, Any],
         *,
-        capabilities,
-        id_,
-        label,
-        store,
-    ):
+        capabilities: MechanismFlag | int,
+        id_: bytes | None,
+        label: str | None,
+        store: bool,
+    ) -> dict[Attribute, Any]:
         template = dict(base_template)
         _apply_capabilities(template, ALL_CAPABILITIES, capabilities)
         _apply_common(template, id_, label, store)

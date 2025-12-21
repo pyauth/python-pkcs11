@@ -1,2 +1,3 @@
 graft extern/
 include pkcs11/*.pxd
+include pkcs11/py.typed

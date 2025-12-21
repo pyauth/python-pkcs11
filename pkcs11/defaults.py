@@ -5,12 +5,14 @@ None of this is provided for in PKCS#11 and its correctness should not be
 assumed.
 """
 
-from pkcs11.constants import (
-    MechanismFlag,
-)
+from __future__ import annotations
+
+from typing import Final
+
+from pkcs11.constants import MechanismFlag
 from pkcs11.mechanisms import MGF, KeyType, Mechanism
 
-DEFAULT_GENERATE_MECHANISMS = {
+DEFAULT_GENERATE_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
     KeyType.AES: Mechanism.AES_KEY_GEN,
     KeyType.DES2: Mechanism.DES2_KEY_GEN,
     KeyType.DES3: Mechanism.DES3_KEY_GEN,
@@ -26,11 +28,11 @@ DEFAULT_GENERATE_MECHANISMS = {
 Default mechanisms for generating keys.
 """
 
-_ENCRYPTION = MechanismFlag.ENCRYPT | MechanismFlag.DECRYPT
-_SIGNING = MechanismFlag.SIGN | MechanismFlag.VERIFY
-_WRAPPING = MechanismFlag.WRAP | MechanismFlag.UNWRAP
+_ENCRYPTION: Final[MechanismFlag] = MechanismFlag.ENCRYPT | MechanismFlag.DECRYPT
+_SIGNING: Final[MechanismFlag] = MechanismFlag.SIGN | MechanismFlag.VERIFY
+_WRAPPING: Final[MechanismFlag] = MechanismFlag.WRAP | MechanismFlag.UNWRAP
 
-DEFAULT_KEY_CAPABILITIES = {
+DEFAULT_KEY_CAPABILITIES: Final[dict[KeyType, MechanismFlag | int]] = {
     KeyType.AES: _ENCRYPTION | _SIGNING | _WRAPPING,
     KeyType.DES2: _ENCRYPTION | _SIGNING | _WRAPPING,
     KeyType.DES3: _ENCRYPTION | _SIGNING | _WRAPPING,
@@ -45,7 +47,7 @@ DEFAULT_KEY_CAPABILITIES = {
 Default capabilities for generating keys.
 """
 
-DEFAULT_ENCRYPT_MECHANISMS = {
+DEFAULT_ENCRYPT_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
     KeyType.AES: Mechanism.AES_CBC_PAD,
     KeyType.DES2: Mechanism.DES3_CBC_PAD,
     KeyType.DES3: Mechanism.DES3_CBC_PAD,
@@ -55,7 +57,7 @@ DEFAULT_ENCRYPT_MECHANISMS = {
 Default mechanisms for encrypt/decrypt.
 """
 
-DEFAULT_SIGN_MECHANISMS = {
+DEFAULT_SIGN_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
     KeyType.AES: Mechanism.AES_MAC,
     KeyType.DES2: Mechanism.DES3_MAC,
     KeyType.DES3: Mechanism.DES3_MAC,
@@ -68,7 +70,7 @@ DEFAULT_SIGN_MECHANISMS = {
 Default mechanisms for sign/verify.
 """
 
-DEFAULT_WRAP_MECHANISMS = {
+DEFAULT_WRAP_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
     KeyType.AES: Mechanism.AES_KEY_WRAP,
     KeyType.DES2: Mechanism.DES3_ECB,
     KeyType.DES3: Mechanism.DES3_ECB,
@@ -78,7 +80,7 @@ DEFAULT_WRAP_MECHANISMS = {
 Default mechanism for wrap/unwrap.
 """
 
-DEFAULT_DERIVE_MECHANISMS = {
+DEFAULT_DERIVE_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
     KeyType.DH: Mechanism.DH_PKCS_DERIVE,
     KeyType.EC: Mechanism.ECDH1_DERIVE,
     KeyType.X9_42_DH: Mechanism.X9_42_DH_DERIVE,
@@ -87,7 +89,7 @@ DEFAULT_DERIVE_MECHANISMS = {
 Default mechanisms for key derivation
 """
 
-DEFAULT_PARAM_GENERATE_MECHANISMS = {
+DEFAULT_PARAM_GENERATE_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
     KeyType.DH: Mechanism.DH_PKCS_PARAMETER_GEN,
     KeyType.DSA: Mechanism.DSA_PARAMETER_GEN,
     KeyType.X9_42_DH: Mechanism.X9_42_DH_PARAMETER_GEN,
@@ -97,7 +99,9 @@ Default mechanisms for domain parameter generation
 """
 
 
-DEFAULT_MECHANISM_PARAMS = {
+DEFAULT_MECHANISM_PARAMS: Final[
+    dict[Mechanism, tuple[Mechanism, MGF, None] | tuple[Mechanism, MGF, int]]
+] = {
     Mechanism.RSA_PKCS_OAEP: (Mechanism.SHA_1, MGF.SHA1, None),
     Mechanism.RSA_PKCS_PSS: (Mechanism.SHA_1, MGF.SHA1, 20),
 }

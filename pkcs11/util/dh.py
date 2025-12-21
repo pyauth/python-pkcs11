@@ -2,14 +2,21 @@
 Key handling utilities for Diffie-Hellman keys.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from asn1crypto.algos import DHParameters
 from asn1crypto.core import Integer
 
 from pkcs11.constants import Attribute
 from pkcs11.util import biginteger
 
+if TYPE_CHECKING:
+    from pkcs11.types import DomainParameters, PublicKey
 
-def decode_dh_domain_parameters(der):
+
+def decode_dh_domain_parameters(der: bytes) -> dict[Attribute, Any]:
     """
     Decode DER-encoded Diffie-Hellman domain parameters.
 
@@ -25,7 +32,7 @@ def decode_dh_domain_parameters(der):
     }
 
 
-def encode_dh_domain_parameters(obj):
+def encode_dh_domain_parameters(obj: DomainParameters) -> bytes:
     """
     Encode DH domain parameters into DER-encoded format.
 
@@ -45,7 +52,7 @@ def encode_dh_domain_parameters(obj):
     return asn1.dump()
 
 
-def encode_dh_public_key(key):
+def encode_dh_public_key(key: PublicKey) -> bytes:
     """
     Encode DH public key into RFC 3279 DER-encoded format.
 
@@ -58,7 +65,7 @@ def encode_dh_public_key(key):
     return asn1.dump()
 
 
-def decode_dh_public_key(der):
+def decode_dh_public_key(der: bytes) -> bytes:
     """
     Decode a DH public key from RFC 3279 DER-encoded format.
 

@@ -2,16 +2,24 @@
 :mod:`pkcs11` defines a high-level, "Pythonic" interface to PKCS#11.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from pkcs11.constants import *  # noqa: F403
 from pkcs11.exceptions import *  # noqa: F403
 from pkcs11.mechanisms import *  # noqa: F403
 from pkcs11.types import *  # noqa: F403
 from pkcs11.util import dh, dsa, ec, rsa, x509  # noqa: F401
 
-_loaded = {}
+if TYPE_CHECKING:
+    from pkcs11._pkcs11 import lib as _lib_type
 
 
-def lib(so):
+_loaded: dict[str, Any] = {}
+
+
+def lib(so: str) -> _lib_type:
     """
     Wrap the main library call coming from Cython with a preemptive
     dynamic loading.
@@ -34,7 +42,7 @@ def lib(so):
     return _lib
 
 
-def unload(so):
+def unload(so: str) -> None:
     global _loaded
     try:
         loaded_lib = _loaded[so]
