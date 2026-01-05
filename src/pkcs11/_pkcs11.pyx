@@ -1946,7 +1946,7 @@ _CLASS_MAP = {
     ObjectClass.CERTIFICATE: Certificate,
 }
 
-cdef extern from "../extern/load_module.c":
+cdef extern from "../../extern/load_module.c":
     ctypedef struct P11_HANDLE:
         void *get_function_list_ptr
 
