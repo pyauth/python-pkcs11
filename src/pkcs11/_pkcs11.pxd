@@ -6,7 +6,7 @@ from cython.view cimport array
 
 from pkcs11.exceptions import *
 
-cdef extern from '../extern/cryptoki.h':
+cdef extern from '../../extern/cryptoki.h':
 
     ctypedef unsigned char CK_BYTE
     ctypedef CK_BYTE CK_BBOOL
