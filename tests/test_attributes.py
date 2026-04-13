@@ -63,4 +63,3 @@ class AttributeMapperTests(unittest.TestCase):
         self.assertEqual(ec_template[Attribute.ID], b"ec")
         self.assertEqual(ec_template[Attribute.LABEL], "ec")
         self.assertFalse(ec_template[Attribute.TOKEN])
-
