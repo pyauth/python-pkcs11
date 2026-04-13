@@ -209,7 +209,7 @@ class AttributeMapper:
         label: str | None,
         store: bool,
     ) -> dict[Attribute, Any]:
-        template = self.default_public_key_template
+        template = dict(self.default_public_key_template)
         _apply_capabilities(
             template, (Attribute.ENCRYPT, Attribute.WRAP, Attribute.VERIFY), capabilities
         )
@@ -224,7 +224,7 @@ class AttributeMapper:
         label: str | None,
         store: bool,
     ) -> dict[Attribute, Any]:
-        template = self.default_private_key_template
+        template = dict(self.default_private_key_template)
         _apply_capabilities(
             template,
             (Attribute.DECRYPT, Attribute.UNWRAP, Attribute.SIGN, Attribute.DERIVE),
