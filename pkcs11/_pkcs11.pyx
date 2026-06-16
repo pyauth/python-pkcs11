@@ -892,14 +892,18 @@ cdef class Session(HasFuncList, types.Session):
 
     @property
     def user_type(self):
-        """User type for this session (:class:`pkcs11.constants.UserType`)."""
-        return UserType(self._user_type)
+        """User type for this session (:class:`pkcs11.constants.UserType` or :class:`int` for vendor-specific values)."""
+        try:
+            return UserType(self._user_type)
+        except ValueError:
+            # Return raw value for vendor-specific user types
+            return self._user_type
 
     def close(self):
         cdef CK_SESSION_HANDLE handle = self.handle
         cdef CK_RV retval
 
-        if self.user_type != UserType.NOBODY:
+        if self._user_type != CKU_USER_NOBODY:
             with nogil:
                 retval = self.funclist.C_Logout(handle)
             assertRV(retval)
