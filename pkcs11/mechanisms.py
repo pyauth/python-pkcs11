@@ -106,6 +106,8 @@ class KeyType(IntEnum):
 
     # from version 3.0
     EC_EDWARDS = 0x00000040
+    # from version 3.2
+    ML_DSA = 0x0000004A
 
     _VENDOR_DEFINED = 0x80000000
 
@@ -734,6 +736,10 @@ class Mechanism(IntEnum):
     EDDSA = 0x00001057
     EC_EDWARDS_KEY_PAIR_GEN = 0x00001055
 
+    # ML-DSA (v3.2)
+    ML_DSA_KEY_PAIR_GEN = 0x0000001C
+    ML_DSA = 0x0000001D
+
     SHA3_256 = 0x000002B0
     SHA3_256_HMAC = 0x000002B1
     SHA3_256_HMAC_GENERAL = 0x000002B2
@@ -798,6 +804,17 @@ class MGF(IntEnum):
 
     def __repr__(self) -> str:
         return "<MGF.%s>" % self.name
+
+
+class MLDSAParameterSet(IntEnum):
+    """ML-DSA parameter sets as defined in FIPS 204."""
+
+    ML_DSA_44 = 0x00000001
+    ML_DSA_65 = 0x00000002
+    ML_DSA_87 = 0x00000003
+
+    def __repr__(self) -> str:
+        return "<MLDSAParameterSet.%s>" % self.name
 
 
 class GCMParams:

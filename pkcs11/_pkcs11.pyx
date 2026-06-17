@@ -1076,6 +1076,13 @@ cdef class Session(HasFuncList, types.Session):
                 Attribute.MODULUS_BITS: key_length,
             })
 
+        elif key_type is KeyType.ML_DSA:
+            if public_template is None or Attribute.PARAMETER_SET not in public_template:
+                raise ArgumentsBad(
+                    "ML-DSA key generation requires `Attribute.PARAMETER_SET` "
+                    "in `public_template` (e.g. MLDSAParameterSet.ML_DSA_65)."
+                )
+
         public_attrs = self.make_attribute_list(merge_templates(public_template_, public_template))
 
         private_template_ = self.attribute_mapper.private_key_template(
