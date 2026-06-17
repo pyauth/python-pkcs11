@@ -68,6 +68,7 @@ ATTRIBUTE_TYPES: dict[Attribute, Handler] = {
     Attribute.LOCAL: handle_bool,
     Attribute.MODIFIABLE: handle_bool,
     Attribute.COPYABLE: handle_bool,
+    Attribute.DESTROYABLE: handle_bool,
     Attribute.MODULUS: handle_biginteger,
     Attribute.MODULUS_BITS: handle_ulong,
     Attribute.NEVER_EXTRACTABLE: handle_bool,

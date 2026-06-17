@@ -265,6 +265,8 @@ class Attribute(IntEnum):
     """Object can be modified (:class:`bool`)."""
     COPYABLE = 0x00000171
     """Object can be copied (:class:`bool`)."""
+    DESTROYABLE = 0x00000172
+    """Object can be destroyed (:class:`bool`)."""
 
     EC_PARAMS = 0x00000180
     """
