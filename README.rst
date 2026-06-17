@@ -323,6 +323,7 @@ PKCS#11 versions:
 * 2.20
 * 2.40
 * 3.1
+* 3.2
 
 Feel free to send pull requests for any functionality that's not exposed. The
 code is designed to be readable and expose the PKCS #11 spec in a
