@@ -8,7 +8,7 @@ import pkcs11
 from pkcs11 import MGF, Attribute, KeyType, Mechanism, MechanismFlag, ObjectClass
 from pkcs11.util.rsa import decode_rsa_private_key, decode_rsa_public_key
 
-from . import FIXME, TOKEN_PIN, TestCase, requires
+from . import FIXME, TOKEN_PIN, Not, TestCase, requires
 
 
 class RSATests(TestCase):
@@ -146,6 +146,7 @@ class RSATests(TestCase):
         self.assertTrue(self.public.verify(data, signature))
 
     @requires(Mechanism.SHA512_RSA_PKCS)
+    @Not.opencryptoki  # see https://github.com/pyauth/python-pkcs11/issues/233
     def test_verify_stream_interrupt_releases_operation(self):
         data = (
             b"I" * 16,
