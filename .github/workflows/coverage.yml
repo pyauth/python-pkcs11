@@ -15,7 +15,7 @@ jobs:
   # At the time of writing, the latest version of Cython's line tracing
   # seems to lead to segfaults in Python 3.13 -> TODO: investigate
   pytest-coverage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       matrix:
         pkcs11-platform:
@@ -53,7 +53,7 @@ jobs:
           name: coverage-${{ strategy.job-index }}
           path: "*-coverage.xml"
   pytest-coverage-multilib:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Acquire sources
         uses: actions/checkout@v6

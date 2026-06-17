@@ -26,7 +26,19 @@ runs:
       shell: bash
       run: |
         if [[ "${OS_NAME:0:6}" == 'ubuntu' ]]; then
-          sudo apt-get install softhsm2
+          openssl version
+          # Build SoftHSM2 devel from source so that ML-DSA autodetects via
+          # the OpenSSL 3.5+ already present on ubuntu-26.04
+          # TODO pin this to an actual ref once there's a release with ML-DSA support
+          sudo apt-get install -y libssl-dev
+          git clone --depth 1 https://github.com/softhsm/SoftHSMv2
+          cd SoftHSMv2
+          ./autogen.sh
+          ./configure --prefix=/usr --disable-gost --enable-mldsa
+          make -j"$(nproc)"
+          sudo make install
+          sudo ldconfig
+          cd ..
           mkdir softhsm_tokens
           echo "directories.tokendir = $(pwd)/softhsm_tokens" > /tmp/softhsm2.conf
           echo "SOFTHSM2_CONF=/tmp/softhsm2.conf" >> "$GITHUB_ENV"
