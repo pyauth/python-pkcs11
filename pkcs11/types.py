@@ -376,7 +376,7 @@ class Session(IdentifiedBy):
             pass
         # The caller expects a Key, but get_objects returns Object
         # This is a runtime assumption that the returned object is a Key
-        return obj  # type: ignore[return-value]
+        return obj  # type: ignore
 
     def get_objects(self, attrs: dict[Attribute, Any] | None = None) -> Iterator[Object]:
         """
