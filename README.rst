@@ -315,7 +315,7 @@ Tested Compatibility
 
 Python version:
 
-* >= 3.9
+* >= 3.10
 
 PKCS#11 versions:
 
