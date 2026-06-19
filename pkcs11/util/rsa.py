@@ -29,7 +29,9 @@ def decode_rsa_private_key(
     :param MechanismFlag capabilities: Optional key capabilities
     :rtype: dict(Attribute,*)
     """
-    caps: MechanismFlag | int = DEFAULT_KEY_CAPABILITIES[KeyType.RSA] if capabilities is None else capabilities
+    caps: MechanismFlag | int = (
+        DEFAULT_KEY_CAPABILITIES[KeyType.RSA] if capabilities is None else capabilities
+    )
 
     key = RSAPrivateKey.load(der)
 
@@ -62,7 +64,9 @@ def decode_rsa_public_key(
     :param MechanismFlag capabilities: Optional key capabilities
     :rtype: dict(Attribute,*)
     """
-    caps: MechanismFlag | int = DEFAULT_KEY_CAPABILITIES[KeyType.RSA] if capabilities is None else capabilities
+    caps: MechanismFlag | int = (
+        DEFAULT_KEY_CAPABILITIES[KeyType.RSA] if capabilities is None else capabilities
+    )
 
     key = RSAPublicKey.load(der)
     return {
