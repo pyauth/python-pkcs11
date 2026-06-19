@@ -12,7 +12,8 @@ typedef void *LIB_HANDLE;
 #ifndef P11_HANDLE
 typedef struct P11_HANDLE {
     LIB_HANDLE lib_handle;
-    void * get_function_list_ptr;
+    void *get_function_list_ptr;
+    void *get_interface_ptr;  /* C_GetInterface direct export; NULL for v2.0 libs */
 } P11_HANDLE;
 #endif
 

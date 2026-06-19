@@ -38,6 +38,7 @@ static P11_HANDLE* p11_open(PyObject *path_str) {
              result = (P11_HANDLE*) PyMem_Malloc(sizeof(P11_HANDLE));
              result->lib_handle = handle;
              result->get_function_list_ptr = ptr;
+             result->get_interface_ptr = GetProcAddress(handle, "C_GetInterface");
         }
     }
     return result;
@@ -85,6 +86,7 @@ static P11_HANDLE* p11_open(PyObject *path_str) {
              result = (P11_HANDLE*) PyMem_Malloc(sizeof(P11_HANDLE));
              result->lib_handle = handle;
              result->get_function_list_ptr = ptr;
+             result->get_interface_ptr = dlsym(handle, "C_GetInterface");
         }
     }
     return result;

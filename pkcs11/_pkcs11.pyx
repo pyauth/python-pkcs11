@@ -35,9 +35,13 @@ cdef class lib(HasFuncList)
 
 cdef class HasFuncList:
     cdef CK_FUNCTION_LIST *funclist
+    cdef CK_FUNCTION_LIST_3_0 *funclist30
+    cdef CK_FUNCTION_LIST_3_2 *funclist32
 
     def __cinit__(self, *args, **kwargs):
         self.funclist = NULL
+        self.funclist30 = NULL
+        self.funclist32 = NULL
 
 
 cdef assertRV(rv) with gil:
@@ -451,6 +455,8 @@ cdef class Token(HasFuncList, types.Token):
 
         cdef Token token = Token.__new__(Token)
         token.funclist = slot.funclist
+        token.funclist30 = slot.funclist30
+        token.funclist32 = slot.funclist32
         token.slot = slot
         token.label = _CK_UTF8CHAR_to_str(label)
         token.serial = serial_number.rstrip()
@@ -870,6 +876,8 @@ cdef class Session(HasFuncList, types.Session):
         cdef Session session = Session.__new__(Session)
 
         session.funclist = token.funclist
+        session.funclist30 = token.funclist30
+        session.funclist32 = token.funclist32
         session.token = token
 
         session.handle = handle
@@ -1960,6 +1968,7 @@ _CLASS_MAP = {
 cdef extern from "../extern/load_module.c":
     ctypedef struct P11_HANDLE:
         void *get_function_list_ptr
+        void *get_interface_ptr
 
     object p11_error()
     P11_HANDLE* p11_open(object path_str)
@@ -2063,6 +2072,22 @@ cdef class lib(HasFuncList):
         self._cryptoki_version = info.cryptokiVersion
         self._library_version = info.libraryVersion
 
+        cdef C_GetInterface_ptr get_interface
+        cdef CK_INTERFACE *iface
+        cdef CK_VERSION ver
+        if self._p11_handle.get_interface_ptr != NULL:
+            get_interface = <C_GetInterface_ptr>self._p11_handle.get_interface_ptr
+            ver.major = 3
+            ver.minor = 0
+            retval = get_interface(<CK_UTF8CHAR*>"PKCS 11", &ver, &iface, 0)
+            if retval == CKR_OK and iface != NULL:
+                self.funclist30 = <CK_FUNCTION_LIST_3_0*>iface.pFunctionList
+            ver.major = 3
+            ver.minor = 2
+            retval = get_interface(<CK_UTF8CHAR*>"PKCS 11", &ver, &iface, 0)
+            if retval == CKR_OK and iface != NULL:
+                self.funclist32 = <CK_FUNCTION_LIST_3_2*>iface.pFunctionList
+
     @property
     def library_version(self):
         """Hardware version (:class:`tuple`)."""
@@ -2117,9 +2142,10 @@ cdef class lib(HasFuncList):
                 retval = self.funclist.C_GetSlotInfo(slot_id, &info)
             assertRV(retval)
 
-            slots.append(
-                Slot.make(self.funclist, slot_id, info, self._cryptoki_version)
-            )
+            slot = Slot.make(self.funclist, slot_id, info, self._cryptoki_version)
+            slot.funclist30 = self.funclist30
+            slot.funclist32 = self.funclist32
+            slots.append(slot)
 
         return slots
 

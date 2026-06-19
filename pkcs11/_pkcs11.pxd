@@ -280,6 +280,11 @@ cdef extern from '../extern/cryptoki.h':
        CK_ULONG ulContextDataLen
        CK_BYTE *pContextData
 
+    ctypedef struct CK_INTERFACE:
+        CK_UTF8CHAR *pInterfaceName
+        void *pFunctionList
+        CK_FLAGS flags
+
     cdef struct CK_FUNCTION_LIST:
         CK_VERSION version
         ## pointers to library functions are stored here
@@ -600,9 +605,169 @@ cdef extern from '../extern/cryptoki.h':
                                  CK_SLOT_ID *slot,
                                  void *pRserved) nogil
 
+
+    cdef struct CK_FUNCTION_LIST_3_0:
+        CK_RV C_GetInterfaceList(CK_INTERFACE *pInterfacesList,
+                                 CK_ULONG *pulCount) nogil
+
+        CK_RV C_GetInterface(CK_UTF8CHAR *pInterfaceName,
+                             CK_VERSION *pVersion,
+                             CK_INTERFACE **ppInterface,
+                             CK_FLAGS flags) nogil
+
+        CK_RV C_LoginUser(CK_SESSION_HANDLE hSession,
+                          CK_USER_TYPE userType,
+                          CK_UTF8CHAR *pPin,
+                          CK_ULONG ulPinLen,
+                          CK_UTF8CHAR *pUsername,
+                          CK_ULONG ulUsernameLen) nogil
+
+        CK_RV C_SessionCancel(CK_SESSION_HANDLE hSession,
+                              CK_FLAGS flags) nogil
+
+        CK_RV C_MessageEncryptInit(CK_SESSION_HANDLE hSession,
+                                   CK_MECHANISM *pMechanism,
+                                   CK_OBJECT_HANDLE hKey) nogil
+
+        CK_RV C_EncryptMessage(CK_SESSION_HANDLE hSession,
+                               void *pParameter,
+                               CK_ULONG ulParameterLen,
+                               CK_BYTE *pAssociatedData,
+                               CK_ULONG ulAssociatedDataLen,
+                               CK_BYTE *pPlaintext,
+                               CK_ULONG ulPlaintextLen,
+                               CK_BYTE *pCiphertext,
+                               CK_ULONG *pulCiphertextLen) nogil
+
+        CK_RV C_EncryptMessageBegin(CK_SESSION_HANDLE hSession,
+                                    void *pParameter,
+                                    CK_ULONG ulParameterLen,
+                                    CK_BYTE *pAssociatedData,
+                                    CK_ULONG ulAssociatedDataLen) nogil
+
+        CK_RV C_EncryptMessageNext(CK_SESSION_HANDLE hSession,
+                                   void *pParameter,
+                                   CK_ULONG ulParameterLen,
+                                   CK_BYTE *pPlaintextPart,
+                                   CK_ULONG ulPlaintextPartLen,
+                                   CK_BYTE *pCiphertextPart,
+                                   CK_ULONG *pulCiphertextPartLen,
+                                   CK_FLAGS flags) nogil
+
+        CK_RV C_MessageEncryptFinal(CK_SESSION_HANDLE hSession) nogil
+
+        CK_RV C_MessageDecryptInit(CK_SESSION_HANDLE hSession,
+                                   CK_MECHANISM *pMechanism,
+                                   CK_OBJECT_HANDLE hKey) nogil
+
+        CK_RV C_DecryptMessage(CK_SESSION_HANDLE hSession,
+                               void *pParameter,
+                               CK_ULONG ulParameterLen,
+                               CK_BYTE *pAssociatedData,
+                               CK_ULONG ulAssociatedDataLen,
+                               CK_BYTE *pCiphertext,
+                               CK_ULONG ulCiphertextLen,
+                               CK_BYTE *pPlaintext,
+                               CK_ULONG *pulPlaintextLen) nogil
+
+        CK_RV C_DecryptMessageBegin(CK_SESSION_HANDLE hSession,
+                                    void *pParameter,
+                                    CK_ULONG ulParameterLen,
+                                    CK_BYTE *pAssociatedData,
+                                    CK_ULONG ulAssociatedDataLen) nogil
+
+        CK_RV C_DecryptMessageNext(CK_SESSION_HANDLE hSession,
+                                   void *pParameter,
+                                   CK_ULONG ulParameterLen,
+                                   CK_BYTE *pCiphertextPart,
+                                   CK_ULONG ulCiphertextPartLen,
+
+                                   CK_ULONG *pulPlaintextPartLen,
+                                   CK_FLAGS flags) nogil
+
+        CK_RV C_MessageDecryptFinal(CK_SESSION_HANDLE hSession) nogil
+
+        CK_RV C_MessageSignInit(CK_SESSION_HANDLE hSession,
+                                CK_MECHANISM *pMechanism,
+                                CK_OBJECT_HANDLE hKey) nogil
+
+        CK_RV C_SignMessage(CK_SESSION_HANDLE hSession,
+                            void *pParameter,
+                            CK_ULONG ulParameterLen,
+                            CK_BYTE *pData,
+                            CK_ULONG ulDataLen,
+                            CK_BYTE *pSignature,
+                            CK_ULONG *pulSignatureLen) nogil
+
+        CK_RV C_SignMessageBegin(CK_SESSION_HANDLE hSession,
+                                 void *pParameter,
+                                 CK_ULONG ulParameterLen) nogil
+
+        CK_RV C_SignMessageNext(CK_SESSION_HANDLE hSession,
+                                void *pParameter,
+                                CK_ULONG ulParameterLen,
+                                CK_BYTE *pData,
+                                CK_ULONG ulDataLen,
+                                CK_BYTE *pSignature,
+                                CK_ULONG *pulSignatureLen) nogil
+
+        CK_RV C_MessageSignFinal(CK_SESSION_HANDLE hSession) nogil
+
+        CK_RV C_MessageVerifyInit(CK_SESSION_HANDLE hSession,
+                                  CK_MECHANISM *pMechanism,
+                                  CK_OBJECT_HANDLE hKey) nogil
+
+        CK_RV C_VerifyMessage(CK_SESSION_HANDLE hSession,
+                              void *pParameter,
+                              CK_ULONG ulParameterLen,
+                              CK_BYTE *pData,
+                              CK_ULONG ulDataLen,
+                              CK_BYTE *pSignature,
+                              CK_ULONG ulSignatureLen) nogil
+
+        CK_RV C_VerifyMessageBegin(CK_SESSION_HANDLE hSession,
+                                   void *pParameter,
+                                   CK_ULONG ulParameterLen) nogil
+
+        CK_RV C_VerifyMessageNext(CK_SESSION_HANDLE hSession,
+                                  void *pParameter,
+                                  CK_ULONG ulParameterLen,
+                                  CK_BYTE *pData,
+                                  CK_ULONG ulDataLen,
+                                  CK_BYTE *pSignature,
+                                  CK_ULONG ulSignatureLen) nogil
+
+        CK_RV C_MessageVerifyFinal(CK_SESSION_HANDLE hSession) nogil
+
+
+    cdef struct CK_FUNCTION_LIST_3_2:
+        CK_RV C_EncapsulateKey(CK_SESSION_HANDLE session,
+                               CK_MECHANISM *mechanism,
+                               CK_OBJECT_HANDLE public_key,
+                               CK_ATTRIBUTE *template,
+                               CK_ULONG count,
+                               CK_BYTE *ciphertext,
+                               CK_ULONG *ciphertext_len,
+                               CK_OBJECT_HANDLE *key) nogil
+        CK_RV C_DecapsulateKey(CK_SESSION_HANDLE session,
+                               CK_MECHANISM *mechanism,
+                               CK_OBJECT_HANDLE private_key,
+                               CK_ATTRIBUTE *template,
+                               CK_ULONG count,
+                               CK_BYTE *ciphertext,
+                               CK_ULONG ciphertext_len,
+                               CK_OBJECT_HANDLE *key) nogil
+
 # The only external API call that must be defined in a PKCS#11 library
 # All other APIs are taken from the CK_FUNCTION_LIST table
 ctypedef CK_RV (*C_GetFunctionList_ptr) (CK_FUNCTION_LIST **) nogil
+
+ctypedef CK_RV (*C_GetInterface_ptr)(
+    CK_UTF8CHAR *pInterfaceName,
+    CK_VERSION *pVersion,
+    CK_INTERFACE **ppInterface,
+    CK_FLAGS flags
+) nogil
 
 ctypedef CK_RV (*KeyOperationInit) (
         CK_SESSION_HANDLE session,
