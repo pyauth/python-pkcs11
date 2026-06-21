@@ -162,7 +162,7 @@ cdef class MechanismWithParam:
                 raise ArgumentsBad("No default mechanism for this key type. "
                                     "Please specify `mechanism`.")
 
-        if not isinstance(mechanism, Mechanism):
+        if not (isinstance(mechanism, Mechanism) or mechanism & Mechanism._VENDOR_DEFINED):
             raise ArgumentsBad("`mechanism` must be a Mechanism.")
         # Possible types of parameters we might need to allocate
         # These are used to make assigning to the object we malloc() easier
@@ -298,6 +298,12 @@ cdef class MechanismWithParam:
             aes_ctr_params.ulCounterBits = (16 - len(param.nonce)) * 8
             aes_ctr_params.cb = param.nonce + b"\x00" * (15 - len(param.nonce)) + b"\x01"
 
+        elif mechanism & Mechanism._VENDOR_DEFINED and param:
+            if not isinstance(param, bytes):
+                raise ArgumentsBad("'mechanism_param' type must be bytes")
+            self.data.pParameter = <CK_BYTE *> param
+            paramlen =  len(param)
+            
         elif param is None:
             self.data.pParameter = NULL
             paramlen = 0
