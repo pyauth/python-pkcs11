@@ -49,10 +49,12 @@ ATTRIBUTE_TYPES: dict[Attribute, Handler] = {
     Attribute.CHECK_VALUE: handle_bytes,
     Attribute.CLASS: _enum(ObjectClass),
     Attribute.COEFFICIENT: handle_biginteger,
+    Attribute.DECAPSULATE: handle_bool,
     Attribute.DECRYPT: handle_bool,
     Attribute.DERIVE: handle_bool,
     Attribute.EC_PARAMS: handle_bytes,
     Attribute.EC_POINT: handle_bytes,
+    Attribute.ENCAPSULATE: handle_bool,
     Attribute.ENCRYPT: handle_bool,
     Attribute.END_DATE: handle_date,
     Attribute.EXPONENT_1: handle_biginteger,
@@ -214,7 +216,9 @@ class AttributeMapper:
     ) -> dict[Attribute, Any]:
         template = dict(self.default_public_key_template)
         _apply_capabilities(
-            template, (Attribute.ENCRYPT, Attribute.WRAP, Attribute.VERIFY), capabilities
+            template,
+            (Attribute.ENCRYPT, Attribute.WRAP, Attribute.VERIFY),
+            capabilities,
         )
         _apply_common(template, id_, label, store)
         return template

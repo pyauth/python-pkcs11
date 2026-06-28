@@ -1072,6 +1072,9 @@ cdef class Session(HasFuncList, types.Session):
         public_template_ = self.attribute_mapper.public_key_template(
             id_=id, label=label, store=store, capabilities=capabilities,
         )
+        private_template_ = self.attribute_mapper.private_key_template(
+            id_=id, label=label, store=store, capabilities=capabilities,
+        )
 
         if key_type is KeyType.RSA:
             if key_length is None:
@@ -1091,11 +1094,16 @@ cdef class Session(HasFuncList, types.Session):
                     "in `public_template` (e.g. MLDSAParameterSet.ML_DSA_65)."
                 )
 
-        public_attrs = self.make_attribute_list(merge_templates(public_template_, public_template))
+        elif key_type is KeyType.ML_KEM:
+            if public_template is None or Attribute.PARAMETER_SET not in public_template:
+                raise ArgumentsBad(
+                    "ML-KEM key generation requires `Attribute.PARAMETER_SET` "
+                    "in `public_template` (e.g. MLKEMParameterSet.ML_KEM_768)."
+                )
+            public_template_[Attribute.ENCAPSULATE] = True
+            private_template_[Attribute.DECAPSULATE] = True
 
-        private_template_ = self.attribute_mapper.private_key_template(
-            id_=id, label=label, store=store, capabilities=capabilities,
-        )
+        public_attrs = self.make_attribute_list(merge_templates(public_template_, public_template))
         private_attrs = self.make_attribute_list(merge_templates(private_template_, private_template))
         return self.generate_keypair_from_attrs(public_attrs, private_attrs, mech)
 
@@ -1370,7 +1378,7 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
     """
     wrapper = ObjectHandleWrapper.wrap(session, handle)
 
-    cdef CK_ATTRIBUTE_TYPE[8] attr_keys = [
+    cdef CK_ATTRIBUTE_TYPE[10] attr_keys = [
         Attribute.CLASS,
         Attribute.ENCRYPT,
         Attribute.DECRYPT,
@@ -1378,13 +1386,15 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
         Attribute.VERIFY,
         Attribute.WRAP,
         Attribute.UNWRAP,
-        Attribute.DERIVE
+        Attribute.DERIVE,
+        Attribute.ENCAPSULATE,
+        Attribute.DECAPSULATE,
     ]
 
     try:
         # Determine a list of base classes to manufacture our class with
         try:
-            attributes = wrapper.get_attribute_list(&attr_keys[0], 8)
+            attributes = wrapper.get_attribute_list(&attr_keys[0], 10)
         except PKCS11Error:
             # retry fetching the flags one by one, some tokens do not implement error handling
             # on bulk fetches correctly.
@@ -1407,6 +1417,8 @@ cdef object make_object(Session session, CK_OBJECT_HANDLE handle) with gil:
                 (Attribute.WRAP, WrapMixin),
                 (Attribute.UNWRAP, UnwrapMixin),
                 (Attribute.DERIVE, DeriveMixin),
+                (Attribute.ENCAPSULATE, EncapsulateMixin),
+                (Attribute.DECAPSULATE, DecapsulateMixin),
         ):
             try:
                 if attributes.get(attribute, session.attribute_mapper):
@@ -1952,6 +1964,117 @@ class DeriveMixin(types.DeriveMixin):
 
         with nogil:
             retval = session.funclist.C_DeriveKey(session.handle, mech_data, src_key, attr_data, attr_count, &key)
+        assertRV(retval)
+
+        return make_object(session, key)
+
+
+class EncapsulateMixin(types.EncapsulateMixin):
+    """Expand EncapsulateMixin with an implementation (ML-KEM)."""
+
+    def encapsulate_key(self, key_type,
+                        key_length=None,
+                        id=None, label=None,
+                        store=False, capabilities=None,
+                        mechanism=None, mechanism_param=None,
+                        template=None):
+
+        if not isinstance(key_type, KeyType):
+            raise ArgumentsBad("`key_type` must be KeyType.")
+
+        if capabilities is None:
+            try:
+                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
+            except KeyError:
+                raise ArgumentsBad("No default capabilities for this key "
+                                   "type. Please specify `capabilities`.")
+
+        mech = MechanismWithParam(self.key_type, DEFAULT_ENCAPSULATE_MECHANISMS, mechanism, mechanism_param)
+
+        cdef Session session = self.session
+
+        if session.funclist32 == NULL:
+            raise FunctionNotSupported("C_EncapsulateKey requires a PKCS#11 v3.2+ library")
+
+        template_ = session.attribute_mapper.secret_key_template(
+            capabilities=capabilities, id_=id, label=label, store=store,
+        )
+        if key_length is not None:
+            template_[Attribute.VALUE_LEN] = key_length // 8
+        template_[Attribute.KEY_TYPE] = key_type
+        cdef AttributeList attrs = session.make_attribute_list(merge_templates(template_, template))
+        cdef CK_MECHANISM *mech_data = mech.data
+        cdef CK_OBJECT_HANDLE pub_key = self.handle
+        cdef CK_ATTRIBUTE *attr_data = attrs.data
+        cdef CK_ULONG attr_count = attrs.count
+        cdef CK_ULONG ct_len = 0
+        cdef CK_OBJECT_HANDLE ss_handle
+        cdef CK_RV retval
+
+        with nogil:
+            retval = session.funclist32.C_EncapsulateKey(
+                session.handle, mech_data, pub_key,
+                attr_data, attr_count, NULL, &ct_len, &ss_handle)
+        assertRV(retval)
+
+        cdef CK_BYTE [:] ct_buf = CK_BYTE_buffer(ct_len)
+
+        with nogil:
+            retval = session.funclist32.C_EncapsulateKey(
+                session.handle, mech_data, pub_key,
+                attr_data, attr_count, &ct_buf[0], &ct_len, &ss_handle)
+        assertRV(retval)
+
+        return (bytes(ct_buf[:ct_len]), make_object(session, ss_handle))
+
+
+class DecapsulateMixin(types.DecapsulateMixin):
+    """Expand DecapsulateMixin with an implementation (ML-KEM)."""
+
+    def decapsulate_key(self, ciphertext, key_type,
+                        key_length=None,
+                        id=None, label=None,
+                        store=False, capabilities=None,
+                        mechanism=None, mechanism_param=None,
+                        template=None):
+
+        if not isinstance(key_type, KeyType):
+            raise ArgumentsBad("`key_type` must be KeyType.")
+
+        if capabilities is None:
+            try:
+                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
+            except KeyError:
+                raise ArgumentsBad("No default capabilities for this key "
+                                   "type. Please specify `capabilities`.")
+
+        mech = MechanismWithParam(self.key_type, DEFAULT_ENCAPSULATE_MECHANISMS, mechanism, mechanism_param)
+
+        cdef Session session = self.session
+
+        if session.funclist32 == NULL:
+            raise FunctionNotSupported("C_DecapsulateKey requires a PKCS#11 v3.2+ library")
+
+        template_ = session.attribute_mapper.secret_key_template(
+            capabilities=capabilities, id_=id, label=label, store=store,
+        )
+        if key_length is not None:
+            template_[Attribute.VALUE_LEN] = key_length // 8
+        template_[Attribute.KEY_TYPE] = key_type
+        cdef AttributeList attrs = session.make_attribute_list(merge_templates(template_, template))
+        cdef CK_MECHANISM *mech_data = mech.data
+        cdef CK_OBJECT_HANDLE priv_key = self.handle
+        cdef CK_BYTE *ct_ptr = ciphertext
+        cdef CK_ULONG ct_len = <CK_ULONG> len(ciphertext)
+        cdef CK_ATTRIBUTE *attr_data = attrs.data
+        cdef CK_ULONG attr_count = attrs.count
+        cdef CK_OBJECT_HANDLE key
+        cdef CK_RV retval
+
+        with nogil:
+            retval = session.funclist32.C_DecapsulateKey(
+                session.handle, mech_data, priv_key,
+                attr_data, attr_count, ct_ptr, ct_len, &key)
         assertRV(retval)
 
         return make_object(session, key)

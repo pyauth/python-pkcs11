@@ -349,6 +349,11 @@ class Attribute(IntEnum):
     PARAMETER_SET = 0x0000061D
     SEED = 0x00000637
 
+    ENCAPSULATE_TEMPLATE = 0x0000062A
+    DECAPSULATE_TEMPLATE = 0x0000062B
+    ENCAPSULATE = 0x00000633
+    DECAPSULATE = 0x00000634
+
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self) -> str:
@@ -408,6 +413,11 @@ class MechanismFlag(IntFlag):
     EC_NAMEDCURVE = 0x00800000
     EC_UNCOMPRESS = 0x01000000
     EC_COMPRESS = 0x02000000
+
+    ENCAPSULATE = 0x10000000
+    """Can perform ML-KEM key encapsulation."""
+    DECAPSULATE = 0x20000000
+    """Can perform ML-KEM key decapsulation."""
 
     EXTENSION = 0x80000000
 

@@ -22,6 +22,7 @@ DEFAULT_GENERATE_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
     KeyType.RSA: Mechanism.RSA_PKCS_KEY_PAIR_GEN,
     KeyType.X9_42_DH: Mechanism.X9_42_DH_KEY_PAIR_GEN,
     KeyType.EC_EDWARDS: Mechanism.EC_EDWARDS_KEY_PAIR_GEN,
+    KeyType.ML_KEM: Mechanism.ML_KEM_KEY_PAIR_GEN,
     KeyType.ML_DSA: Mechanism.ML_DSA_KEY_PAIR_GEN,
     KeyType.GENERIC_SECRET: Mechanism.GENERIC_SECRET_KEY_GEN,
 }
@@ -32,6 +33,7 @@ Default mechanisms for generating keys.
 _ENCRYPTION: Final[MechanismFlag] = MechanismFlag.ENCRYPT | MechanismFlag.DECRYPT
 _SIGNING: Final[MechanismFlag] = MechanismFlag.SIGN | MechanismFlag.VERIFY
 _WRAPPING: Final[MechanismFlag] = MechanismFlag.WRAP | MechanismFlag.UNWRAP
+_ENCAPSULATING: Final[MechanismFlag] = MechanismFlag.ENCAPSULATE | MechanismFlag.DECAPSULATE
 
 DEFAULT_KEY_CAPABILITIES: Final[dict[KeyType, MechanismFlag | int]] = {
     KeyType.AES: _ENCRYPTION | _SIGNING | _WRAPPING,
@@ -43,6 +45,7 @@ DEFAULT_KEY_CAPABILITIES: Final[dict[KeyType, MechanismFlag | int]] = {
     KeyType.RSA: _ENCRYPTION | _SIGNING | _WRAPPING,
     KeyType.GENERIC_SECRET: 0,
     KeyType.EC_EDWARDS: _SIGNING,
+    KeyType.ML_KEM: _ENCAPSULATING,
     KeyType.ML_DSA: _SIGNING,
 }
 """
@@ -82,6 +85,11 @@ DEFAULT_WRAP_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
 """
 Default mechanism for wrap/unwrap.
 """
+
+DEFAULT_ENCAPSULATE_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
+    KeyType.ML_KEM: Mechanism.ML_KEM,
+}
+"""Default mechanisms for ML-KEM encapsulate/decapsulate."""
 
 DEFAULT_DERIVE_MECHANISMS: Final[dict[KeyType, Mechanism]] = {
     KeyType.DH: Mechanism.DH_PKCS_DERIVE,

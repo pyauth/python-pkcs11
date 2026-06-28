@@ -1376,3 +1376,81 @@ class DeriveMixin(HasKeyType):
         :rtype: SecretKey
         """
         raise NotImplementedError()
+
+
+class EncapsulateMixin(HasKeyType):
+    """
+    This :class:`Object` supports the encapsulate capability (ML-KEM).
+    """
+
+    def encapsulate_key(
+        self,
+        key_type: KeyType,
+        key_length: int | None = None,
+        id: bytes | None = None,
+        label: str | None = None,
+        store: bool = False,
+        capabilities: MechanismFlag | None = None,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        template: dict[Attribute, Any] | None = None,
+    ) -> tuple[bytes, SecretKey]:
+        """
+        Use this ML-KEM public key to encapsulate a fresh shared secret.
+
+        Returns ``(ciphertext, shared_secret)`` where *ciphertext* is the
+        KEM ciphertext to be transmitted to the decapsulating party, and
+        *shared_secret* is the newly-created secret key object on the token.
+
+        :param KeyType key_type: Key type for the shared secret (e.g. KeyType.GENERIC_SECRET).
+        :param int key_length: Shared secret length in bits.
+        :param bytes id: Key identifier.
+        :param str label: Key label.
+        :param store: Store key on token (requires R/W session).
+        :param MechanismFlag capabilities: Key capabilities (or default).
+        :param Mechanism mechanism: Encapsulation mechanism (or default).
+        :param bytes mechanism_param: Optional mechanism parameter.
+        :param dict(Attribute,*) template: Additional attributes.
+
+        :rtype: tuple[bytes, SecretKey]
+        """
+        raise NotImplementedError()
+
+
+class DecapsulateMixin(HasKeyType):
+    """
+    This :class:`Object` supports the decapsulate capability (ML-KEM).
+    """
+
+    def decapsulate_key(
+        self,
+        ciphertext: bytes,
+        key_type: KeyType,
+        key_length: int | None = None,
+        id: bytes | None = None,
+        label: str | None = None,
+        store: bool = False,
+        capabilities: MechanismFlag | None = None,
+        mechanism: Mechanism | None = None,
+        mechanism_param: bytes | None = None,
+        template: dict[Attribute, Any] | None = None,
+    ) -> SecretKey:
+        """
+        Use this ML-KEM private key to decapsulate the shared secret from *ciphertext*.
+
+        Returns the recovered shared secret key object.
+
+        :param bytes ciphertext: KEM ciphertext from the encapsulating party.
+        :param KeyType key_type: Key type for the shared secret (e.g. KeyType.GENERIC_SECRET).
+        :param int key_length: Shared secret length in bits.
+        :param bytes id: Key identifier.
+        :param str label: Key label.
+        :param store: Store key on token (requires R/W session).
+        :param MechanismFlag capabilities: Key capabilities (or default).
+        :param Mechanism mechanism: Decapsulation mechanism (or default).
+        :param bytes mechanism_param: Optional mechanism parameter.
+        :param dict(Attribute,*) template: Additional attributes.
+
+        :rtype: SecretKey
+        """
+        raise NotImplementedError()
