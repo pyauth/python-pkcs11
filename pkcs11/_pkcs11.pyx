@@ -853,6 +853,28 @@ def merge_templates(default_template, *user_templates):
     }
 
 
+cdef _check_key_type(key_type):
+    if not isinstance(key_type, KeyType):
+        raise ArgumentsBad("`key_type` must be KeyType.")
+
+
+cdef _check_bit_length(value, name, required=False):
+    if value is None and not required:
+        return
+    if not isinstance(value, int):
+        raise ArgumentsBad("`%s` is the length in bits." % name)
+
+
+cdef _resolve_capabilities(key_type, capabilities):
+    if capabilities is not None:
+        return capabilities
+    try:
+        return DEFAULT_KEY_CAPABILITIES[key_type]
+    except KeyError:
+        raise ArgumentsBad("No default capabilities for this key "
+                           "type. Please specify `capabilities`.")
+
+
 cdef class Session(HasFuncList, types.Session):
     """Extend Session with implementation."""
 
@@ -971,11 +993,8 @@ cdef class Session(HasFuncList, types.Session):
     def generate_domain_parameters(self, key_type, param_length, store=False,
                                    mechanism=None, mechanism_param=None,
                                    template=None):
-        if not isinstance(key_type, KeyType):
-            raise ArgumentsBad("`key_type` must be KeyType.")
-
-        if not isinstance(param_length, int):
-            raise ArgumentsBad("`param_length` is the length in bits.")
+        _check_key_type(key_type)
+        _check_bit_length(param_length, "param_length", required=True)
 
         mech = MechanismWithParam(
             key_type, DEFAULT_PARAM_GENERATE_MECHANISMS,
@@ -999,18 +1018,9 @@ cdef class Session(HasFuncList, types.Session):
                      mechanism=None, mechanism_param=None,
                      template=None):
 
-        if not isinstance(key_type, KeyType):
-            raise ArgumentsBad("`key_type` must be KeyType.")
-
-        if key_length is not None and not isinstance(key_length, int):
-            raise ArgumentsBad("`key_length` is the length in bits.")
-
-        if capabilities is None:
-            try:
-                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
-            except KeyError:
-                raise ArgumentsBad("No default capabilities for this key "
-                                   "type. Please specify `capabilities`.")
+        _check_key_type(key_type)
+        _check_bit_length(key_length, "key_length")
+        capabilities = _resolve_capabilities(key_type, capabilities)
 
         mech = MechanismWithParam(
             key_type, DEFAULT_GENERATE_MECHANISMS,
@@ -1052,18 +1062,9 @@ cdef class Session(HasFuncList, types.Session):
                           mechanism=None, mechanism_param=None,
                           public_template=None, private_template=None):
 
-        if not isinstance(key_type, KeyType):
-            raise ArgumentsBad("`key_type` must be KeyType.")
-
-        if key_length is not None and not isinstance(key_length, int):
-            raise ArgumentsBad("`key_length` is the length in bits.")
-
-        if capabilities is None:
-            try:
-                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
-            except KeyError:
-                raise ArgumentsBad("No default capabilities for this key "
-                                   "type. Please specify `capabilities`.")
+        _check_key_type(key_type)
+        _check_bit_length(key_length, "key_length")
+        capabilities = _resolve_capabilities(key_type, capabilities)
 
         mech = MechanismWithParam(
             key_type, DEFAULT_GENERATE_MECHANISMS,
@@ -1457,12 +1458,7 @@ class GenerateWithParametersMixin(types.DomainParameters):
                          public_template=None, private_template=None):
 
         cdef Session session = self.session
-        if capabilities is None:
-            try:
-                capabilities = DEFAULT_KEY_CAPABILITIES[self.key_type]
-            except KeyError:
-                raise ArgumentsBad("No default capabilities for this key "
-                                   "type. Please specify `capabilities`.")
+        capabilities = _resolve_capabilities(self.key_type, capabilities)
 
         mech = MechanismWithParam(self.key_type, DEFAULT_GENERATE_MECHANISMS, mechanism, mechanism_param)
 
@@ -1881,15 +1877,8 @@ class UnwrapMixin(types.UnwrapMixin):
         if not isinstance(object_class, ObjectClass):
             raise ArgumentsBad("`object_class` must be ObjectClass.")
 
-        if not isinstance(key_type, KeyType):
-            raise ArgumentsBad("`key_type` must be KeyType.")
-
-        if capabilities is None:
-            try:
-                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
-            except KeyError:
-                raise ArgumentsBad("No default capabilities for this key "
-                                   "type. Please specify `capabilities`.")
+        _check_key_type(key_type)
+        capabilities = _resolve_capabilities(key_type, capabilities)
 
         mech = MechanismWithParam(self.key_type, DEFAULT_WRAP_MECHANISMS, mechanism, mechanism_param)
 
@@ -1932,18 +1921,9 @@ class DeriveMixin(types.DeriveMixin):
                    mechanism=None, mechanism_param=None,
                    template=None):
 
-        if not isinstance(key_type, KeyType):
-            raise ArgumentsBad("`key_type` must be KeyType.")
-
-        if not isinstance(key_length, int):
-            raise ArgumentsBad("`key_length` is the length in bits.")
-
-        if capabilities is None:
-            try:
-                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
-            except KeyError:
-                raise ArgumentsBad("No default capabilities for this key "
-                                   "type. Please specify `capabilities`.")
+        _check_key_type(key_type)
+        _check_bit_length(key_length, "key_length", required=True)
+        capabilities = _resolve_capabilities(key_type, capabilities)
 
         mech = MechanismWithParam(self.key_type, DEFAULT_DERIVE_MECHANISMS, mechanism, mechanism_param)
 
@@ -1979,15 +1959,8 @@ class EncapsulateMixin(types.EncapsulateMixin):
                         mechanism=None, mechanism_param=None,
                         template=None):
 
-        if not isinstance(key_type, KeyType):
-            raise ArgumentsBad("`key_type` must be KeyType.")
-
-        if capabilities is None:
-            try:
-                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
-            except KeyError:
-                raise ArgumentsBad("No default capabilities for this key "
-                                   "type. Please specify `capabilities`.")
+        _check_key_type(key_type)
+        capabilities = _resolve_capabilities(key_type, capabilities)
 
         mech = MechanismWithParam(self.key_type, DEFAULT_ENCAPSULATE_MECHANISMS, mechanism, mechanism_param)
 
@@ -2038,15 +2011,8 @@ class DecapsulateMixin(types.DecapsulateMixin):
                         mechanism=None, mechanism_param=None,
                         template=None):
 
-        if not isinstance(key_type, KeyType):
-            raise ArgumentsBad("`key_type` must be KeyType.")
-
-        if capabilities is None:
-            try:
-                capabilities = DEFAULT_KEY_CAPABILITIES[key_type]
-            except KeyError:
-                raise ArgumentsBad("No default capabilities for this key "
-                                   "type. Please specify `capabilities`.")
+        _check_key_type(key_type)
+        capabilities = _resolve_capabilities(key_type, capabilities)
 
         mech = MechanismWithParam(self.key_type, DEFAULT_ENCAPSULATE_MECHANISMS, mechanism, mechanism_param)
 
