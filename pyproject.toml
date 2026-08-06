@@ -52,7 +52,7 @@ combine-as-imports = true
 
 [tool.setuptools]
 ext-modules = [
-    {name = "pkcs11._pkcs11", sources = ["pkcs11/_pkcs11.pyx"]}
+    {name = "pkcs11._pkcs11", sources = ["src/pkcs11/_pkcs11.pyx"]}
 ]
 
 [tool.cibuildwheel]
@@ -66,9 +66,6 @@ archs = ["AMD64"]
 
 [tool.cibuildwheel.macos]
 archs = ["universal2"]
-
-[tool.setuptools.packages.find]
-include = ["pkcs11*"]
 
 [tool.setuptools.package-data]
 pkcs11 = ["py.typed"]
