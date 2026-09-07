@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Python PKCS#11 documentation build configuration file, created by
 # sphinx-quickstart on Sat May 20 11:47:34 2017.

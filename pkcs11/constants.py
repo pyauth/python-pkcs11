@@ -59,7 +59,7 @@ class ObjectClass(IntEnum):
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self) -> str:
-        return "<ObjectClass.%s>" % self.name
+        return f"<ObjectClass.{self.name}>"
 
 
 _ARRAY_ATTRIBUTE: Final[int] = 0x40000000
@@ -357,7 +357,7 @@ class Attribute(IntEnum):
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self) -> str:
-        return "<Attribute.%s>" % self.name
+        return f"<Attribute.{self.name}>"
 
 
 class CertificateType(IntEnum):

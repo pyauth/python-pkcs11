@@ -1,8 +1,7 @@
 """Type stubs for the _pkcs11 Cython extension module."""
 
-from __future__ import annotations
-
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from pkcs11.types import Slot, Token
 
@@ -34,5 +33,3 @@ class lib:
     ) -> Iterator[Token]: ...
     def get_token(self, **kwargs: Any) -> Token: ...
     def wait_for_slot_event(self, blocking: bool = True) -> Slot: ...
-    def __str__(self) -> str: ...
-    def __repr__(self) -> str: ...

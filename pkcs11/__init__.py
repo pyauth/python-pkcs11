@@ -24,7 +24,6 @@ def lib(so: str) -> _lib_type:
     Wrap the main library call coming from Cython with a preemptive
     dynamic loading.
     """
-    global _loaded
 
     try:
         _lib = _loaded[so]
@@ -43,7 +42,6 @@ def lib(so: str) -> _lib_type:
 
 
 def unload(so: str) -> None:
-    global _loaded
     try:
         loaded_lib = _loaded[so]
     except KeyError:

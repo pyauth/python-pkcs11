@@ -824,6 +824,7 @@ dev = [
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sphinx-rtd-theme" },
     { name = "ty" },
+    { name = "typing-extensions" },
 ]
 docs = [
     { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -841,6 +842,7 @@ docs-build = [
 lint = [
     { name = "ruff" },
     { name = "ty" },
+    { name = "typing-extensions" },
 ]
 release = [
     { name = "cython" },
@@ -876,6 +878,7 @@ dev = [
     { name = "sphinx", specifier = ">=7.4.7" },
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
     { name = "ty", specifier = ">=0.0.5" },
+    { name = "typing-extensions", specifier = "~=4.16.0" },
 ]
 docs = [
     { name = "sphinx", specifier = ">=7.4.7" },
@@ -889,6 +892,7 @@ docs-build = [
 lint = [
     { name = "ruff", specifier = ">=0.8.3" },
     { name = "ty", specifier = ">=0.0.5" },
+    { name = "typing-extensions", specifier = "~=4.16.0" },
 ]
 release = [
     { name = "cython" },

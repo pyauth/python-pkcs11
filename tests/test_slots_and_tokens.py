@@ -33,7 +33,7 @@ class SlotsAndTokensTests(unittest.TestCase):
         slots = lib.get_slots()
 
         self.assertEqual(len(slots), 2)
-        slot1, slot2 = slots
+        slot1, _slot2 = slots
 
         self.assertIsInstance(slot1, pkcs11.Slot)
         self.assertEqual(slot1.flags, pkcs11.SlotFlag.TOKEN_PRESENT)

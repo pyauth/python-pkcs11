@@ -86,7 +86,7 @@ def requires(*mechanisms):
         unavailable = set(mechanisms) - self.token.slot.get_mechanisms()
 
         if unavailable:
-            raise unittest.SkipTest("Requires %s" % ", ".join(map(str, unavailable)))
+            raise unittest.SkipTest("Requires {}".format(", ".join(map(str, unavailable))))
 
     def inner(func):
         @wraps(func)

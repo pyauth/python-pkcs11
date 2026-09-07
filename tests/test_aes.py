@@ -235,9 +235,7 @@ class AESTests(TestCase):
             },
         )
 
-        self.assertTrue(
-            key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
-        )
+        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
 
         # Derive a Key from the Master Key
         iv = b"0" * iv_length
@@ -256,7 +254,7 @@ class AESTests(TestCase):
         except (pkcs11.exceptions.MechanismParamInvalid, pkcs11.exceptions.FunctionFailed):
             derived_key = None
 
-        assert_fn(self, derived_key, "{}-bit Key Derivation Failure".format(test_key_length))
+        assert_fn(self, derived_key, f"{test_key_length}-bit Key Derivation Failure")
 
     @parameterized.expand(
         [
@@ -291,9 +289,7 @@ class AESTests(TestCase):
             },
         )
 
-        self.assertTrue(
-            key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
-        )
+        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
 
         # Derive a Key from the Master Key
         iv = b"0" * iv_length
@@ -313,7 +309,7 @@ class AESTests(TestCase):
             derived_key = None
 
         self.assertTrue(
-            derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length)
+            derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key"
         )
 
         # Test capability of Key to Encrypt/Decrypt data
@@ -362,9 +358,7 @@ class AESTests(TestCase):
             },
         )
 
-        self.assertTrue(
-            key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
-        )
+        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
 
         # Derive a Key from the Master Key
         iv = b"0" * iv_length
@@ -388,7 +382,7 @@ class AESTests(TestCase):
         ):
             derived_key = None
 
-        assert_fn(self, derived_key, "{}-bit Key Derivation Failure".format(test_key_length))
+        assert_fn(self, derived_key, f"{test_key_length}-bit Key Derivation Failure")
 
     @parameterized.expand(
         [
@@ -424,9 +418,7 @@ class AESTests(TestCase):
             },
         )
 
-        self.assertTrue(
-            key is not None, "Failed to create {}-bit Master Key".format(test_key_length)
-        )
+        self.assertTrue(key is not None, f"Failed to create {test_key_length}-bit Master Key")
 
         # Derive a Key from the Master Key
         iv = b"0" * iv_length
@@ -451,7 +443,7 @@ class AESTests(TestCase):
             derived_key = None
 
         self.assertTrue(
-            derived_key is not None, "Failed to derive {}-bit Derived Key".format(test_key_length)
+            derived_key is not None, f"Failed to derive {test_key_length}-bit Derived Key"
         )
 
         # Test capability of Key to Encrypt/Decrypt data

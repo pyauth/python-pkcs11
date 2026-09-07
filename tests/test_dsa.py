@@ -55,6 +55,6 @@ class DSATests(TestCase):
     @requires(Mechanism.DSA_PARAMETER_GEN, Mechanism.DSA_KEY_PAIR_GEN)
     @FIXME.nfast  # returns Function Failed
     def test_generate_keypair_directly(self):
-        public, private = self.session.generate_keypair(KeyType.DSA, 1024)
+        public, _private = self.session.generate_keypair(KeyType.DSA, 1024)
         # See above.
         self.assertGreater(len(public[Attribute.VALUE]), 120)

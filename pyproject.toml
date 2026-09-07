@@ -109,6 +109,7 @@ docs = [
 lint = [
     "ruff>=0.8.3",
     "ty>=0.0.5",
+    "typing-extensions~=4.16.0",
 ]
 release = [
     "setuptools>=80.8",

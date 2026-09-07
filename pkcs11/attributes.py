@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from enum import IntEnum
 from struct import Struct
-from typing import Any, Callable, Final
+from typing import Any, Final
 
 from pkcs11.constants import Attribute, CertificateType, MechanismFlag, ObjectClass
 from pkcs11.mechanisms import KeyType, Mechanism
@@ -25,7 +26,7 @@ handle_ulong: Handler = (_ulong_struct.pack, lambda v: _ulong_struct.unpack(v)[0
 handle_str: Handler = (lambda s: s.encode("utf-8"), lambda b: b.decode("utf-8"))
 handle_date: Handler = (
     lambda s: s.strftime("%Y%m%d").encode("ascii"),
-    lambda s: datetime.strptime(s.decode("ascii"), "%Y%m%d").date(),
+    lambda s: datetime.strptime(s.decode("ascii"), "%Y%m%d").date(),  # noqa: DTZ007
 )
 handle_bytes: Handler = (bytes, bytes)
 # The PKCS#11 biginteger type is an array of bytes in network byte order.

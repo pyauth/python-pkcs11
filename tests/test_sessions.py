@@ -140,9 +140,8 @@ class SessionTests(TestCase):
             key.encrypt(b"test", mechanism_param=b"IV" * 8)
 
     def test_get_key_not_found(self):
-        with self.token.open(user_pin=TOKEN_PIN) as session:
-            with self.assertRaises(pkcs11.NoSuchKey):
-                session.get_key(label="SAMPLE KEY")
+        with self.token.open(user_pin=TOKEN_PIN) as session, self.assertRaises(pkcs11.NoSuchKey):
+            session.get_key(label="SAMPLE KEY")
 
     @requires(pkcs11.Mechanism.AES_KEY_GEN)
     def test_get_key_vague(self):

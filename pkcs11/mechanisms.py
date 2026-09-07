@@ -113,7 +113,7 @@ class KeyType(IntEnum):
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self) -> str:
-        return "<KeyType.%s>" % self.name
+        return f"<KeyType.{self.name}>"
 
 
 class Mechanism(IntEnum):
@@ -765,7 +765,7 @@ class Mechanism(IntEnum):
     _VENDOR_DEFINED = 0x80000000
 
     def __repr__(self) -> str:
-        return "<Mechanism.%s>" % self.name
+        return f"<Mechanism.{self.name}>"
 
 
 class KDF(IntEnum):
@@ -789,7 +789,7 @@ class KDF(IntEnum):
     SHA3_512_KDF = 0x0000000D
 
     def __repr__(self) -> str:
-        return "<KDF.%s>" % self.name
+        return f"<KDF.{self.name}>"
 
 
 class MGF(IntEnum):
@@ -808,7 +808,7 @@ class MGF(IntEnum):
     SHA3_512 = 0x00000009
 
     def __repr__(self) -> str:
-        return "<MGF.%s>" % self.name
+        return f"<MGF.{self.name}>"
 
 
 class MLKEMParameterSet(IntEnum):
@@ -819,7 +819,7 @@ class MLKEMParameterSet(IntEnum):
     ML_KEM_1024 = 0x00000003
 
     def __repr__(self) -> str:
-        return "<MLKEMParameterSet.%s>" % self.name
+        return f"<MLKEMParameterSet.{self.name}>"
 
 
 class MLDSAParameterSet(IntEnum):
@@ -830,7 +830,7 @@ class MLDSAParameterSet(IntEnum):
     ML_DSA_87 = 0x00000003
 
     def __repr__(self) -> str:
-        return "<MLDSAParameterSet.%s>" % self.name
+        return f"<MLDSAParameterSet.{self.name}>"
 
 
 class GCMParams:
