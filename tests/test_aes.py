@@ -179,7 +179,6 @@ class AESTests(TestCase):
         self.assertTrue(self.key.verify(data, signature))
 
     @requires(Mechanism.AES_KEY_WRAP)
-    @FIXME.opencryptoki  # can't set key attributes
     def test_wrap(self):
         key = self.session.generate_key(
             pkcs11.KeyType.AES,

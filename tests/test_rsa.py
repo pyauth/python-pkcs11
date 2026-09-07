@@ -8,7 +8,7 @@ import pkcs11
 from pkcs11 import MGF, Attribute, KeyType, Mechanism, MechanismFlag, ObjectClass
 from pkcs11.util.rsa import decode_rsa_private_key, decode_rsa_public_key
 
-from . import FIXME, TOKEN_PIN, Not, TestCase, requires
+from . import TOKEN_PIN, Not, TestCase, requires
 
 
 class RSATests(TestCase):
@@ -172,7 +172,6 @@ class RSATests(TestCase):
         self.assertTrue(self.public.verify(data, signature))
 
     @requires(Mechanism.RSA_PKCS_OAEP)
-    @FIXME.opencryptoki  # can't set key attributes
     def test_key_wrap(self):
         key = self.session.generate_key(
             KeyType.AES,
