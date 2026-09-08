@@ -225,6 +225,51 @@ Elliptic-Curve Diffie-Hellman
             pkcs11.KeyType.AES, 128,
             mechanism_param=(pkcs11.KDF.NULL, None, other_value))
 
+Raw Data Objects
+~~~~~~~~~~~~~~~~~~
+
+This can be useful for storing symmetric encryption keys and the like. Be sure to set the Attribute PRIVATE to True, otherwise the Objects will be readable even without Pin login.
+
+import os, pkcs11
+
+    lib = pkcs11.lib(os.environ["PKCS11_MODULE"])
+    token = lib.get_token(token_label="DEMO")
+
+    demoapp = "python-pkcs11 demo"
+    demolabel = "testobject"
+    demodata = "Hello World!".encode("ascii")
+
+    with token.open(user_pin="1111") as session:
+
+        #write data into an object
+        session.create_object(
+            attrs={
+                pkcs11.Attribute.CLASS: pkcs11.ObjectClass.DATA,
+                pkcs11.Attribute.APPLICATION: demoapp,
+                pkcs11.Attribute.LABEL: demolabel,
+                pkcs11.Attribute.VALUE: demodata,
+                pkcs11.Attribute.TOKEN: True
+            })
+
+        #retrieve an object
+        objectfilter = {
+                pkcs11.Attribute.CLASS: pkcs11.ObjectClass.DATA,
+                pkcs11.Attribute.LABEL: demolabel
+        }
+
+        #objects are not uniquely identified by their attributes
+        #the result might be a list of multiple objects with "demolabel"
+        objects = list(session.get_objects(attrs=objectfilter))
+        print(objects)
+
+        #extract information from an object
+        print(objects[-1][pkcs11.Attribute.VALUE])
+
+        #change an object
+        objects[-1][pkcs11.Attribute.VALUE] = "testdata".encode("ascii")
+        print(objects[-1][pkcs11.Attribute.VALUE])
+
+
 Tested Compatibility
 --------------------
 
