@@ -23,7 +23,7 @@ jobs:
           - opencryptoki
     steps:
       - name: Acquire sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Arm coverage-only compiler directives
         # Unfortunately, it doesn't seem to be possible to pass directives
         # to Cython through environment variables: https://github.com/cython/cython/issues/3930
@@ -48,7 +48,7 @@ jobs:
         env:
           PKCS11_MODULE: ${{ steps.setup.outputs.module }}
       - name: Stash coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ strategy.job-index }}
           path: "*-coverage.xml"
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
       - name: Acquire sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: ./.github/actions/test-setup
         id: setup
         with:
@@ -73,7 +73,7 @@ jobs:
           PKCS11_MODULE: ${{ steps.setup.outputs.module }}
           PKCS11_MODULE2: ${{ steps.setup.outputs.module2 }}
       - name: Stash coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-multilib
           path: "*-coverage.xml"
@@ -85,14 +85,14 @@ jobs:
     needs: [pytest-coverage,pytest-coverage-multilib]
     steps:
       # checkout necessary to ensure the uploaded report contains the correct paths
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Retrieve coverage reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           path: ./reports/
       - name: Upload all coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ./reports/
