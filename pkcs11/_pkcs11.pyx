@@ -528,20 +528,27 @@ cdef class Token(HasFuncList, types.Token):
             retval = self.funclist.C_OpenSession(slot_id, flags, NULL, NULL, &handle)
         assertRV(retval)
 
-        if so_pin is PROTECTED_AUTH or user_pin is PROTECTED_AUTH:
-            if self.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
-                with nogil:
-                    retval = self.funclist.C_Login(handle, c_user_type, NULL, 0)
-                assertRV(retval)
-            else:
-                raise ArgumentsBad("Protected authentication is not supported by loaded module")
-        elif pin is not None:
-            pin_data = pin
-            pin_length = <CK_ULONG> len(pin)
+        try:
+            if so_pin is PROTECTED_AUTH or user_pin is PROTECTED_AUTH:
+                if self.flags & TokenFlag.PROTECTED_AUTHENTICATION_PATH:
+                    with nogil:
+                        retval = self.funclist.C_Login(handle, c_user_type, NULL, 0)
+                    assertRV(retval)
+                else:
+                    raise ArgumentsBad("Protected authentication is not supported by loaded module")
+            elif pin is not None:
+                pin_data = pin
+                pin_length = <CK_ULONG> len(pin)
 
+                with nogil:
+                    retval = self.funclist.C_Login(handle, c_user_type, pin_data, pin_length)
+                assertRV(retval)
+        except BaseException:
+            # Do not leak the session opened above if authentication fails.
+            # Ignore the CloseSession return value: the original error matters.
             with nogil:
-                retval = self.funclist.C_Login(handle, c_user_type, pin_data, pin_length)
-            assertRV(retval)
+                self.funclist.C_CloseSession(handle)
+            raise
 
         return Session.make(
             self, handle,
