@@ -36,8 +36,6 @@ class SessionTests(TestCase):
 
     @Only.softhsm2
     def test_failed_login_does_not_leak_session(self):
-        # A read-only session left open by a failed login would make the
-        # security officer login below fail with SessionReadOnlyExists.
         with self.assertRaises(PinIncorrect):
             self.token.open(user_pin="not the user pin")
 
@@ -46,7 +44,6 @@ class SessionTests(TestCase):
 
     @Only.softhsm2
     def test_unsupported_protected_auth_does_not_leak_session(self):
-        # SoftHSMv2 has no protected authentication path.
         with self.assertRaises(ArgumentsBad):
             self.token.open(user_pin=pkcs11.PROTECTED_AUTH)
 

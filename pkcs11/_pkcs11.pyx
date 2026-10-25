@@ -543,8 +543,7 @@ cdef class Token(HasFuncList, types.Token):
                 retval = self.funclist.C_Login(handle, c_user_type, pin_data, pin_length)
 
         if retval != CKR_OK:
-            # Do not leak the session if the login failed; report the login error,
-            # not the result of closing the session.
+            # Raise the login error, not a C_CloseSession error.
             with nogil:
                 self.funclist.C_CloseSession(handle)
             assertRV(retval)
