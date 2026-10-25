@@ -34,7 +34,7 @@ class SessionTests(TestCase):
         with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
             self.assertIsInstance(session, pkcs11.Session)
 
-    @Only.softhsm2  # We don't have credentials to do this for other platforms
+    @Only.softhsm2
     def test_failed_login_does_not_leak_session(self):
         # A read-only session left open by a failed login would make the
         # security officer login below fail with SessionReadOnlyExists.
@@ -44,7 +44,7 @@ class SessionTests(TestCase):
         with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
             self.assertIsInstance(session, pkcs11.Session)
 
-    @Only.softhsm2  # We don't have credentials to do this for other platforms
+    @Only.softhsm2
     def test_unsupported_protected_auth_does_not_leak_session(self):
         # SoftHSMv2 has no protected authentication path.
         with self.assertRaises(ArgumentsBad):
