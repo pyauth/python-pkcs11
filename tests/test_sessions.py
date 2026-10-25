@@ -11,7 +11,7 @@ from pkcs11 import (
     PKCS11Error,
 )
 from pkcs11.attributes import AttributeMapper, handle_bool, handle_str
-from pkcs11.exceptions import PinIncorrect, PinLenRange
+from pkcs11.exceptions import ArgumentsBad, PinIncorrect, PinLenRange
 
 from . import TOKEN_PIN, TOKEN_SO_PIN, Not, Only, TestCase, requires
 
@@ -31,6 +31,22 @@ class SessionTests(TestCase):
 
     @Only.softhsm2  # We don't have credentials to do this for other platforms
     def test_open_session_and_login_so(self):
+        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
+            self.assertIsInstance(session, pkcs11.Session)
+
+    @Only.softhsm2
+    def test_failed_login_does_not_leak_session(self):
+        with self.assertRaises(PinIncorrect):
+            self.token.open(user_pin="not the user pin")
+
+        with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
+            self.assertIsInstance(session, pkcs11.Session)
+
+    @Only.softhsm2
+    def test_unsupported_protected_auth_does_not_leak_session(self):
+        with self.assertRaises(ArgumentsBad):
+            self.token.open(user_pin=pkcs11.PROTECTED_AUTH)
+
         with self.token.open(rw=True, so_pin=TOKEN_SO_PIN) as session:
             self.assertIsInstance(session, pkcs11.Session)
 
