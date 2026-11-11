@@ -833,6 +833,45 @@ class MLDSAParameterSet(IntEnum):
         return f"<MLDSAParameterSet.{self.name}>"
 
 
+class HedgeType(IntEnum):
+    """Hedging variants for ML-DSA signatures (PKCS#11 v3.2 ``CK_HEDGE_TYPE``)."""
+
+    PREFERRED = 0x00000000
+    """Hedged signing if the token supports it, deterministic otherwise."""
+    REQUIRED = 0x00000001
+    """Hedged signing (FIPS 204 randomized variant); fail if not supported."""
+    DETERMINISTIC_REQUIRED = 0x00000002
+    """Deterministic signing (FIPS 204 deterministic variant); fail if not supported."""
+
+    def __repr__(self) -> str:
+        return f"<HedgeType.{self.name}>"
+
+
+class SignAdditionalContext:
+    """
+    Parameters for ML-DSA signing and verification
+    (PKCS#11 v3.2 ``CK_SIGN_ADDITIONAL_CONTEXT``).
+
+    :param context: the FIPS 204 context string, at most 255 bytes.
+        ``None`` or ``b""`` means an empty context.
+    :param hedge: the hedging variant, see :class:`HedgeType`. It applies to
+        signing; tokens ignore it when verifying.
+    """
+
+    context: bytes | None
+    hedge: HedgeType
+
+    def __init__(
+        self, context: bytes | None = None, hedge: HedgeType = HedgeType.PREFERRED
+    ) -> None:
+        if context is not None and len(context) > 255:
+            raise ArgumentsBad("The context must be at most 255 bytes")
+        if not isinstance(hedge, HedgeType):
+            raise ArgumentsBad("`hedge` must be a HedgeType")
+        self.context = context
+        self.hedge = hedge
+
+
 class GCMParams:
     """Parameters for AES-GCM mode."""
 

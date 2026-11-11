@@ -179,6 +179,7 @@ cdef class MechanismWithParam:
         cdef CK_AES_CBC_ENCRYPT_DATA_PARAMS *aes_cbc_params
         cdef CK_GCM_PARAMS *gcm_params
         cdef CK_AES_CTR_PARAMS *aes_ctr_params
+        cdef CK_SIGN_ADDITIONAL_CONTEXT *sign_context_params
 
         # Unpack mechanism parameters
 
@@ -301,6 +302,20 @@ cdef class MechanismWithParam:
                 raise TypeError
             aes_ctr_params.ulCounterBits = (16 - len(param.nonce)) * 8
             aes_ctr_params.cb = param.nonce + b"\x00" * (15 - len(param.nonce)) + b"\x01"
+
+        elif mechanism == Mechanism.ML_DSA and param is not None:
+            if not isinstance(param, SignAdditionalContext):
+                raise ArgumentsBad("ML_DSA parameters must be a SignAdditionalContext")
+            paramlen = sizeof(CK_SIGN_ADDITIONAL_CONTEXT)
+            self.param = sign_context_params = \
+                <CK_SIGN_ADDITIONAL_CONTEXT *> PyMem_Malloc(paramlen)
+            sign_context_params.hedgeVariant = <CK_HEDGE_TYPE> param.hedge
+            if param.context:
+                sign_context_params.pContext = <CK_BYTE *> param.context
+                sign_context_params.ulContextLen = <CK_ULONG> len(param.context)
+            else:
+                sign_context_params.pContext = NULL
+                sign_context_params.ulContextLen = 0
 
         elif param is None:
             self.data.pParameter = NULL
