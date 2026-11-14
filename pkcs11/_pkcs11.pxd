@@ -16,6 +16,7 @@ cdef extern from '../extern/cryptoki.h':
     ctypedef CK_ULONG CK_ATTRIBUTE_TYPE
     ctypedef CK_ULONG CK_EC_KDF_TYPE
     ctypedef CK_ULONG CK_FLAGS
+    ctypedef CK_ULONG CK_HEDGE_TYPE
     ctypedef CK_ULONG CK_MECHANISM_TYPE
     ctypedef CK_ULONG CK_OBJECT_HANDLE
     ctypedef CK_ULONG CK_RSA_PKCS_MGF_TYPE
@@ -279,6 +280,11 @@ cdef extern from '../extern/cryptoki.h':
        CK_BBOOL phFlag
        CK_ULONG ulContextDataLen
        CK_BYTE *pContextData
+
+    ctypedef struct CK_SIGN_ADDITIONAL_CONTEXT:
+        CK_HEDGE_TYPE hedgeVariant
+        CK_BYTE *pContext
+        CK_ULONG ulContextLen
 
     ctypedef struct CK_INTERFACE:
         CK_UTF8CHAR *pInterfaceName
