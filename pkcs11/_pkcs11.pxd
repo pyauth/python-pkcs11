@@ -141,6 +141,18 @@ cdef extern from '../extern/cryptoki.h':
 
         CKR_OPERATION_CANCEL_FAILED,
 
+        CKR_ACTION_PROHIBITED,
+        CKR_AEAD_DECRYPT_FAILED,
+        CKR_CURVE_NOT_SUPPORTED,
+        CKR_TOKEN_RESOURCE_EXCEEDED,
+        CKR_KEY_EXHAUSTED,
+        CKR_PENDING,
+        CKR_SESSION_ASYNC_NOT_SUPPORTED,
+        CKR_SEED_RANDOM_REQUIRED,
+        CKR_OPERATION_NOT_VALIDATED,
+        CKR_TOKEN_NOT_INITIALIZED,
+        CKR_PARAMETER_SET_NOT_SUPPORTED,
+
         CKR_VENDOR_DEFINED,
 
 
@@ -959,6 +971,60 @@ cdef inline object map_rv_to_error(CK_RV rv):  # pragma: nocover
         exc = WrappingKeySizeRange()
     elif rv == CKR_WRAPPING_KEY_TYPE_INCONSISTENT:
         exc = WrappingKeyTypeInconsistent()
+    elif rv == CKR_CANCEL:
+        exc = Cancel()
+    elif rv == CKR_NEED_TO_CREATE_THREADS:
+        exc = NeedToCreateThreads()
+    elif rv == CKR_CANT_LOCK:
+        exc = CantLock()
+    elif rv == CKR_ACTION_PROHIBITED:
+        exc = ActionProhibited()
+    elif rv == CKR_AEAD_DECRYPT_FAILED:
+        exc = AEADDecryptFailed()
+    elif rv == CKR_FUNCTION_NOT_PARALLEL:
+        exc = FunctionNotParallel()
+    elif rv == CKR_KEY_CHANGED:
+        exc = KeyChanged()
+    elif rv == CKR_KEY_FUNCTION_NOT_PERMITTED:
+        exc = KeyFunctionNotPermitted()
+    elif rv == CKR_CURVE_NOT_SUPPORTED:
+        exc = CurveNotSupported()
+    elif rv == CKR_SAVED_STATE_INVALID:
+        exc = SavedStateInvalid()
+    elif rv == CKR_INFORMATION_SENSITIVE:
+        exc = InformationSensitive()
+    elif rv == CKR_STATE_UNSAVEABLE:
+        exc = StateUnsaveable()
+    elif rv == CKR_MUTEX_BAD:
+        exc = MutexBad()
+    elif rv == CKR_MUTEX_NOT_LOCKED:
+        exc = MutexNotLocked()
+    elif rv == CKR_NEW_PIN_MODE:
+        exc = NewPinMode()
+    elif rv == CKR_NEXT_OTP:
+        exc = NextOTP()
+    elif rv == CKR_FIPS_SELF_TEST_FAILED:
+        exc = FIPSSelfTestFailed()
+    elif rv == CKR_LIBRARY_LOAD_FAILED:
+        exc = LibraryLoadFailed()
+    elif rv == CKR_TOKEN_RESOURCE_EXCEEDED:
+        exc = TokenResourceExceeded()
+    elif rv == CKR_OPERATION_CANCEL_FAILED:
+        exc = OperationCancelFailed()
+    elif rv == CKR_KEY_EXHAUSTED:
+        exc = KeyExhausted()
+    elif rv == CKR_PENDING:
+        exc = Pending()
+    elif rv == CKR_SESSION_ASYNC_NOT_SUPPORTED:
+        exc = SessionAsyncNotSupported()
+    elif rv == CKR_SEED_RANDOM_REQUIRED:
+        exc = SeedRandomRequired()
+    elif rv == CKR_OPERATION_NOT_VALIDATED:
+        exc = OperationNotValidated()
+    elif rv == CKR_TOKEN_NOT_INITIALIZED:
+        exc = TokenNotInitialized()
+    elif rv == CKR_PARAMETER_SET_NOT_SUPPORTED:
+        exc = ParameterSetNotSupported()
     else:
         exc = PKCS11Error("Unmapped error code %s" % hex(rv))
     return exc
