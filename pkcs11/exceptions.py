@@ -408,3 +408,126 @@ class WrappingKeySizeRange(PKCS11Error):
 
 class WrappingKeyTypeInconsistent(PKCS11Error):
     pass
+
+
+class Cancel(PKCS11Error):
+    pass
+
+
+class NeedToCreateThreads(PKCS11Error):
+    pass
+
+
+class CantLock(PKCS11Error):
+    pass
+
+
+class ActionProhibited(PKCS11Error):
+    """
+    The action may not be taken, for example copying an object whose
+    ``CKA_COPYABLE`` is false.
+    """
+
+
+class AEADDecryptFailed(PKCS11Error):
+    """
+    Authenticated decryption failed: the tag did not verify.
+    """
+
+
+class FunctionNotParallel(PKCS11Error):
+    pass
+
+
+class KeyChanged(PKCS11Error):
+    pass
+
+
+class KeyFunctionNotPermitted(PKCS11Error):
+    """
+    The key's attributes do not allow this use, for example deriving with a
+    key whose ``CKA_DERIVE`` is false.
+    """
+
+
+class CurveNotSupported(PKCS11Error):
+    """
+    The token does not support the elliptic curve named in the parameters.
+    """
+
+
+class SavedStateInvalid(PKCS11Error):
+    pass
+
+
+class InformationSensitive(PKCS11Error):
+    pass
+
+
+class StateUnsaveable(PKCS11Error):
+    pass
+
+
+class MutexBad(PKCS11Error):
+    pass
+
+
+class MutexNotLocked(PKCS11Error):
+    pass
+
+
+class NewPinMode(PKCS11Error):
+    pass
+
+
+class NextOTP(PKCS11Error):
+    pass
+
+
+class FIPSSelfTestFailed(PKCS11Error):
+    pass
+
+
+class LibraryLoadFailed(PKCS11Error):
+    pass
+
+
+class TokenResourceExceeded(PKCS11Error):
+    pass
+
+
+class OperationCancelFailed(PKCS11Error):
+    pass
+
+
+class KeyExhausted(PKCS11Error):
+    """
+    The key has been used as many times as it may be.
+    """
+
+
+class Pending(PKCS11Error):
+    pass
+
+
+class SessionAsyncNotSupported(PKCS11Error):
+    pass
+
+
+class SeedRandomRequired(PKCS11Error):
+    pass
+
+
+class OperationNotValidated(PKCS11Error):
+    pass
+
+
+class TokenNotInitialized(PKCS11Error):
+    pass
+
+
+class ParameterSetNotSupported(PKCS11Error):
+    """
+    The token does not support the parameter set named in the template,
+    for example an ML-DSA, ML-KEM or SLH-DSA set.
+    """
