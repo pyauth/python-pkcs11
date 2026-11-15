@@ -27,7 +27,11 @@ runs:
       run: |
         if [[ "${OS_NAME:0:6}" == 'ubuntu' ]]; then
           sudo apt install libcap-dev libldap-dev
-          git clone https://github.com/opencryptoki/opencryptoki
+          # Pinned to a release tag: tracking master changed behaviour under
+          # the test suite without any change here. The AES-CTR fixes landed
+          # after v3.28.0, so the three FIXME.opencryptoki markers in
+          # tests/test_aes.py go together with the bump past it.
+          git clone --depth 1 --branch v3.28.0 https://github.com/opencryptoki/opencryptoki
           cd opencryptoki
           ./bootstrap.sh
           ./configure --prefix=/usr --sysconfdir=/etc \
